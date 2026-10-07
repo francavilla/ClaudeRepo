@@ -603,8 +603,16 @@ namespace BuildExe.ViewModels
         {
             IsBusy = false;
             StatusText = "Errore: " + ex.Message;
-            AppendLog(new LogLine(ex.ToString(), LogKind.Error));
-            _dialogs.ShowError(ex.Message);
+            try
+            {
+                AppendLog(new LogLine(ex.ToString(), LogKind.Error));
+            }
+            catch (InvalidOperationException)
+            {
+                // Il log non deve mai nascondere l'errore originale: lo mostriamo comunque sotto.
+            }
+
+            _dialogs.ShowError(ex.ToString());
         }
 
         private static string DescribeToolchains(Toolchains t)

@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Windows;
+using System.Windows.Threading;
 using BuildExe.ViewModels;
 
 namespace BuildExe
@@ -10,6 +12,8 @@ namespace BuildExe
     /// </summary>
     public partial class MainWindow : Window
     {
+        private bool _scrollPending;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -23,11 +27,31 @@ namespace BuildExe
             };
         }
 
+        /// <summary>
+        /// Lo scroll NON va fatto dentro l'evento CollectionChanged: il nostro handler può essere
+        /// invocato prima che la ListBox abbia registrato l'aggiunta, e ScrollIntoView forza un
+        /// layout sincrono con il generatore dei container non allineato ("ItemsControl è incoerente
+        /// con l'origine elementi"). Lo rimandiamo al dispatcher e accorpiamo le richieste:
+        /// un solo scroll anche quando la build produce centinaia di righe di fila.
+        /// </summary>
         private void OnLogChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
-            if (e.Action == NotifyCollectionChangedAction.Add && LogList.Items.Count > 0)
+            if (e.Action != NotifyCollectionChangedAction.Add || _scrollPending)
             {
-                LogList.ScrollIntoView(LogList.Items[LogList.Items.Count - 1]);
+                return;
+            }
+
+            _scrollPending = true;
+            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(ScrollLogToEnd));
+        }
+
+        private void ScrollLogToEnd()
+        {
+            _scrollPending = false;
+            var count = LogList.Items.Count;
+            if (count > 0)
+            {
+                LogList.ScrollIntoView(LogList.Items[count - 1]);
             }
         }
 
