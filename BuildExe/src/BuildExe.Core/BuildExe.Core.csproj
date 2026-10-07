@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Logica dell'applicazione, senza dipendenze dalla UI:
+    analisi di progetti e solution, scelta della toolchain, esecuzione della build.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <RootNamespace>BuildExe.Core</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Xml.Linq" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="BuildExe.Core.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Applicazione desktop WPF per .NET Framework 4.8 (formato SDK-style, Visual Studio 2019 16.3+). -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>BuildExe</AssemblyName>
+    <RootNamespace>BuildExe</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AssemblyTitle>BuildExe - crea eseguibili da progetti .NET</AssemblyTitle>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BuildExe.Core\BuildExe.Core.csproj" />
+  </ItemGroup>
+
+</Project>
