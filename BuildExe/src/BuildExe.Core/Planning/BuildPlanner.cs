@@ -153,7 +153,7 @@ namespace BuildExe.Core.Planning
                 plan.Warnings.Add("Self-contained e single-file sono disponibili solo per .NET Core/.NET 5+: opzioni ignorate.");
             }
 
-            AddSolutionDir(plan, options, "-p:");
+            AddSolutionDir(plan, project, options);
             plan.Description = description;
         }
 
@@ -190,7 +190,7 @@ namespace BuildExe.Core.Planning
                 "-nologo",
                 "-v:minimal"
             });
-            AddSolutionDir(plan, options, "-p:");
+            AddSolutionDir(plan, project, options);
             plan.Description = string.Format(
                 "Progetto {0} per {1} con COMReference → MSBuild {2} -t:Publish",
                 project.ProjectStyleDescription, tfm.DisplayName, toolchains.MsBuildVersion);
@@ -257,7 +257,7 @@ namespace BuildExe.Core.Planning
                 }
             }
 
-            AddSolutionDir(plan, options, "-p:");
+            AddSolutionDir(plan, project, options);
             plan.Description = string.Format(
                 "Progetto {0} per {1} → MSBuild {2}",
                 project.ProjectStyleDescription, tfm.DisplayName, toolchains.MsBuildVersion);
@@ -287,12 +287,30 @@ namespace BuildExe.Core.Planning
             return minimum;
         }
 
-        private static void AddSolutionDir(BuildPlan plan, BuildOptions options, string prefix)
+        /// <summary>
+        /// Valorizza $(SolutionDir) come farebbe Visual Studio: dalla solution scelta oppure da quella
+        /// dedotta dall'analisi. Senza, il restore di packages.config fallisce ("Non è stata trovata alcuna soluzione").
+        /// </summary>
+        private static void AddSolutionDir(BuildPlan plan, ProjectInfo project, BuildOptions options)
         {
-            // Mantiene funzionanti i progetti che usano $(SolutionDir) quando vengono compilati da soli.
+            string solutionDir = null;
             if (!string.IsNullOrEmpty(options.SolutionPath))
             {
-                plan.Arguments.Add(prefix + "SolutionDir=" + WithTrailingSlash(Path.GetDirectoryName(Path.GetFullPath(options.SolutionPath))));
+                solutionDir = Path.GetDirectoryName(Path.GetFullPath(options.SolutionPath));
+            }
+            else if (!string.IsNullOrEmpty(project.InferredSolutionDir))
+            {
+                solutionDir = project.InferredSolutionDir;
+                plan.Notes.Add("SolutionDir = " + solutionDir + " (da " + project.InferredSolutionDirSource + ")");
+            }
+
+            if (solutionDir != null)
+            {
+                plan.Arguments.Add("-p:SolutionDir=" + WithTrailingSlash(solutionDir));
+            }
+            else if (project.UsesPackagesConfig)
+            {
+                plan.Warnings.Add("Progetto con packages.config senza solution: il restore NuGet potrebbe fallire. Selezionare la .sln che contiene il progetto.");
             }
         }
 

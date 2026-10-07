@@ -13,6 +13,8 @@ namespace BuildExe.Core.Execution
 
     public sealed class ProcessRunner : IProcessRunner
     {
+        private static readonly System.Text.Encoding Utf8NoBom = new System.Text.UTF8Encoding(false);
+
         public Task<int> RunAsync(string fileName, string arguments, string workingDirectory, IProgress<string> output, CancellationToken cancellationToken)
         {
             var startInfo = new ProcessStartInfo(fileName, arguments)
@@ -21,7 +23,12 @@ namespace BuildExe.Core.Execution
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 RedirectStandardOutput = true,
-                RedirectStandardError = true
+                RedirectStandardError = true,
+
+                // MSBuild e dotnet scrivono in UTF-8 quando l'output è rediretto: senza questo
+                // le lettere accentate diventano "Ã¨".
+                StandardOutputEncoding = Utf8NoBom,
+                StandardErrorEncoding = Utf8NoBom
             };
 
             // Output pulito e niente processi MSBuild residenti dopo la build.

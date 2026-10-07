@@ -439,7 +439,7 @@ namespace BuildExe.ViewModels
             if (_toolchains == null)
             {
                 Plan = null;
-                PlanMessages.Add(new PlanMessage("Attendere il rilevamento degli strumenti di build...", false));
+                PlanMessages.Add(new PlanMessage("Attendere il rilevamento degli strumenti di build...", PlanMessageKind.Info));
                 return;
             }
 
@@ -451,12 +451,17 @@ namespace BuildExe.ViewModels
 
             foreach (var error in plan.Errors)
             {
-                PlanMessages.Add(new PlanMessage(error, true));
+                PlanMessages.Add(new PlanMessage(error, PlanMessageKind.Error));
             }
 
             foreach (var warning in plan.Warnings)
             {
-                PlanMessages.Add(new PlanMessage(warning, false));
+                PlanMessages.Add(new PlanMessage(warning, PlanMessageKind.Warning));
+            }
+
+            foreach (var note in plan.Notes)
+            {
+                PlanMessages.Add(new PlanMessage(note, PlanMessageKind.Info));
             }
 
             Plan = plan;

@@ -68,6 +68,11 @@ namespace BuildExe.Core.Analysis
             EvaluateFile(context, info.FullPath, root, 0);
 
             FillProjectInfo(info, context);
+            if (string.IsNullOrEmpty(solutionPath))
+            {
+                InferSolutionDir(info, context.HintPaths);
+            }
+
             return info;
         }
 
@@ -202,6 +207,14 @@ namespace BuildExe.Core.Analysis
                 {
                     context.Info.HasComReferences = true;
                 }
+                else if (item.Name.LocalName == "Reference" && IsTrue(context, item, filePath))
+                {
+                    var hintPath = item.Elements().FirstOrDefault(e => e.Name.LocalName == "HintPath");
+                    if (hintPath != null)
+                    {
+                        context.HintPaths.Add(context.Properties.Expand(hintPath.Value.Trim()));
+                    }
+                }
             }
         }
 
@@ -292,6 +305,106 @@ namespace BuildExe.Core.Analysis
                     info.TargetFrameworks.Add(tfm);
                 }
             }
+        }
+
+        private const int MaxSolutionSearchLevels = 6;
+
+        /// <summary>
+        /// Progetto scelto senza solution: cerca la cartella della solution come farebbe Visual Studio.
+        /// 1) una .sln/.slnx nelle cartelle superiori che contiene il progetto;
+        /// 2) altrimenti la cartella che contiene "packages\" negli HintPath dei riferimenti NuGet.
+        /// </summary>
+        private static void InferSolutionDir(ProjectInfo info, IEnumerable<string> hintPaths)
+        {
+            var solution = FindContainingSolution(info);
+            if (solution != null)
+            {
+                info.InferredSolutionDir = Path.GetDirectoryName(solution);
+                info.InferredSolutionDirSource = "solution " + Path.GetFileName(solution);
+                return;
+            }
+
+            foreach (var hint in hintPaths)
+            {
+                var packagesDir = FindPackagesDirectory(info.Directory, hint);
+                if (packagesDir != null)
+                {
+                    info.InferredSolutionDir = Path.GetDirectoryName(packagesDir);
+                    info.InferredSolutionDirSource = "HintPath dei pacchetti NuGet";
+                    return;
+                }
+            }
+        }
+
+        private static string FindContainingSolution(ProjectInfo info)
+        {
+            var parser = new SolutionParser();
+            var directory = new DirectoryInfo(info.Directory);
+            for (var level = 0; directory != null && level < MaxSolutionSearchLevels; level++, directory = directory.Parent)
+            {
+                string[] candidates;
+                try
+                {
+                    candidates = directory.GetFiles("*.sln").Concat(directory.GetFiles("*.slnx"))
+                        .Select(f => f.FullName)
+                        .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+                        .ToArray();
+                }
+                catch (Exception ex) when (ex is UnauthorizedAccessException || ex is IOException)
+                {
+                    continue;
+                }
+
+                foreach (var candidate in candidates)
+                {
+                    try
+                    {
+                        if (parser.Parse(candidate).Any(p => string.Equals(p.FullPath, info.FullPath, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            return candidate;
+                        }
+                    }
+                    catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is XmlException)
+                    {
+                        // Solution illeggibile: si passa alla successiva.
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        // "..\packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll" -> "<...>\packages"
+        private static string FindPackagesDirectory(string projectDirectory, string hintPath)
+        {
+            if (string.IsNullOrWhiteSpace(hintPath) || hintPath.Contains("$("))
+            {
+                return null;
+            }
+
+            string full;
+            try
+            {
+                var normalized = NormalizeSeparators(hintPath);
+                full = Path.GetFullPath(Path.IsPathRooted(normalized) ? normalized : Path.Combine(projectDirectory, normalized));
+            }
+            catch (Exception ex) when (ex is ArgumentException || ex is NotSupportedException || ex is PathTooLongException)
+            {
+                return null;
+            }
+
+            var directory = new DirectoryInfo(Path.GetDirectoryName(full));
+            while (directory != null)
+            {
+                if (string.Equals(directory.Name, "packages", StringComparison.OrdinalIgnoreCase) && directory.Parent != null)
+                {
+                    return directory.FullName;
+                }
+
+                directory = directory.Parent;
+            }
+
+            return null;
         }
 
         private static OutputKind ParseOutputKind(string outputType)
@@ -387,7 +500,10 @@ namespace BuildExe.Core.Analysis
                 Info = info;
                 Properties = new PropertyBag();
                 VisitedImports = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                HintPaths = new List<string>();
             }
+
+            public List<string> HintPaths { get; private set; }
 
             public ProjectInfo Info { get; private set; }
 

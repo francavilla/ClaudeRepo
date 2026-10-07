@@ -160,9 +160,13 @@
                                         <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
                                         <Setter Property="Text" Value="{Binding Text, StringFormat='⚠ {0}'}" />
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsError}" Value="True">
+                                            <DataTrigger Binding="{Binding Kind}" Value="{x:Static vm:PlanMessageKind.Error}">
                                                 <Setter Property="Foreground" Value="{StaticResource ErrorBrush}" />
                                                 <Setter Property="Text" Value="{Binding Text, StringFormat='✖ {0}'}" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Kind}" Value="{x:Static vm:PlanMessageKind.Info}">
+                                                <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+                                                <Setter Property="Text" Value="{Binding Text, StringFormat='ℹ {0}'}" />
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>

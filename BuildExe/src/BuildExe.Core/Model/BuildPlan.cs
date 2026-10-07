@@ -19,6 +19,7 @@ namespace BuildExe.Core.Model
         {
             Errors = new List<string>();
             Warnings = new List<string>();
+            Notes = new List<string>();
             Arguments = new List<string>();
         }
 
@@ -38,6 +39,9 @@ namespace BuildExe.Core.Model
         public List<string> Errors { get; private set; }
 
         public List<string> Warnings { get; private set; }
+
+        /// <summary>Informazioni sulle scelte fatte (non sono problemi).</summary>
+        public List<string> Notes { get; private set; }
 
         public bool CanBuild
         {

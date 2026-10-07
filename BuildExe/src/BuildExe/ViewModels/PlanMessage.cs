@@ -1,15 +1,22 @@
 namespace BuildExe.ViewModels
 {
+    public enum PlanMessageKind
+    {
+        Info,
+        Warning,
+        Error
+    }
+
     public sealed class PlanMessage
     {
-        public PlanMessage(string text, bool isError)
+        public PlanMessage(string text, PlanMessageKind kind)
         {
             Text = text;
-            IsError = isError;
+            Kind = kind;
         }
 
         public string Text { get; private set; }
 
-        public bool IsError { get; private set; }
+        public PlanMessageKind Kind { get; private set; }
     }
 }

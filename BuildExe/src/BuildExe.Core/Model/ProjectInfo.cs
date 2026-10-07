@@ -81,6 +81,15 @@ namespace BuildExe.Core.Model
 
         public string RuntimeIdentifier { get; set; }
 
+        /// <summary>
+        /// Cartella della solution dedotta quando il progetto viene scelto da solo (senza .sln):
+        /// serve a valorizzare $(SolutionDir), indispensabile al restore NuGet con packages.config.
+        /// </summary>
+        public string InferredSolutionDir { get; set; }
+
+        /// <summary>Da dove è stata dedotta <see cref="InferredSolutionDir"/> (per la UI).</summary>
+        public string InferredSolutionDirSource { get; set; }
+
         /// <summary>File Directory.Build.props importato, se presente.</summary>
         public string DirectoryBuildProps { get; set; }
 
