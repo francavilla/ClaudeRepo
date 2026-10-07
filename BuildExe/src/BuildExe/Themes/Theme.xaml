@@ -1,0 +1,317 @@
+<!--
+  Tema "Fluent" di BuildExe: colori, card, pulsanti, campi di input, elenco progetti e console.
+  Solo XAML, nessuna libreria esterna: l'applicazione resta un singolo .exe per .NET Framework 4.8.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ===================================================== Colori -->
+    <Color x:Key="AccentColor">#2563EB</Color>
+    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="#1D4ED8" />
+    <SolidColorBrush x:Key="AccentPressedBrush" Color="#1E40AF" />
+    <SolidColorBrush x:Key="AccentSoftBrush" Color="#DBEAFE" />
+
+    <SolidColorBrush x:Key="WindowBrush" Color="#F1F5F9" />
+    <SolidColorBrush x:Key="CardBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="SubtleBrush" Color="#F8FAFC" />
+    <SolidColorBrush x:Key="HoverBrush" Color="#F1F5F9" />
+    <SolidColorBrush x:Key="BorderBrush" Color="#E2E8F0" />
+    <SolidColorBrush x:Key="BorderStrongBrush" Color="#CBD5E1" />
+    <SolidColorBrush x:Key="TextBrush" Color="#0F172A" />
+    <SolidColorBrush x:Key="MutedBrush" Color="#64748B" />
+
+    <SolidColorBrush x:Key="ErrorBrush" Color="#DC2626" />
+    <SolidColorBrush x:Key="ErrorSoftBrush" Color="#FEF2F2" />
+    <SolidColorBrush x:Key="ErrorBorderBrush" Color="#FECACA" />
+    <SolidColorBrush x:Key="WarningBrush" Color="#B45309" />
+    <SolidColorBrush x:Key="WarningSoftBrush" Color="#FFFBEB" />
+    <SolidColorBrush x:Key="WarningBorderBrush" Color="#FDE68A" />
+    <SolidColorBrush x:Key="InfoBrush" Color="#1D4ED8" />
+    <SolidColorBrush x:Key="InfoSoftBrush" Color="#EFF6FF" />
+    <SolidColorBrush x:Key="InfoBorderBrush" Color="#BFDBFE" />
+    <SolidColorBrush x:Key="SuccessBrush" Color="#16A34A" />
+
+    <!-- Console del log (tema scuro) -->
+    <SolidColorBrush x:Key="ConsoleBrush" Color="#0F172A" />
+    <SolidColorBrush x:Key="ConsoleHeaderBrush" Color="#1E293B" />
+    <SolidColorBrush x:Key="ConsoleTextBrush" Color="#E2E8F0" />
+    <SolidColorBrush x:Key="ConsoleMutedBrush" Color="#94A3B8" />
+    <SolidColorBrush x:Key="ConsoleErrorBrush" Color="#F87171" />
+    <SolidColorBrush x:Key="ConsoleWarningBrush" Color="#FBBF24" />
+    <SolidColorBrush x:Key="ConsoleCommandBrush" Color="#93C5FD" />
+    <SolidColorBrush x:Key="ConsoleSuccessBrush" Color="#4ADE80" />
+
+    <LinearGradientBrush x:Key="HeaderBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#1E3A8A" Offset="0" />
+        <GradientStop Color="#2563EB" Offset="1" />
+    </LinearGradientBrush>
+
+    <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
+    <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas</FontFamily>
+
+    <!-- ===================================================== Testi -->
+    <Style x:Key="Icon" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource IconFont}" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="Label" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,5,16,5" />
+    </Style>
+
+    <Style x:Key="Value" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="0,5" />
+    </Style>
+
+    <Style x:Key="Hint" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style x:Key="CardTitle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    </Style>
+
+    <!-- Numero del passaggio (cerchio colorato) -->
+    <Style x:Key="StepBadge" TargetType="Border">
+        <Setter Property="Width" Value="24" />
+        <Setter Property="Height" Value="24" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+        <Setter Property="Margin" Value="0,0,10,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="TextElement.Foreground" Value="White" />
+        <Setter Property="TextElement.FontWeight" Value="SemiBold" />
+        <Setter Property="TextElement.FontSize" Value="12" />
+    </Style>
+
+    <!-- ===================================================== Card -->
+    <Style x:Key="Card" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource CardBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Padding" Value="18,16" />
+        <Setter Property="Margin" Value="0,0,0,14" />
+    </Style>
+
+    <!-- Pillola (es. strumento di build scelto) -->
+    <Style x:Key="Pill" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource AccentSoftBrush}" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="10,5" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="TextElement.Foreground" Value="{StaticResource AccentPressedBrush}" />
+        <Setter Property="TextElement.FontWeight" Value="SemiBold" />
+    </Style>
+
+    <!-- ===================================================== Pulsanti -->
+    <Style x:Key="ButtonBase" TargetType="Button">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Padding" Value="14,7" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="6"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Bd" Property="Opacity" Value="0.45" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource ButtonBase}">
+        <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Padding" Value="20,9" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource AccentHoverBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource AccentHoverBrush}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="{StaticResource AccentPressedBrush}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource ButtonBase}">
+        <Setter Property="Background" Value="{StaticResource CardBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource HoverBrush}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="{StaticResource BorderBrush}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+        <Setter Property="Foreground" Value="{StaticResource ErrorBrush}" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource ErrorSoftBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource ErrorBorderBrush}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Pulsante piccolo senza bordo (es. "Seleziona tutti") -->
+    <Style x:Key="LinkButton" TargetType="Button" BasedOn="{StaticResource ButtonBase}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+        <Setter Property="Padding" Value="8,4" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource InfoSoftBrush}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Pulsante della console scura -->
+    <Style x:Key="ConsoleButton" TargetType="Button" BasedOn="{StaticResource ButtonBase}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource ConsoleMutedBrush}" />
+        <Setter Property="Padding" Value="8,4" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="#334155" />
+                <Setter Property="Foreground" Value="{StaticResource ConsoleTextBrush}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- ===================================================== Campi di input -->
+    <Style x:Key="InputBox" TargetType="TextBox">
+        <Setter Property="Background" Value="{StaticResource CardBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="8,6" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border x:Name="Bd"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="6">
+                        <ScrollViewer x:Name="PART_ContentHost"
+                                      Margin="{TemplateBinding Padding}"
+                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                      Focusable="False"
+                                      HorizontalScrollBarVisibility="Hidden"
+                                      VerticalScrollBarVisibility="Hidden" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource MutedBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                            <Setter TargetName="Bd" Property="BorderThickness" Value="2" />
+                        </Trigger>
+                        <Trigger Property="IsReadOnly" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource SubtleBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Bd" Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="CommandBox" TargetType="TextBox" BasedOn="{StaticResource InputBox}">
+        <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="IsReadOnly" Value="True" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Foreground" Value="#334155" />
+    </Style>
+
+    <!-- ===================================================== Elenco progetti -->
+    <Style x:Key="GridHeader" TargetType="GridViewColumnHeader">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="GridViewColumnHeader">
+                    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="6,6" Background="Transparent"
+                            TextElement.FontSize="12" TextElement.FontWeight="SemiBold" TextElement.Foreground="{StaticResource MutedBrush}">
+                        <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ProjectList" TargetType="ListView">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="4" />
+        <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+    </Style>
+
+    <!-- ===================================================== Console del log -->
+    <Style x:Key="ConsoleItem" TargetType="ListBoxItem">
+        <Setter Property="Foreground" Value="{StaticResource ConsoleTextBrush}" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Border x:Name="Bd" Background="Transparent" Padding="10,1">
+                        <ContentPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="#334155" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Barra di avanzamento sottile sotto l'intestazione -->
+    <Style x:Key="ThinProgress" TargetType="ProgressBar">
+        <Setter Property="Height" Value="3" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Background" Value="{StaticResource AccentSoftBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+    </Style>
+</ResourceDictionary>
