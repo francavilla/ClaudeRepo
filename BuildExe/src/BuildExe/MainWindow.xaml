@@ -4,20 +4,10 @@
         xmlns:vm="clr-namespace:BuildExe.ViewModels"
         xmlns:conv="clr-namespace:BuildExe.Converters"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
-        Title="BuildExe" Width="1000" Height="820" MinWidth="760" MinHeight="600"
+        Title="BuildExe" Width="1060" Height="900" MinWidth="760" MinHeight="600"
         WindowStartupLocation="CenterScreen"
         AllowDrop="True" Drop="OnFileDrop" DragOver="OnFileDragOver"
         FontSize="13">
-    <Window.Resources>
-        <DataTemplate x:Key="ProjectItem">
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                <TextBlock Text="{Binding DefaultTargetFramework.DisplayName, StringFormat='  —  {0}'}" Foreground="{StaticResource MutedBrush}" />
-                <TextBlock Text="{Binding FullPath, StringFormat='  ({0})'}" Foreground="{StaticResource MutedBrush}" />
-            </StackPanel>
-        </DataTemplate>
-    </Window.Resources>
-
     <DockPanel>
         <StatusBar DockPanel.Dock="Bottom">
             <StatusBarItem>
@@ -60,11 +50,47 @@
                             </Style>
                         </TextBlock.Style>
                     </TextBlock>
-                    <DockPanel Margin="0,6,0,0" Visibility="{Binding IsSolution, Converter={StaticResource BoolToVisibility}}">
-                        <TextBlock DockPanel.Dock="Left" Style="{StaticResource Label}" Text="Progetto eseguibile:" />
-                        <ComboBox ItemsSource="{Binding SolutionProjects}" SelectedItem="{Binding SelectedProject}"
-                                  ItemTemplate="{StaticResource ProjectItem}" IsEnabled="{Binding IsBusy, Converter={x:Static conv:InverseBooleanConverter.Instance}}" />
-                    </DockPanel>
+                    <!-- Solution: elenco dei progetti eseguibili da spuntare (uno, alcuni o tutti) -->
+                    <StackPanel Margin="0,6,0,0" Visibility="{Binding IsSolution, Converter={StaticResource BoolToVisibility}}"
+                                IsEnabled="{Binding IsBusy, Converter={x:Static conv:InverseBooleanConverter.Instance}}">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                <Button Content="Seleziona tutti" Command="{Binding SelectAllCommand}" MinWidth="0" Padding="8,2" />
+                                <Button Content="Nessuno" Command="{Binding SelectNoneCommand}" MinWidth="0" Padding="8,2" Margin="6,0,0,0" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding SelectionSummary}" VerticalAlignment="Center" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        </DockPanel>
+                        <ListView ItemsSource="{Binding Projects}" SelectedItem="{Binding CurrentProject}" Margin="0,4,0,0" MaxHeight="170"
+                                  ToolTip="Spuntare i progetti da compilare; selezionare una riga per vederne i dettagli">
+                            <ListView.View>
+                                <GridView>
+                                    <GridViewColumn Width="32">
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <CheckBox IsChecked="{Binding IsSelected}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Progetto" Width="220">
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" ToolTip="{Binding Info.FullPath}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Target" Width="190" DisplayMemberBinding="{Binding SelectedTargetFramework.DisplayName}" />
+                                    <GridViewColumn Header="Strumento" Width="110" DisplayMemberBinding="{Binding ToolText}" />
+                                    <GridViewColumn Header="Stato" Width="330">
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Status}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Status}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+                    </StackPanel>
                 </StackPanel>
             </GroupBox>
 
@@ -86,20 +112,20 @@
 
                     <TextBlock Grid.Row="0" Style="{StaticResource Label}" Text="Progetto:" />
                     <TextBlock Grid.Row="0" Grid.Column="1" Style="{StaticResource Value}">
-                        <Run Text="{Binding SelectedProject.Name, Mode=OneWay}" FontWeight="SemiBold" />
-                        <Run Text="{Binding SelectedProject.Language, Mode=OneWay, StringFormat=' ({0})'}" />
+                        <Run Text="{Binding CurrentProject.Name, Mode=OneWay}" FontWeight="SemiBold" />
+                        <Run Text="{Binding CurrentProject.Info.Language, Mode=OneWay, StringFormat=' ({0})'}" />
                     </TextBlock>
 
                     <TextBlock Grid.Row="1" Style="{StaticResource Label}" Text="Formato:" />
-                    <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource Value}" Text="{Binding SelectedProject.ProjectStyleDescription}" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource Value}" Text="{Binding CurrentProject.Info.ProjectStyleDescription}" />
 
                     <TextBlock Grid.Row="2" Style="{StaticResource Label}" Text="Tipo di output:" />
-                    <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource Value}" Text="{Binding SelectedProject.OutputKind}" />
+                    <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource Value}" Text="{Binding CurrentProject.Info.OutputKind}" />
 
                     <TextBlock Grid.Row="3" Style="{StaticResource Label}" Text="Target framework:" />
                     <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal">
-                        <ComboBox MinWidth="260" ItemsSource="{Binding TargetFrameworks}" SelectedItem="{Binding SelectedTargetFramework}"
-                                  IsEnabled="{Binding IsMultiTarget}" Margin="0,2">
+                        <ComboBox MinWidth="260" ItemsSource="{Binding CurrentProject.TargetFrameworks}" SelectedItem="{Binding CurrentProject.SelectedTargetFramework}"
+                                  IsEnabled="{Binding CurrentProject.IsMultiTarget}" Margin="0,2">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate>
                                     <TextBlock>
@@ -110,11 +136,11 @@
                             </ComboBox.ItemTemplate>
                         </ComboBox>
                         <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" Text="progetto multi-target: scegliere il target"
-                                   Visibility="{Binding IsMultiTarget, Converter={StaticResource BoolToVisibility}}" />
+                                   Visibility="{Binding CurrentProject.IsMultiTarget, Converter={StaticResource BoolToVisibility}}" />
                     </StackPanel>
 
                     <TextBlock Grid.Row="4" Style="{StaticResource Label}" Text="Strumento di build:" />
-                    <TextBlock Grid.Row="4" Grid.Column="1" Style="{StaticResource Value}" Text="{Binding PlanDescription}" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold" />
+                    <TextBlock Grid.Row="4" Grid.Column="1" Style="{StaticResource Value}" Text="{Binding CurrentProject.Plan.Description}" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold" />
 
                     <TextBlock Grid.Row="5" Style="{StaticResource Label}" Text="Sulla macchina:" />
                     <TextBlock Grid.Row="5" Grid.Column="1" Style="{StaticResource Value}" Text="{Binding ToolchainSummary}" Foreground="{StaticResource MutedBrush}" />
@@ -127,11 +153,11 @@
                     <DockPanel>
                         <Button DockPanel.Dock="Right" Margin="6,0,0,0" Content="Sfoglia..." Command="{Binding BrowseOutputCommand}" />
                         <TextBox Text="{Binding OutputDirectory, UpdateSourceTrigger=PropertyChanged, Delay=400}"
-                                 ToolTip="Percorso assoluto, oppure relativo alla cartella del progetto" />
+                                 ToolTip="Percorso assoluto, oppure relativo alla cartella della solution/del progetto" />
                     </DockPanel>
-                    <TextBlock Margin="0,3,0,0" Foreground="{StaticResource MutedBrush}" Text="{Binding ResolvedOutputDirectory, StringFormat='→ {0}'}" />
+                    <TextBlock Margin="0,3,0,0" Foreground="{StaticResource MutedBrush}" Text="{Binding OutputHint}" />
 
-                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0" IsEnabled="{Binding IsNetCoreTarget}">
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0" IsEnabled="{Binding IsAnyNetCoreTarget}">
                         <CheckBox Content="Self-contained (include il runtime .NET)" IsChecked="{Binding SelfContained}" VerticalAlignment="Center" />
                         <CheckBox Content="File singolo" IsChecked="{Binding SingleFile}" Margin="16,0,0,0" VerticalAlignment="Center" />
                         <TextBlock Text="Runtime:" Margin="16,0,6,0" VerticalAlignment="Center" />
@@ -177,10 +203,10 @@
                 </ItemsControl>
 
                 <TextBox Margin="0,6,0,0" IsReadOnly="True" FontFamily="Consolas" TextWrapping="Wrap" Background="#F4F6F8"
-                         Text="{Binding CommandPreview, Mode=OneWay}" ToolTip="Comando che verrà eseguito" />
+                         Text="{Binding CurrentProject.CommandPreview, Mode=OneWay}" ToolTip="Comando che verrà eseguito per il progetto evidenziato" />
 
                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                    <Button Content="Crea eseguibile" Command="{Binding BuildCommand}" IsDefault="True" FontWeight="SemiBold" />
+                    <Button Content="{Binding BuildButtonText}" Command="{Binding BuildCommand}" IsDefault="True" FontWeight="SemiBold" />
                     <Button Content="Annulla" Command="{Binding CancelCommand}" Margin="8,0,0,0" />
                     <Button Content="Apri cartella output" Command="{Binding OpenOutputCommand}" Margin="8,0,0,0" />
                     <Button Content="Aggiorna" Command="{Binding RefreshCommand}" Margin="8,0,0,0"

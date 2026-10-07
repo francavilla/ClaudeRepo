@@ -9,11 +9,18 @@ in configurazione **Release**, scegliendo da sola lo strumento di build corretto
 1. Avviare `BuildExe.exe` (o `BuildExe.exe "C:\percorso\Progetto.csproj"`).
 2. Indicare un **progetto** (`.csproj`, `.vbproj`, `.fsproj`) o una **solution** (`.sln`, `.slnx`):
    con *Sfoglia...*, scrivendo il percorso o trascinando il file sulla finestra.
-   Con una solution, scegliere uno dei progetti eseguibili (`OutputType` Exe/WinExe).
-3. Controllare l'analisi: formato del progetto, target framework, strumento scelto e comando esatto.
-4. Indicare la **cartella di output**: assoluta, o relativa alla cartella del progetto.
-5. Premere **Crea eseguibile**. Il log mostra l'output di MSBuild/dotnet (errori in rosso);
-   *Annulla* interrompe la build e i processi figli.
+3. Con una solution compare l'elenco dei **progetti eseguibili** (`OutputType` Exe/WinExe; librerie,
+   test e progetti web sono esclusi). Spuntare quelli da compilare: uno, alcuni, oppure tutti con
+   *Seleziona tutti*. Se la solution ha un solo eseguibile è già spuntato.
+   Selezionando una riga, il pannello di analisi mostra i dettagli di quel progetto.
+4. Controllare l'analisi: formato del progetto, target framework (scelta per ogni progetto multi-target),
+   strumento scelto e comando esatto.
+5. Indicare la **cartella di output**: assoluta, o relativa alla cartella della solution/del progetto.
+   Con più progetti selezionati ognuno finisce in una propria sottocartella `<output>\<NomeProgetto>`.
+6. Premere **Crea eseguibile** (o **Crea N eseguibili**). I progetti vengono compilati in sequenza;
+   la colonna *Stato* e il riepilogo finale indicano le build riuscite e quelle fallite.
+   Il log mostra l'output di MSBuild/dotnet (errori in rosso); *Annulla* interrompe la build in corso
+   e salta le successive.
 
 ## Come viene scelta la build
 
@@ -36,7 +43,9 @@ Controlli eseguiti prima della build:
 - è installato un .NET SDK di versione sufficiente, con il link per scaricarlo se manca;
 - per i progetti classici: MSBuild 15.5+ e il **targeting pack** della versione del Framework (MSB3644);
 - `packages.config` → `-p:RestorePackagesConfig=true` (MSBuild 16.5+);
-- se il progetto viene da una solution si passa `SolutionDir`, così funzionano i progetti che usano `$(SolutionDir)`.
+- viene sempre passato `SolutionDir` quando è noto, come fa Visual Studio. Lo si prende dalla solution scelta;
+  se è stato scelto un progetto da solo, dalla `.sln` delle cartelle superiori che lo contiene o, in mancanza,
+  dalla cartella `packages\` indicata negli `HintPath`. È indispensabile per il restore di `packages.config`.
 
 Opzioni solo per .NET Core/.NET 5+: **self-contained**, **file singolo**, **runtime** (`win-x64`, `win-x86`, `win-arm64`).
 
@@ -52,10 +61,10 @@ src/
     Toolchain/          ToolchainLocator: dotnet --list-sdks, vswhere, Reference Assemblies
     Execution/          ProcessRunner (output in streaming, annullamento), BuildService, CommandLine
   BuildExe/             WPF net48 - MVVM senza librerie esterne
-    ViewModels/         MainViewModel
+    ViewModels/         MainViewModel, ProjectItemViewModel (un progetto dell'elenco)
     Services/           finestre di dialogo, selettore cartelle moderno (IFileOpenDialog)
 tests/
-  BuildExe.Core.Tests/  xUnit - 62 test
+  BuildExe.Core.Tests/  xUnit - 67 test
 docs/adr/               decisioni architetturali
 ```
 

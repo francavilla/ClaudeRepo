@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -18,6 +19,7 @@ namespace BuildExe.ViewModels
     public sealed class MainViewModel : ObservableObject
     {
         private const int MaxLogLines = 20000;
+        private const string DefaultOutputFolder = "BuildExe-output";
 
         private readonly ProjectAnalyzer _analyzer;
         private readonly SolutionParser _solutionParser;
@@ -29,18 +31,16 @@ namespace BuildExe.ViewModels
         private string _inputPath;
         private string _inputError;
         private bool _isSolution;
-        private ProjectInfo _selectedProject;
-        private TargetFramework _selectedTargetFramework;
+        private ProjectItemViewModel _currentProject;
         private string _outputDirectory;
         private bool _selfContained;
         private bool _singleFile;
         private string _runtimeIdentifier = "win-x64";
         private Toolchains _toolchains;
         private string _toolchainSummary = "Rilevamento degli strumenti di build in corso...";
-        private BuildPlan _plan;
         private bool _isBusy;
         private string _statusText = "Pronto.";
-        private string _lastExecutable;
+        private bool _suspendPlanUpdates;
         private CancellationTokenSource _cancellation;
 
         public MainViewModel(
@@ -58,18 +58,19 @@ namespace BuildExe.ViewModels
             _toolchainLocator = toolchainLocator;
             _dialogs = dialogs;
 
-            SolutionProjects = new ObservableCollection<ProjectInfo>();
-            TargetFrameworks = new ObservableCollection<TargetFramework>();
+            Projects = new ObservableCollection<ProjectItemViewModel>();
             PlanMessages = new ObservableCollection<PlanMessage>();
             Log = new ObservableCollection<LogLine>();
 
             BrowseInputCommand = new RelayCommand(BrowseInput, () => !IsBusy);
             BrowseOutputCommand = new RelayCommand(BrowseOutput, () => !IsBusy);
-            BuildCommand = new AsyncRelayCommand(BuildAsync, () => !IsBusy && Plan != null && Plan.CanBuild, OnUnexpectedError);
+            BuildCommand = new AsyncRelayCommand(BuildAsync, CanBuild, OnUnexpectedError);
             CancelCommand = new RelayCommand(Cancel, () => IsBusy);
             OpenOutputCommand = new RelayCommand(OpenOutput, () => ResolvedOutputDirectory != null && Directory.Exists(ResolvedOutputDirectory));
             CopyLogCommand = new RelayCommand(CopyLog, () => Log.Count > 0);
             RefreshCommand = new AsyncRelayCommand(RefreshAsync, () => !IsBusy, OnUnexpectedError);
+            SelectAllCommand = new RelayCommand(() => SetSelection(true), () => !IsBusy && Projects.Any(p => !p.IsSelected));
+            SelectNoneCommand = new RelayCommand(() => SetSelection(false), () => !IsBusy && Projects.Any(p => p.IsSelected));
         }
 
         // ---------------------------------------------------------------- Comandi
@@ -87,6 +88,10 @@ namespace BuildExe.ViewModels
         public ICommand CopyLogCommand { get; private set; }
 
         public ICommand RefreshCommand { get; private set; }
+
+        public ICommand SelectAllCommand { get; private set; }
+
+        public ICommand SelectNoneCommand { get; private set; }
 
         // ---------------------------------------------------------------- Input
 
@@ -115,60 +120,67 @@ namespace BuildExe.ViewModels
             private set { SetProperty(ref _isSolution, value); }
         }
 
-        /// <summary>Progetti eseguibili della solution.</summary>
-        public ObservableCollection<ProjectInfo> SolutionProjects { get; private set; }
+        /// <summary>Progetti eseguibili: uno solo per un progetto, tutti quelli eseguibili per una solution.</summary>
+        public ObservableCollection<ProjectItemViewModel> Projects { get; private set; }
 
-        public ProjectInfo SelectedProject
+        /// <summary>Progetto mostrato nel pannello di analisi (riga evidenziata nell'elenco).</summary>
+        public ProjectItemViewModel CurrentProject
         {
-            get { return _selectedProject; }
+            get { return _currentProject; }
             set
             {
-                if (SetProperty(ref _selectedProject, value))
+                if (SetProperty(ref _currentProject, value))
                 {
-                    OnProjectChanged();
+                    OnPropertyChanged("HasProject");
+                    RefreshMessages();
                 }
             }
         }
 
         public bool HasProject
         {
-            get { return SelectedProject != null; }
+            get { return CurrentProject != null; }
         }
 
-        public ObservableCollection<TargetFramework> TargetFrameworks { get; private set; }
-
-        public TargetFramework SelectedTargetFramework
+        public IList<ProjectItemViewModel> SelectedProjects
         {
-            get { return _selectedTargetFramework; }
-            set
+            get { return Projects.Where(p => p.IsSelected).ToList(); }
+        }
+
+        public string SelectionSummary
+        {
+            get
             {
-                if (SetProperty(ref _selectedTargetFramework, value))
+                var selected = Projects.Count(p => p.IsSelected);
+                if (Projects.Count == 0)
                 {
-                    OnPropertyChanged("IsNetCoreTarget");
-                    UpdatePlan();
+                    return string.Empty;
                 }
+
+                if (selected == 0)
+                {
+                    return string.Format("{0} progetti eseguibili: spuntare quelli da compilare (o \"Seleziona tutti\").", Projects.Count);
+                }
+
+                return string.Format("{0} di {1} progetti eseguibili selezionati.", selected, Projects.Count);
             }
         }
 
-        public bool IsMultiTarget
+        public string BuildButtonText
         {
-            get { return TargetFrameworks.Count > 1; }
-        }
-
-        /// <summary>Le opzioni di deployment (self-contained, single file) valgono solo per .NET Core / .NET 5+.</summary>
-        public bool IsNetCoreTarget
-        {
-            get { return SelectedTargetFramework != null && SelectedTargetFramework.Family == FrameworkFamily.NetCore && SelectedProject != null && SelectedProject.IsSdkStyle; }
-        }
-
-        public string TargetFrameworksText
-        {
-            get { return SelectedProject == null ? string.Empty : string.Join(", ", SelectedProject.TargetFrameworks.Select(t => t.DisplayName + " [" + t.Moniker + "]")); }
+            get
+            {
+                var selected = Projects.Count(p => p.IsSelected);
+                return selected > 1 ? "Crea " + selected + " eseguibili" : "Crea eseguibile";
+            }
         }
 
         // ---------------------------------------------------------------- Output e opzioni
 
-        /// <summary>Cartella di output; se relativa, è relativa alla cartella del progetto.</summary>
+        /// <summary>
+        /// Cartella di output; se relativa, è relativa alla cartella della solution o del progetto.
+        /// Con più progetti selezionati ognuno va in una sottocartella con il proprio nome.
+        /// </summary>
         public string OutputDirectory
         {
             get { return _outputDirectory; }
@@ -177,7 +189,7 @@ namespace BuildExe.ViewModels
                 if (SetProperty(ref _outputDirectory, value))
                 {
                     OnPropertyChanged("ResolvedOutputDirectory");
-                    UpdatePlan();
+                    UpdatePlans();
                 }
             }
         }
@@ -194,9 +206,10 @@ namespace BuildExe.ViewModels
                 try
                 {
                     var path = Environment.ExpandEnvironmentVariables(OutputDirectory.Trim());
-                    if (!Path.IsPathRooted(path) && SelectedProject != null)
+                    var baseDirectory = BaseDirectory;
+                    if (!Path.IsPathRooted(path) && baseDirectory != null)
                     {
-                        path = Path.Combine(SelectedProject.Directory, path);
+                        path = Path.Combine(baseDirectory, path);
                     }
 
                     return Path.GetFullPath(path);
@@ -208,6 +221,22 @@ namespace BuildExe.ViewModels
             }
         }
 
+        public string OutputHint
+        {
+            get
+            {
+                var resolved = ResolvedOutputDirectory;
+                if (resolved == null)
+                {
+                    return string.Empty;
+                }
+
+                return Projects.Count(p => p.IsSelected) > 1
+                    ? "→ " + resolved + Path.DirectorySeparatorChar + "<NomeProgetto>   (una sottocartella per progetto)"
+                    : "→ " + resolved;
+            }
+        }
+
         public bool SelfContained
         {
             get { return _selfContained; }
@@ -215,7 +244,7 @@ namespace BuildExe.ViewModels
             {
                 if (SetProperty(ref _selfContained, value))
                 {
-                    UpdatePlan();
+                    UpdatePlans();
                 }
             }
         }
@@ -227,7 +256,7 @@ namespace BuildExe.ViewModels
             {
                 if (SetProperty(ref _singleFile, value))
                 {
-                    UpdatePlan();
+                    UpdatePlans();
                 }
             }
         }
@@ -239,12 +268,18 @@ namespace BuildExe.ViewModels
             {
                 if (SetProperty(ref _runtimeIdentifier, value))
                 {
-                    UpdatePlan();
+                    UpdatePlans();
                 }
             }
         }
 
-        // ---------------------------------------------------------------- Piano di build
+        /// <summary>Abilita le opzioni self-contained/single-file se almeno un progetto selezionato è .NET 5+/Core.</summary>
+        public bool IsAnyNetCoreTarget
+        {
+            get { return Projects.Any(p => p.IsSelected && p.IsNetCoreTarget); }
+        }
+
+        // ---------------------------------------------------------------- Strumenti e messaggi
 
         public string ToolchainSummary
         {
@@ -252,30 +287,7 @@ namespace BuildExe.ViewModels
             private set { SetProperty(ref _toolchainSummary, value); }
         }
 
-        public BuildPlan Plan
-        {
-            get { return _plan; }
-            private set
-            {
-                if (SetProperty(ref _plan, value))
-                {
-                    OnPropertyChanged("PlanDescription");
-                    OnPropertyChanged("CommandPreview");
-                    CommandManager.InvalidateRequerySuggested();
-                }
-            }
-        }
-
-        public string PlanDescription
-        {
-            get { return Plan == null ? string.Empty : Plan.Description; }
-        }
-
-        public string CommandPreview
-        {
-            get { return Plan == null || !Plan.CanBuild ? string.Empty : Plan.CommandLineText; }
-        }
-
+        /// <summary>Errori, avvisi e note del progetto corrente.</summary>
         public ObservableCollection<PlanMessage> PlanMessages { get; private set; }
 
         // ---------------------------------------------------------------- Esecuzione
@@ -300,10 +312,29 @@ namespace BuildExe.ViewModels
             private set { SetProperty(ref _statusText, value); }
         }
 
-        public string LastExecutable
+        private string BaseDirectory
         {
-            get { return _lastExecutable; }
-            private set { SetProperty(ref _lastExecutable, value); }
+            get
+            {
+                if (IsSolution)
+                {
+                    try
+                    {
+                        return Path.GetDirectoryName(Path.GetFullPath(CleanInputPath));
+                    }
+                    catch (Exception ex) when (ex is ArgumentException || ex is NotSupportedException || ex is PathTooLongException)
+                    {
+                        return null;
+                    }
+                }
+
+                return CurrentProject != null ? CurrentProject.Info.Directory : null;
+            }
+        }
+
+        private string CleanInputPath
+        {
+            get { return (InputPath ?? string.Empty).Trim().Trim('"'); }
         }
 
         // ---------------------------------------------------------------- Ciclo di vita
@@ -314,55 +345,64 @@ namespace BuildExe.ViewModels
             ToolchainSummary = "Rilevamento degli strumenti di build in corso...";
             _toolchains = await Task.Run(() => _toolchainLocator.Locate());
             ToolchainSummary = DescribeToolchains(_toolchains);
-            UpdatePlan();
+            UpdatePlans();
         }
 
         private async Task RefreshAsync()
         {
             await InitializeAsync();
-            LoadInput();
+            ReloadPreservingSelection();
         }
 
-        // ---------------------------------------------------------------- Logica
+        // ---------------------------------------------------------------- Caricamento
 
         private void LoadInput()
         {
             InputError = null;
             IsSolution = false;
-            SolutionProjects.Clear();
-            SelectedProject = null;
+            CurrentProject = null;
+            Projects.Clear();
 
-            var path = (InputPath ?? string.Empty).Trim().Trim('"');
-            if (path.Length == 0)
+            var path = CleanInputPath;
+            if (path.Length > 0)
             {
-                return;
+                try
+                {
+                    if (!File.Exists(path))
+                    {
+                        InputError = "File non trovato.";
+                    }
+                    else if (SolutionParser.IsSolutionFile(path))
+                    {
+                        LoadSolution(path);
+                    }
+                    else if (ProjectAnalyzer.IsProjectFile(path))
+                    {
+                        var item = CreateItem(_analyzer.Analyze(path));
+                        item.IsSelected = true;
+                        Projects.Add(item);
+                    }
+                    else
+                    {
+                        InputError = "Selezionare un file .sln, .slnx, .csproj, .vbproj o .fsproj.";
+                    }
+                }
+                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is System.Xml.XmlException || ex is InvalidDataException)
+                {
+                    InputError = "Impossibile leggere il file: " + ex.Message;
+                }
             }
 
-            try
+            CurrentProject = Projects.FirstOrDefault();
+            var baseDirectory = BaseDirectory;
+            if (CurrentProject != null && baseDirectory != null && string.IsNullOrWhiteSpace(OutputDirectory))
             {
-                if (!File.Exists(path))
-                {
-                    InputError = "File non trovato.";
-                    return;
-                }
+                _outputDirectory = Path.Combine(baseDirectory, DefaultOutputFolder);
+                OnPropertyChanged("OutputDirectory");
+            }
 
-                if (SolutionParser.IsSolutionFile(path))
-                {
-                    LoadSolution(path);
-                }
-                else if (ProjectAnalyzer.IsProjectFile(path))
-                {
-                    SelectedProject = _analyzer.Analyze(path);
-                }
-                else
-                {
-                    InputError = "Selezionare un file .sln, .slnx, .csproj, .vbproj o .fsproj.";
-                }
-            }
-            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is System.Xml.XmlException || ex is InvalidDataException)
-            {
-                InputError = "Impossibile leggere il file: " + ex.Message;
-            }
+            OnPropertyChanged("ResolvedOutputDirectory");
+            OnSelectionChanged();
         }
 
         private void LoadSolution(string path)
@@ -376,7 +416,7 @@ namespace BuildExe.ViewModels
                     var info = _analyzer.Analyze(project.FullPath, solutionPath: path);
                     if (info.IsExecutable && !info.IsWebProject)
                     {
-                        SolutionProjects.Add(info);
+                        Projects.Add(CreateItem(info));
                     }
                     else
                     {
@@ -389,64 +429,167 @@ namespace BuildExe.ViewModels
                 }
             }
 
-            if (SolutionProjects.Count == 0)
+            if (Projects.Count == 0)
             {
                 InputError = "La solution non contiene progetti eseguibili (OutputType Exe/WinExe).";
                 return;
             }
 
-            StatusText = string.Format("{0} progetti eseguibili nella solution ({1} librerie/altro esclusi).", SolutionProjects.Count, skipped);
-            SelectedProject = SolutionProjects[0];
-        }
-
-        private void OnProjectChanged()
-        {
-            TargetFrameworks.Clear();
-            if (SelectedProject != null)
+            // Un solo eseguibile: selezionato subito. Più di uno: decide l'utente (uno, alcuni o tutti).
+            if (Projects.Count == 1)
             {
-                foreach (var tfm in SelectedProject.TargetFrameworks)
-                {
-                    TargetFrameworks.Add(tfm);
-                }
-
-                if (string.IsNullOrWhiteSpace(OutputDirectory))
-                {
-                    _outputDirectory = Path.Combine(SelectedProject.Directory, "BuildExe-output");
-                    OnPropertyChanged("OutputDirectory");
-                }
+                Projects[0].IsSelected = true;
             }
 
-            OnPropertyChanged("HasProject");
-            OnPropertyChanged("IsMultiTarget");
-            OnPropertyChanged("TargetFrameworksText");
-            OnPropertyChanged("ResolvedOutputDirectory");
-
-            _selectedTargetFramework = SelectedProject == null ? null : SelectedProject.DefaultTargetFramework;
-            OnPropertyChanged("SelectedTargetFramework");
-            OnPropertyChanged("IsNetCoreTarget");
-            UpdatePlan();
+            StatusText = string.Format(
+                "Solution: {0} progetti eseguibili, {1} librerie/altro esclusi.",
+                Projects.Count,
+                skipped);
         }
 
-        private void UpdatePlan()
+        private ProjectItemViewModel CreateItem(ProjectInfo info)
+        {
+            return new ProjectItemViewModel(info, OnSelectionChanged);
+        }
+
+        /// <summary>Rilegge i file (potrebbero essere cambiati) mantenendo selezione, target e riga corrente.</summary>
+        private void ReloadPreservingSelection()
+        {
+            var selected = new HashSet<string>(Projects.Where(p => p.IsSelected).Select(p => p.Info.FullPath), StringComparer.OrdinalIgnoreCase);
+            var targets = Projects.ToDictionary(p => p.Info.FullPath, p => p.SelectedTargetFramework, StringComparer.OrdinalIgnoreCase);
+            var current = CurrentProject != null ? CurrentProject.Info.FullPath : null;
+            var output = OutputDirectory;
+
+            _suspendPlanUpdates = true;
+            try
+            {
+                LoadInput();
+                foreach (var item in Projects)
+                {
+                    TargetFramework tfm;
+                    if (targets.TryGetValue(item.Info.FullPath, out tfm) && tfm != null && item.TargetFrameworks.Contains(tfm))
+                    {
+                        item.SelectedTargetFramework = tfm;
+                    }
+
+                    if (IsSolution)
+                    {
+                        item.IsSelected = selected.Contains(item.Info.FullPath);
+                    }
+                }
+
+                CurrentProject = Projects.FirstOrDefault(p => string.Equals(p.Info.FullPath, current, StringComparison.OrdinalIgnoreCase))
+                    ?? Projects.FirstOrDefault();
+                _outputDirectory = output;
+                OnPropertyChanged("OutputDirectory");
+                OnPropertyChanged("ResolvedOutputDirectory");
+            }
+            finally
+            {
+                _suspendPlanUpdates = false;
+            }
+
+            OnSelectionChanged();
+        }
+
+        // ---------------------------------------------------------------- Piani di build
+
+        private void SetSelection(bool selected)
+        {
+            _suspendPlanUpdates = true;
+            try
+            {
+                foreach (var item in Projects)
+                {
+                    item.IsSelected = selected;
+                }
+            }
+            finally
+            {
+                _suspendPlanUpdates = false;
+            }
+
+            OnSelectionChanged();
+        }
+
+        private void OnSelectionChanged()
+        {
+            OnPropertyChanged("SelectionSummary");
+            OnPropertyChanged("BuildButtonText");
+            OnPropertyChanged("OutputHint");
+            OnPropertyChanged("IsAnyNetCoreTarget");
+            UpdatePlans();
+        }
+
+        private void UpdatePlans()
+        {
+            if (_suspendPlanUpdates)
+            {
+                return;
+            }
+
+            OnPropertyChanged("OutputHint");
+            var selectedCount = Projects.Count(p => p.IsSelected);
+            var resolvedOutput = ResolvedOutputDirectory;
+
+            foreach (var item in Projects)
+            {
+                if (_toolchains == null)
+                {
+                    item.Plan = null;
+                    continue;
+                }
+
+                // Con più progetti ciascuno ha la sua sottocartella: niente DLL sovrascritte tra progetti diversi.
+                var multiple = selectedCount > 1 || (!item.IsSelected && selectedCount > 0);
+                item.OutputDirectory = resolvedOutput == null
+                    ? null
+                    : multiple ? Path.Combine(resolvedOutput, item.Name) : resolvedOutput;
+
+                var plan = _planner.CreatePlan(item.Info, CreateOptions(item), _toolchains);
+                if (!string.IsNullOrWhiteSpace(OutputDirectory) && resolvedOutput == null)
+                {
+                    plan.Errors.Add("Il percorso della cartella di output non è valido.");
+                }
+
+                item.Plan = plan;
+            }
+
+            RefreshMessages();
+            CommandManager.InvalidateRequerySuggested();
+        }
+
+        private BuildOptions CreateOptions(ProjectItemViewModel item)
+        {
+            return new BuildOptions
+            {
+                OutputDirectory = item.OutputDirectory,
+                TargetFramework = item.SelectedTargetFramework,
+                SolutionPath = IsSolution ? CleanInputPath : null,
+                SelfContained = item.IsNetCoreTarget && SelfContained,
+                SingleFile = item.IsNetCoreTarget && SingleFile,
+                RuntimeIdentifier = RuntimeIdentifier
+            };
+        }
+
+        private void RefreshMessages()
         {
             PlanMessages.Clear();
-            if (SelectedProject == null)
+            if (CurrentProject == null)
             {
-                Plan = null;
                 return;
             }
 
             if (_toolchains == null)
             {
-                Plan = null;
                 PlanMessages.Add(new PlanMessage("Attendere il rilevamento degli strumenti di build...", PlanMessageKind.Info));
                 return;
             }
 
-            var plan = _planner.CreatePlan(SelectedProject, CreateOptions(), _toolchains);
-            if (!string.IsNullOrWhiteSpace(OutputDirectory) && ResolvedOutputDirectory == null)
+            var plan = CurrentProject.Plan;
+            if (plan == null)
             {
-                plan.Errors.Add("Il percorso della cartella di output non è valido.");
+                return;
             }
 
             foreach (var error in plan.Errors)
@@ -464,60 +607,110 @@ namespace BuildExe.ViewModels
                 PlanMessages.Add(new PlanMessage(note, PlanMessageKind.Info));
             }
 
-            Plan = plan;
+            var otherInvalid = Projects.Where(p => p.IsSelected && p != CurrentProject && !p.CanBuild).Select(p => p.Name).ToList();
+            if (otherInvalid.Count > 0)
+            {
+                PlanMessages.Add(new PlanMessage(
+                    "Altri progetti selezionati non compilabili: " + string.Join(", ", otherInvalid) + " (selezionarli nell'elenco per i dettagli).",
+                    PlanMessageKind.Error));
+            }
         }
 
-        private BuildOptions CreateOptions()
+        private bool CanBuild()
         {
-            var isNetCore = IsNetCoreTarget;
-            return new BuildOptions
-            {
-                OutputDirectory = ResolvedOutputDirectory,
-                TargetFramework = SelectedTargetFramework,
-                SolutionPath = IsSolution ? (InputPath ?? string.Empty).Trim().Trim('"') : null,
-                SelfContained = isNetCore && SelfContained,
-                SingleFile = isNetCore && SingleFile,
-                RuntimeIdentifier = RuntimeIdentifier
-            };
+            var selected = Projects.Where(p => p.IsSelected).ToList();
+            return !IsBusy && _toolchains != null && selected.Count > 0 && selected.All(p => p.CanBuild);
         }
+
+        // ---------------------------------------------------------------- Build
 
         private async Task BuildAsync()
         {
-            // Rilegge il progetto: potrebbe essere stato modificato dopo la selezione.
-            var currentPath = SelectedProject.FullPath;
-            LoadInputPreservingSelection(currentPath);
-            if (Plan == null || !Plan.CanBuild)
+            // Rilegge i progetti: potrebbero essere stati modificati dopo la selezione.
+            ReloadPreservingSelection();
+            if (!CanBuild())
             {
                 StatusText = "Build non avviata: correggere gli errori indicati.";
                 return;
             }
 
-            var plan = Plan;
-            var project = SelectedProject;
-            var output = ResolvedOutputDirectory;
+            var targets = SelectedProjects;
+            foreach (var item in Projects)
+            {
+                item.RunStatus = item.IsSelected ? "in attesa" : null;
+            }
 
             Log.Clear();
-            LastExecutable = null;
             IsBusy = true;
-            StatusText = "Build in corso: " + project.Name + " (" + plan.TargetFramework.DisplayName + ")...";
             _cancellation = new CancellationTokenSource();
+            var succeeded = new List<ProjectItemViewModel>();
+            var failed = new List<ProjectItemViewModel>();
+            var executables = new List<string>();
 
             try
             {
-                var progress = new Progress<string>(line => AppendLog(LogLine.FromBuildOutput(line)));
-                var result = await _buildService.RunAsync(plan, project, output, progress, _cancellation.Token);
+                for (var i = 0; i < targets.Count; i++)
+                {
+                    var item = targets[i];
+                    CurrentProject = item;
+                    item.RunStatus = "in corso...";
+                    StatusText = string.Format("Build {0}/{1}: {2} ({3})...", i + 1, targets.Count, item.Name, item.Plan.TargetFramework.DisplayName);
 
-                if (result.Succeeded)
-                {
-                    LastExecutable = result.Executables.FirstOrDefault();
-                    StatusText = string.Format("Build completata in {0:0.0} s.", result.Duration.TotalSeconds);
+                    if (targets.Count > 1)
+                    {
+                        AppendLog(new LogLine(string.Format("════ [{0}/{1}] {2} ════", i + 1, targets.Count, item.Name), LogKind.Command));
+                    }
+
+                    var progress = new Progress<string>(line => AppendLog(LogLine.FromBuildOutput(line)));
+                    BuildResult result;
+                    try
+                    {
+                        result = await _buildService.RunAsync(item.Plan, item.Info, item.OutputDirectory, progress, _cancellation.Token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        item.RunStatus = "annullata";
+                        foreach (var pending in targets.Skip(i + 1))
+                        {
+                            pending.RunStatus = "non eseguita";
+                        }
+
+                        throw;
+                    }
+
+                    if (result.Succeeded)
+                    {
+                        succeeded.Add(item);
+                        var exe = result.Executables.FirstOrDefault();
+                        if (exe != null)
+                        {
+                            executables.Add(exe);
+                        }
+
+                        item.RunStatus = string.Format("✔ riuscita ({0:0.0} s)", result.Duration.TotalSeconds);
+                        AppendLog(new LogLine("✔ " + item.Name + ": " + (exe ?? "nessun .exe trovato in " + item.OutputDirectory), LogKind.Success));
+                    }
+                    else
+                    {
+                        failed.Add(item);
+                        item.RunStatus = "✖ fallita (exit code " + result.ExitCode + ")";
+                        AppendLog(new LogLine("✖ " + item.Name + ": build fallita (exit code " + result.ExitCode + ").", LogKind.Error));
+                    }
+
                     AppendLog(new LogLine(string.Empty, LogKind.Normal));
-                    AppendLog(new LogLine("Build completata. Eseguibile: " + (LastExecutable ?? "(nessun .exe trovato in " + output + ")"), LogKind.Success));
                 }
-                else
+
+                StatusText = failed.Count == 0
+                    ? (succeeded.Count == 1 ? "Build completata." : string.Format("Tutte le {0} build completate.", succeeded.Count))
+                    : string.Format("{0} riuscite, {1} fallite: {2}.", succeeded.Count, failed.Count, string.Join(", ", failed.Select(f => f.Name)));
+
+                if (targets.Count > 1)
                 {
-                    StatusText = "Build fallita (exit code " + result.ExitCode + ").";
-                    AppendLog(new LogLine(StatusText, LogKind.Error));
+                    AppendLog(new LogLine("Riepilogo: " + StatusText, failed.Count == 0 ? LogKind.Success : LogKind.Error));
+                    foreach (var exe in executables)
+                    {
+                        AppendLog(new LogLine("   " + exe, LogKind.Success));
+                    }
                 }
             }
             catch (OperationCanceledException)
@@ -533,29 +726,7 @@ namespace BuildExe.ViewModels
             }
         }
 
-        private void LoadInputPreservingSelection(string projectPath)
-        {
-            var output = OutputDirectory;
-            var tfm = SelectedTargetFramework;
-            LoadInput();
-
-            if (IsSolution)
-            {
-                var match = SolutionProjects.FirstOrDefault(p => string.Equals(p.FullPath, projectPath, StringComparison.OrdinalIgnoreCase));
-                if (match != null)
-                {
-                    SelectedProject = match;
-                }
-            }
-
-            OutputDirectory = output;
-            if (tfm != null && TargetFrameworks.Contains(tfm))
-            {
-                SelectedTargetFramework = tfm;
-            }
-
-            UpdatePlan();
-        }
+        // ---------------------------------------------------------------- Varie
 
         private void AppendLog(LogLine line)
         {
@@ -578,7 +749,7 @@ namespace BuildExe.ViewModels
 
         private void BrowseOutput()
         {
-            var path = _dialogs.PickFolder(ResolvedOutputDirectory ?? (SelectedProject != null ? SelectedProject.Directory : null));
+            var path = _dialogs.PickFolder(ResolvedOutputDirectory ?? BaseDirectory);
             if (path != null)
             {
                 OutputDirectory = path;
