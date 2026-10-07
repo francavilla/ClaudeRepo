@@ -532,6 +532,9 @@ namespace BuildExe.ViewModels
             var selectedCount = Projects.Count(p => p.IsSelected);
             var resolvedOutput = ResolvedOutputDirectory;
 
+            // Con più progetti viene svuotata la cartella radice: non deve contenere i sorgenti di nessuno.
+            var rootProblem = selectedCount > 1 ? OutputFolder.ValidateForCleaning(resolvedOutput, ProtectedDirectories()) : null;
+
             foreach (var item in Projects)
             {
                 if (_toolchains == null)
@@ -552,11 +555,28 @@ namespace BuildExe.ViewModels
                     plan.Errors.Add("Il percorso della cartella di output non è valido.");
                 }
 
+                if (rootProblem != null && item.IsSelected && !plan.Errors.Contains(rootProblem))
+                {
+                    plan.Errors.Add(rootProblem);
+                }
+
                 item.Plan = plan;
             }
 
             RefreshMessages();
             CommandManager.InvalidateRequerySuggested();
+        }
+
+        private IEnumerable<string> ProtectedDirectories()
+        {
+            var directories = Projects.Where(p => p.IsSelected).Select(p => p.Info.Directory).ToList();
+            if (IsSolution)
+            {
+                directories.Add(BaseDirectory);
+            }
+
+            directories.AddRange(Projects.Where(p => p.IsSelected && p.Info.InferredSolutionDir != null).Select(p => p.Info.InferredSolutionDir));
+            return directories;
         }
 
         private BuildOptions CreateOptions(ProjectItemViewModel item)
@@ -649,6 +669,11 @@ namespace BuildExe.ViewModels
 
             try
             {
+                if (!await CleanOutputAsync(ResolvedOutputDirectory, targets))
+                {
+                    return;
+                }
+
                 for (var i = 0; i < targets.Count; i++)
                 {
                     var item = targets[i];
@@ -723,6 +748,39 @@ namespace BuildExe.ViewModels
                 _cancellation.Dispose();
                 _cancellation = null;
                 IsBusy = false;
+            }
+        }
+
+        /// <summary>
+        /// Svuota la cartella di output prima della build, così contiene solo il risultato di questa build.
+        /// </summary>
+        private async Task<bool> CleanOutputAsync(string directory, IList<ProjectItemViewModel> targets)
+        {
+            if (!Directory.Exists(directory))
+            {
+                return true;
+            }
+
+            AppendLog(new LogLine("Pulizia della cartella di output " + directory + " ...", LogKind.Command));
+            try
+            {
+                var deleted = await Task.Run(() => OutputFolder.Clean(directory));
+                AppendLog(new LogLine(deleted + " file eliminati.", LogKind.Normal));
+                AppendLog(new LogLine(string.Empty, LogKind.Normal));
+                return true;
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is InvalidOperationException)
+            {
+                StatusText = "Impossibile svuotare la cartella di output: build non avviata.";
+                AppendLog(new LogLine(StatusText, LogKind.Error));
+                AppendLog(new LogLine(ex.Message, LogKind.Error));
+                AppendLog(new LogLine("Probabilmente un file è in uso: chiudere il programma avviato da quella cartella (o Esplora risorse) e riprovare.", LogKind.Warning));
+                foreach (var item in targets)
+                {
+                    item.RunStatus = "non eseguita";
+                }
+
+                return false;
             }
         }
 

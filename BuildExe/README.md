@@ -17,6 +17,10 @@ in configurazione **Release**, scegliendo da sola lo strumento di build corretto
    strumento scelto e comando esatto.
 5. Indicare la **cartella di output**: assoluta, o relativa alla cartella della solution/del progetto.
    Con più progetti selezionati ognuno finisce in una propria sottocartella `<output>\<NomeProgetto>`.
+   **La cartella di output viene svuotata prima di ogni build**, così contiene solo il risultato
+   dell'ultima build. Per sicurezza BuildExe rifiuta la radice di un disco, le cartelle di sistema
+   e del profilo utente, e qualunque cartella che coincida con quella del progetto/della solution
+   o la contenga. Se un file è in uso (per esempio l'eseguibile è aperto) la build non parte.
 6. Premere **Crea eseguibile** (o **Crea N eseguibili**). I progetti vengono compilati in sequenza;
    la colonna *Stato* e il riepilogo finale indicano le build riuscite e quelle fallite.
    Il log mostra l'output di MSBuild/dotnet (errori in rosso); *Annulla* interrompe la build in corso
@@ -59,12 +63,13 @@ src/
     Analysis/           ProjectAnalyzer (valutazione statica MSBuild), ConditionEvaluator, SolutionParser
     Planning/           BuildPlanner: logica di decisione pura, completamente testata
     Toolchain/          ToolchainLocator: dotnet --list-sdks, vswhere, Reference Assemblies
-    Execution/          ProcessRunner (output in streaming, annullamento), BuildService, CommandLine
+    Execution/          ProcessRunner (output in streaming, annullamento), BuildService, CommandLine,
+                        OutputFolder (svuotamento sicuro della cartella di output)
   BuildExe/             WPF net48 - MVVM senza librerie esterne
     ViewModels/         MainViewModel, ProjectItemViewModel (un progetto dell'elenco)
     Services/           finestre di dialogo, selettore cartelle moderno (IFileOpenDialog)
 tests/
-  BuildExe.Core.Tests/  xUnit - 67 test
+  BuildExe.Core.Tests/  xUnit - 74 test
 docs/adr/               decisioni architetturali
 ```
 

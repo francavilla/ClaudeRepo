@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using BuildExe.Core.Execution;
 using BuildExe.Core.Model;
 
 namespace BuildExe.Core.Planning
@@ -57,6 +59,13 @@ namespace BuildExe.Core.Planning
                 plan.Errors.Add(string.Format(
                     "OutputType = '{0}': il progetto non produce un eseguibile (servono Exe o WinExe).",
                     string.IsNullOrEmpty(project.OutputTypeText) ? "Library (default)" : project.OutputTypeText));
+            }
+
+            // La cartella viene svuotata prima della build: deve essere una cartella dedicata.
+            var cleaningProblem = OutputFolder.ValidateForCleaning(options.OutputDirectory, ProtectedDirectories(project, options));
+            if (cleaningProblem != null)
+            {
+                plan.Errors.Add(cleaningProblem);
             }
 
             var tfm = options.TargetFramework ?? project.DefaultTargetFramework;
@@ -311,6 +320,21 @@ namespace BuildExe.Core.Planning
             else if (project.UsesPackagesConfig)
             {
                 plan.Warnings.Add("Progetto con packages.config senza solution: il restore NuGet potrebbe fallire. Selezionare la .sln che contiene il progetto.");
+            }
+        }
+
+        /// <summary>Cartelle dei sorgenti che lo svuotamento dell'output non deve mai toccare.</summary>
+        public static IEnumerable<string> ProtectedDirectories(ProjectInfo project, BuildOptions options)
+        {
+            yield return project.Directory;
+            if (!string.IsNullOrEmpty(options.SolutionPath))
+            {
+                yield return Path.GetDirectoryName(Path.GetFullPath(options.SolutionPath));
+            }
+
+            if (!string.IsNullOrEmpty(project.InferredSolutionDir))
+            {
+                yield return project.InferredSolutionDir;
             }
         }
 
