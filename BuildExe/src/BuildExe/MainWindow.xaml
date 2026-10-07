@@ -62,6 +62,13 @@
                         </DockPanel>
                         <ListView ItemsSource="{Binding Projects}" SelectedItem="{Binding CurrentProject}" Margin="0,4,0,0" MaxHeight="170"
                                   ToolTip="Spuntare i progetti da compilare; selezionare una riga per vederne i dettagli">
+                            <ListView.ItemContainerStyle>
+                                <Style TargetType="ListViewItem">
+                                    <!-- Il clic sulla casella di spunta seleziona anche la riga: l'analisi segue sempre il progetto cliccato. -->
+                                    <EventSetter Event="PreviewMouseLeftButtonDown" Handler="OnProjectRowPreviewMouseDown" />
+                                    <EventSetter Event="GotKeyboardFocus" Handler="OnProjectRowGotKeyboardFocus" />
+                                </Style>
+                            </ListView.ItemContainerStyle>
                             <ListView.View>
                                 <GridView>
                                     <GridViewColumn Width="32">
@@ -95,7 +102,7 @@
             </GroupBox>
 
             <!-- 2. Analisi -->
-            <GroupBox Grid.Row="1" Header="2. Analisi del progetto" Visibility="{Binding HasProject, Converter={StaticResource BoolToVisibility}}">
+            <GroupBox Grid.Row="1" Header="{Binding CurrentProject.Name}" HeaderStringFormat="2. Analisi del progetto: {0}" Visibility="{Binding HasProject, Converter={StaticResource BoolToVisibility}}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />

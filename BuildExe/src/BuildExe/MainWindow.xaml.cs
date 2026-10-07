@@ -2,6 +2,7 @@ using System;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Threading;
 using BuildExe.ViewModels;
 
@@ -53,6 +54,18 @@ namespace BuildExe
             {
                 LogList.ScrollIntoView(LogList.Items[count - 1]);
             }
+        }
+
+        private void OnProjectRowPreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            // Non si marca l'evento come gestito: la CheckBox deve continuare a cambiare stato.
+            ((ListViewItem)sender).IsSelected = true;
+        }
+
+        private void OnProjectRowGotKeyboardFocus(object sender, System.Windows.Input.KeyboardFocusChangedEventArgs e)
+        {
+            // Navigando con Tab sulla CheckBox di una riga, anche la riga diventa quella corrente.
+            ((ListViewItem)sender).IsSelected = true;
         }
 
         private void OnFileDragOver(object sender, DragEventArgs e)
