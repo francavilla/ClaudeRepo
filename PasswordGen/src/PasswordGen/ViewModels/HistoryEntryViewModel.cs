@@ -83,6 +83,12 @@ namespace PasswordGen.ViewModels
             }
         }
 
+        /// <summary>Rimette la password sotto maschera (quando l'app si blocca).</summary>
+        public void Hide()
+        {
+            IsRevealed = false;
+        }
+
         public string DisplayText
         {
             get

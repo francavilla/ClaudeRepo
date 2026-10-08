@@ -61,6 +61,13 @@ L'entropia mostrata tiene conto della lista in uso: con 400 parole ogni parola v
 più parole per la stessa sicurezza (sotto le 1000 parole compare un avviso). Evita nomi di familiari, date e soprannomi:
 sono facili da indovinare per chi ti conosce. Se il file manca o non è valido, l'app usa la lista integrata e lo segnala.
 
+## Blocco con Windows Hello
+
+Nella card *Blocco dell'app* si può richiedere Windows Hello (PIN, impronta o volto) per aprire l'app, all'avvio e dopo il tempo scelto in
+secondo piano. Serve che Windows Hello sia configurato (Impostazioni, Account, Opzioni di accesso). L'app non riceve mai PIN o impronta,
+solo l'esito della verifica. Con il blocco attivo la finestra non compare negli screenshot né nelle condivisioni dello schermo.
+Se Windows Hello non è più disponibile all'avvio, il blocco si disattiva da solo con un avviso.
+
 ## Storico delle password
 
 Facoltativo (attivo di default, si disattiva nella card *Storico delle password*). Conserva le **ultime 12** password usate,

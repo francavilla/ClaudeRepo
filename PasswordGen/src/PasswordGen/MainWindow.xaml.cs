@@ -12,6 +12,44 @@ namespace PasswordGen
         {
             InitializeComponent();
             FitToWorkArea();
+            Loaded += OnLoaded;
+            Activated += (s, e) => Lock?.Activated();
+            Deactivated += (s, e) => Lock?.Deactivated();
+        }
+
+        private PasswordGen.Services.AppLockController Lock
+        {
+            get
+            {
+                var vm = DataContext as MainViewModel;
+                return vm == null ? null : vm.Lock;
+            }
+        }
+
+        private async void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            var vm = DataContext as MainViewModel;
+            if (vm == null)
+            {
+                return;
+            }
+
+            // Quando l'app si blocca il contenuto sotto la schermata di blocco non deve essere raggiungibile (nemmeno con Tab).
+            vm.Lock.PropertyChanged += (s, args) =>
+            {
+                if (args.PropertyName == nameof(vm.Lock.IsLocked))
+                {
+                    MainContent.IsEnabled = !vm.Lock.IsLocked;
+                    if (vm.Lock.IsLocked)
+                    {
+                        PreviousBox.Password = string.Empty;
+                        vm.ClearSensitive();
+                    }
+                }
+            };
+            MainContent.IsEnabled = !vm.Lock.IsLocked;
+
+            await vm.Lock.StartAsync();
         }
 
         /// <summary>Se la dimensione predefinita supera l'area utile dello schermo, la finestra viene ridotta.</summary>

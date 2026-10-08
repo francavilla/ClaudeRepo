@@ -1,11 +1,14 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Input;
 using PasswordGen.Core.Generation;
 using PasswordGen.Core.History;
 using PasswordGen.Core.Policy;
 using PasswordGen.Core.Reminder;
+using PasswordGen.Core.Security;
 using PasswordGen.Core.Settings;
 using PasswordGen.Mvvm;
 using PasswordGen.Services;
@@ -24,6 +27,7 @@ namespace PasswordGen.ViewModels
         private readonly HistoryStore _historyStore;
         private readonly IDialogService _dialogs;
         private readonly PasswordHistory _history;
+        private readonly AppLockController _lock;
 
         private bool _loading = true;
         private GenerationMode _mode;
@@ -43,6 +47,8 @@ namespace PasswordGen.ViewModels
         private WordFileResult _customWords;
         private string _wordSummary = string.Empty;
         private string _wordWarning = string.Empty;
+        private bool _lockEnabled;
+        private int _lockGraceSeconds;
         private bool _historyEnabled;
         private bool _isChoosing;
         private int _choiceIndex;
@@ -63,10 +69,12 @@ namespace PasswordGen.ViewModels
             IStartupRegistration startup,
             HistoryStore historyStore,
             IDialogService dialogs,
+            AppLockController appLock,
             Func<DateTime> today)
         {
             _generator = generator;
             _builtinWords = builtinWords;
+            _lock = appLock;
             _store = store;
             _clipboard = clipboard;
             _startup = startup;
@@ -93,6 +101,16 @@ namespace PasswordGen.ViewModels
                 _customWords = CustomWordList.Load(_customWordsPath);
             }
 
+            _lockEnabled = _settings.LockEnabled;
+            _lockGraceSeconds = _settings.LockGraceSeconds;
+            appLock.DisabledAutomatically += (sender, message) =>
+            {
+                _lockEnabled = false;
+                OnPropertyChanged(nameof(LockEnabled));
+                OnPropertyChanged(nameof(CanLockNow));
+                SaveSettings();
+                StatusMessage = message;
+            };
             _historyEnabled = _settings.HistoryEnabled;
             _history = _historyEnabled ? historyStore.Load() : new PasswordHistory();
             _reminderEnabled = _settings.ReminderEnabled;
@@ -498,7 +516,7 @@ namespace PasswordGen.ViewModels
                 catch (Exception ex)
                 {
                     StatusMessage = "Impossibile modificare l'avvio automatico: " + ex.Message;
-                    OnPropertyChanged();
+                    RefreshLater(nameof(StartWithWindows));
                 }
             }
         }
@@ -612,6 +630,135 @@ namespace PasswordGen.ViewModels
             return ReminderMessage;
         }
 
+        // ------------------------------------------------------------ Blocco dell'app
+
+        private static readonly int[] GraceSeconds = { 0, 30, 60, 300 };
+
+        public string[] LockGraceNames
+        {
+            get { return new[] { "Subito", "Dopo 30 secondi", "Dopo 1 minuto", "Dopo 5 minuti" }; }
+        }
+
+        public AppLockController Lock
+        {
+            get { return _lock; }
+        }
+
+        /// <summary>Richiede Windows Hello (PIN, impronta o volto) per aprire l'app.</summary>
+        public bool LockEnabled
+        {
+            get { return _lockEnabled; }
+            set
+            {
+                if (value == _lockEnabled)
+                {
+                    return;
+                }
+
+                // La casella resta com'era finché Windows Hello non ha confermato.
+                RefreshLater(nameof(LockEnabled));
+                var ignored = ChangeLockAsync(value);
+            }
+        }
+
+        public int LockGraceIndex
+        {
+            get
+            {
+                var index = Array.IndexOf(GraceSeconds, _lockGraceSeconds);
+                return index >= 0 ? index : 1;
+            }
+            set
+            {
+                if (value < 0 || value >= GraceSeconds.Length || GraceSeconds[value] == _lockGraceSeconds)
+                {
+                    return;
+                }
+
+                _lockGraceSeconds = GraceSeconds[value];
+                _lock.State.GracePeriod = TimeSpan.FromSeconds(_lockGraceSeconds);
+                OnPropertyChanged();
+                SaveSettings();
+            }
+        }
+
+        /// <summary>Il pulsante «Blocca adesso» ha senso solo con il blocco attivo.</summary>
+        public bool CanLockNow
+        {
+            get { return _lockEnabled; }
+        }
+
+        public ICommand LockNowCommand
+        {
+            get { return new RelayCommand(_lock.LockNow, () => _lockEnabled); }
+        }
+
+        private async Task ChangeLockAsync(bool enable)
+        {
+            try
+            {
+                if (enable)
+                {
+                    var availability = await _lock.CheckAvailabilityAsync();
+                    if (!availability.Success)
+                    {
+                        StatusMessage = availability.Reason + ".";
+                        return;
+                    }
+                }
+
+                // Attivare o disattivare il blocco richiede Windows Hello: chi trova il PC sbloccato non può toglierlo.
+                var outcome = await _lock.ConfirmAsync(enable
+                    ? "Conferma per attivare il blocco di PasswordGen"
+                    : "Conferma per disattivare il blocco di PasswordGen");
+                if (!outcome.Success)
+                {
+                    StatusMessage = "Verifica non riuscita (" + outcome.Reason + "): il blocco è rimasto com'era.";
+                    return;
+                }
+
+                _lockEnabled = enable;
+                _lock.SetEnabled(enable);
+                OnPropertyChanged(nameof(LockEnabled));
+                OnPropertyChanged(nameof(CanLockNow));
+                SaveSettings();
+                StatusMessage = enable
+                    ? "Blocco dell'app attivato: si attiva alla prossima apertura e " + LockGraceNames[LockGraceIndex].ToLowerInvariant() + " in secondo piano. Prova «Blocca adesso»."
+                    : "Blocco dell'app disattivato.";
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = "Errore del blocco: " + ex.Message;
+            }
+        }
+
+        /// <summary>Da chiamare quando l'app si blocca: via la password attuale e password dello storico di nuovo mascherate.</summary>
+        public void ClearSensitive()
+        {
+            PreviousPassword = string.Empty;
+            foreach (var entry in HistoryEntries)
+            {
+                entry.Hide();
+            }
+        }
+
+        /// <summary>
+        /// WPF ignora una notifica di modifica sollevata mentre sta aggiornando la sorgente: per riportare una casella allo stato
+        /// precedente la notifica va rimandata di un istante.
+        /// </summary>
+        private void RefreshLater(string propertyName)
+        {
+            var dispatcher = Application.Current != null ? Application.Current.Dispatcher : null;
+            if (dispatcher != null)
+            {
+                dispatcher.BeginInvoke(new Action(() => OnPropertyChanged(propertyName)));
+            }
+            else
+            {
+                OnPropertyChanged(propertyName);
+            }
+        }
+
         // ------------------------------------------------------------ Storico
 
         /// <summary>Conserva le password scelte in un file cifrato per il tuo utente Windows. Disattivandolo, lo storico viene cancellato.</summary>
@@ -628,7 +775,7 @@ namespace PasswordGen.ViewModels
                 if (!value && _history.Entries.Count > 0
                     && !_dialogs.Confirm("Disattivando lo storico, le password conservate vengono cancellate. Continuare?", "Storico"))
                 {
-                    OnPropertyChanged();
+                    RefreshLater(nameof(HistoryEnabled));
                     return;
                 }
 
@@ -818,6 +965,8 @@ namespace PasswordGen.ViewModels
             _settings.RequireSpecial = _requireSpecial;
             _settings.AvoidAmbiguous = _avoidAmbiguous;
             _settings.HistoryEnabled = _historyEnabled;
+            _settings.LockEnabled = _lockEnabled;
+            _settings.LockGraceSeconds = _lockGraceSeconds;
             _settings.WordSource = _wordSource;
             _settings.CustomWordsPath = _customWordsPath;
             _settings.ReminderEnabled = _reminderEnabled;

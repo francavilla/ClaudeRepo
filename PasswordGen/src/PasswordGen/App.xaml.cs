@@ -1,10 +1,12 @@
 using System;
 using System.Linq;
 using System.Windows;
+using System.Windows.Interop;
 using System.Windows.Threading;
 using PasswordGen.Core.Generation;
 using PasswordGen.Core.History;
 using PasswordGen.Core.Randomness;
+using PasswordGen.Core.Security;
 using PasswordGen.Core.Reminder;
 using PasswordGen.Core.Settings;
 using PasswordGen.Services;
@@ -44,10 +46,18 @@ namespace PasswordGen
             _clipboard = new SecretClipboard(ClipboardLifetime);
             var builtinWords = WordList.LoadItalian();
             var generator = new PasswordGenerator(_random, builtinWords);
-            var viewModel = new MainViewModel(generator, builtinWords, store, _clipboard, new StartupRegistration(),
-                new HistoryStore(HistoryStore.DefaultPath, new DpapiProtector()), new DialogService(), () => DateTime.Today);
 
-            var window = new MainWindow { DataContext = viewModel };
+            // Blocco con Windows Hello: parte già bloccato (se attivo) finché la finestra non è pronta e l'utente non si autentica.
+            MainWindow window = null;
+            var saved = store.Load();
+            var lockState = new AppLockState(TimeSpan.FromSeconds(saved.LockGraceSeconds)) { Enabled = saved.LockEnabled };
+            var appLock = new AppLockController(
+                lockState, new WindowsHelloService(), () => window == null ? IntPtr.Zero : new WindowInteropHelper(window).Handle);
+
+            var viewModel = new MainViewModel(generator, builtinWords, store, _clipboard, new StartupRegistration(),
+                new HistoryStore(HistoryStore.DefaultPath, new DpapiProtector()), new DialogService(), appLock, () => DateTime.Today);
+
+            window = new MainWindow { DataContext = viewModel };
             MainWindow = window;
             window.Show();
         }

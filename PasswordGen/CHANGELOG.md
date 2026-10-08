@@ -4,6 +4,22 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.8.0] - 2026-10-08
+
+### Aggiunto
+- **App Windows: blocco con Windows Hello** (PIN, impronta o volto). Con il blocco attivo una schermata copre l'app all'avvio e dopo il
+  tempo scelto in secondo piano (subito, 30 secondi, 1 minuto, 5 minuti) finché non ti autentichi. Card «Blocco dell'app» con
+  casella di attivazione, tempo e pulsante «Blocca adesso».
+  - Attivare o disattivare il blocco richiede Windows Hello: chi trova il PC sbloccato non può toglierlo.
+  - La finestra è esclusa da screenshot, registrazioni e condivisione dello schermo mentre il blocco è attivo (Windows 10 2004 o successivo).
+  - Se Windows Hello non è più configurato all'avvio, il blocco si disattiva da solo con un avviso, così non resti chiuso fuori.
+  - Quando l'app si blocca, la password attuale viene svuotata e quelle dello storico tornano mascherate.
+  - L'app non vede mai PIN, impronta o volto: riceve solo l'esito da Windows.
+
+### Corretto
+- La casella «Conserva le password scelte» (storico) e «Ricordamelo all'accesso a Windows» non tornavano allo stato precedente quando
+  l'operazione veniva annullata o falliva (WPF ignorava la notifica sincrona).
+
 ## [1.7.1] - 2026-10-08
 
 ### Aggiunto
