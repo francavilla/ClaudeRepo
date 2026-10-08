@@ -1,7 +1,7 @@
 # Istruzioni per Claude su questo repository
 
 ## Branch
-- Lavorare e fare push sempre sul branch **`Progetti_Claude`**.
+- Lavorare e fare push sempre sul branch **`Progetti_Claude`**, anche se la sessione ne assegna un altro (regola confermata dall'utente il 2026-10-08).
 
 ## Versioni (obbligatorio a ogni modifica)
 Ogni modifica a un'applicazione del repository deve aggiornare il suo numero di versione:
@@ -40,7 +40,7 @@ Più modifiche nella stessa richiesta = un solo incremento di versione.
 - `PasswordGen/` — WPF .NET Framework 4.8 che genera password casuali, sicure e memorizzabili (parole italiane, sillabe, caratteri casuali)
   secondo una policy configurabile, con promemoria del cambio password mensile. Logica in `PasswordGen.Core` (testata in `tests/PasswordGen.Core.Tests`);
   UI in `src/PasswordGen` (MVVM, tema in `Themes/Theme.xaml`); versione in `PasswordGen/Directory.Build.props`;
-  CI in `.github/workflows/ci-passwordgen.yml` (parte anche sui branch `claude/**`).
+  CI in `.github/workflows/ci-passwordgen.yml`.
 
 ## Stile del codice
 - C# 7.3 (`LangVersion` in `Directory.Build.props`), commenti e messaggi in italiano.
