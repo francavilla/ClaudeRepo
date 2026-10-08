@@ -30,6 +30,7 @@ public class MainViewModel : ObservableObject
     private readonly AppLockController _lock;
     private readonly SyncPassphraseStore _syncPassphrases;
     private readonly IDocumentService _documents;
+    private readonly IGoogleDriveService _drive;
     private bool _syncBusy;
     private string _syncStatus = string.Empty;
 
@@ -75,8 +76,10 @@ public class MainViewModel : ObservableObject
         ISecurityService security,
         AppLockController appLock,
         SyncPassphraseStore syncPassphrases,
-        IDocumentService documents)
+        IDocumentService documents,
+        IGoogleDriveService drive)
     {
+        _drive = drive;
         _syncPassphrases = syncPassphrases;
         _documents = documents;
         _generator = generator;
@@ -384,7 +387,7 @@ public class MainViewModel : ObservableObject
             }
 
             var last = ExchangeData.ParseTime(_settings.LastSyncUtcText);
-            return "Attiva con il file «" + _documents.DisplayName(_settings.SyncPath) + "». "
+            return "Attiva con " + SyncTargetName(_settings.SyncPath) + ". "
                 + (last.HasValue ? "Ultima sincronizzazione: " + last.Value.ToLocalTime().ToString("g", CultureInfo.CurrentCulture) + "." : "Non ancora sincronizzato.");
         }
     }
@@ -398,6 +401,16 @@ public class MainViewModel : ObservableObject
     public ICommand ExportCommand => new Command(() => RunSafe(ExportAsync));
 
     public ICommand ImportCommand => new Command(() => RunSafe(ImportAsync));
+
+    private ISyncStorage OpenStorage(string address)
+    {
+        return address == _drive.Address ? _drive.CreateStorage() : _documents.Open(address);
+    }
+
+    private string SyncTargetName(string address)
+    {
+        return address == _drive.Address ? "il tuo Google Drive (file «PasswordGen-sync.pgx»)" : "il file «" + _documents.DisplayName(address) + "»";
+    }
 
     private void RefreshSyncState()
     {
@@ -424,14 +437,38 @@ public class MainViewModel : ObservableObject
             return;
         }
 
-        var choice = await _dialogs.ChooseAsync("File di sincronizzazione",
-            new[] { "Scegli un file esistente (per esempio quello creato dal PC)", "Crea un nuovo file (per esempio in Google Drive)" });
+        var choice = await _dialogs.ChooseAsync("Dove sincronizzare?",
+            new[]
+            {
+                "Il mio Google Drive (accesso con l'account Google)",
+                "Un file esistente (per esempio quello creato dal PC)",
+                "Un nuovo file (in una cartella a scelta)",
+            });
         if (choice < 0)
         {
             return;
         }
 
-        var address = choice == 0 ? await _documents.PickExistingAsync() : await _documents.CreateAsync(SyncFileName);
+        string address;
+        if (choice == 0)
+        {
+            if (!_drive.IsSignedIn)
+            {
+                var problem = await _drive.SignInAsync();
+                if (problem != null)
+                {
+                    StatusMessage = problem;
+                    return;
+                }
+            }
+
+            address = _drive.Address;
+        }
+        else
+        {
+            address = choice == 1 ? await _documents.PickExistingAsync() : await _documents.CreateAsync(SyncFileName);
+        }
+
         if (string.IsNullOrEmpty(address))
         {
             return;
@@ -441,7 +478,7 @@ public class MainViewModel : ObservableObject
         {
             try
             {
-                var bytes = _documents.Open(address).Read();
+                var bytes = OpenStorage(address).Read();
                 return bytes != null && bytes.Length > 0;
             }
             catch (Exception)
@@ -471,6 +508,16 @@ public class MainViewModel : ObservableObject
 
     private async Task SyncNowAsync()
     {
+        if (_settings.SyncPath == _drive.Address && !_drive.IsSignedIn)
+        {
+            var problem = await _drive.SignInAsync();
+            if (problem != null)
+            {
+                StatusMessage = problem;
+                return;
+            }
+        }
+
         var passphrase = _syncPassphrases.Load()
             ?? await _dialogs.AskPassphraseAsync("Sincronizzazione", "Inserisci la frase segreta del file di sincronizzazione.", false);
         if (passphrase == null)
@@ -512,10 +559,15 @@ public class MainViewModel : ObservableObject
         try
         {
             SaveSettings();   // porta nelle impostazioni i valori correnti (per esempio la durata della password)
-            var result = await SyncEngine.RunAsync(_documents.Open(address), passphrase, _history, _settings, DateTime.UtcNow);
+            var result = await SyncEngine.RunAsync(OpenStorage(address), passphrase, _history, _settings, DateTime.UtcNow);
             if (!result.Succeeded)
             {
                 StatusMessage = result.Message;
+                if (address == _drive.Address && result.Message != null && result.Message.Contains("accedi di nuovo"))
+                {
+                    _drive.SignOut();   // l'accesso non vale più: al prossimo «Sincronizza ora» si rifà l'accesso
+                }
+
                 return false;
             }
 
@@ -547,6 +599,11 @@ public class MainViewModel : ObservableObject
         if (!await _dialogs.ConfirmAsync("Disattivare la sincronizzazione? Il file resta dov'è e i dati su questo telefono non cambiano.", "Sincronizzazione"))
         {
             return;
+        }
+
+        if (_settings.SyncPath == _drive.Address)
+        {
+            _drive.SignOut();
         }
 
         _settings.SyncPath = null;

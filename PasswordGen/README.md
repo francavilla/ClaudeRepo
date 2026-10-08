@@ -80,6 +80,21 @@ le varianti di quelle dello storico.
 - Disattivando lo storico, o con *Cancella tutto lo storico*, il file viene eliminato.
 - Se nella scelta indichi «Nessuna», viene registrata solo la data (senza password).
 
+## Sincronizzazione e backup
+
+Per avere lo stesso storico sul PC e sul telefono (storico, data dell'ultimo cambio e durata della password) le due app condividono un
+**file cifrato** `PasswordGen-sync.pgx`: ognuna lo legge, unisce il contenuto con i propri dati (senza cancellare nulla di locale) e lo
+riscrive se c'è qualcosa di nuovo. Succede all'avvio, dopo ogni «Ho cambiato la password» e con «Sincronizza ora».
+
+- Il file è cifrato con una **frase segreta** scelta da te (almeno 8 caratteri, AES-256 con controllo di integrità, chiave PBKDF2-SHA256).
+  Non si può recuperare: senza la frase il file non si apre. Su ogni dispositivo la frase è conservata cifrata (DPAPI su Windows, Keystore su Android).
+- **Windows**: «Imposta...» e scegli un file, per esempio nella cartella di Google Drive per desktop.
+- **Android**: «Imposta...» e scegli *Il mio Google Drive* (accesso con l'account Google; l'app crea il file nel tuo Drive e vede solo i file che ha creato),
+  oppure un file esistente o nuovo scelto con il selettore di documenti.
+- Per cominciare conviene attivare la sincronizzazione **prima sul telefono con Google Drive**: il file compare poi nella cartella di Drive sul PC.
+- **Esporta / Importa** usano lo stesso formato cifrato, una volta sola: backup o cambio telefono.
+- Un cambio che elimini su un dispositivo può ricomparire dopo la sincronizzazione (l'unione non cancella mai nulla).
+
 ## Impostazioni
 
 `%AppData%\PasswordGen\settings.json`: tipo e lunghezze, regole della policy, durata della password e data dell'ultimo cambio.
@@ -98,11 +113,11 @@ Nella cartella `src/PasswordGen.Mobile` c'è l'app Android (.NET MAUI), che rius
 - **Tappa 3**: file di parole personale (card *Parole della passphrase*): carichi un file di testo, che viene copiato nella
   memoria privata dell'app, con le stesse modalità e gli stessi limiti dell'app Windows (almeno 300 parole per «solo il mio file»).
 
-- L'APK è allegata a ogni release (`PasswordGen-vX.Y.Z.apk`); le build di prova si scaricano anche dall'artifact del workflow *CI PasswordGen Android*. Per installarlo sul telefono servono le «origini sconosciute».
+- L'APK è allegata a ogni release (`PasswordGen-Android-vX.Y.Z.apk`, nella release `passwordgen-android-vX.Y.Z`); le build di prova si scaricano anche dall'artifact del workflow *CI PasswordGen Android*. Per installarlo sul telefono servono le «origini sconosciute».
 - Senza un keystore fisso l'APK è firmato con una chiave di debug diversa a ogni build: per **aggiornare** l'app senza disinstallarla
   (e perdere le impostazioni) servirà una chiave fissa, da fornire come secret del repository.
 - Non c'è nella `PasswordGen.sln` perché richiede il workload Android: si compila con `dotnet publish` (vedi il workflow).
-- Permessi Android: notifiche e riavvio del telefono (promemoria), impronta/PIN (blocco dell'app); nessun accesso alla rete.
+- Permessi Android: notifiche e riavvio del telefono (promemoria), impronta/PIN (blocco dell'app); rete solo per l'accesso facoltativo a Google Drive.
   Il backup di Android è disattivato: impostazioni e storico non lasciano il telefono.
 
 ## Struttura

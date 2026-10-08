@@ -51,7 +51,8 @@ public partial class App : Application
             generator, words, settings, history, new SecretClipboard(TimeSpan.FromSeconds(30)),
             new DialogService(), new AndroidReminderScheduler(), new WordFileService(), security, appLock,
             key == null ? null : new SyncPassphraseStore(Path.Combine(FileSystem.AppDataDirectory, "sync.key"), new AesHmacProtector(key)),
-            new AndroidDocumentService());
+            new AndroidDocumentService(),
+            new GoogleDriveService(key == null ? null : new SyncPassphraseStore(Path.Combine(FileSystem.AppDataDirectory, "google.key"), new AesHmacProtector(key))));
         viewModel.RestoreReminder();
 
         tabs = new TabbedPage();

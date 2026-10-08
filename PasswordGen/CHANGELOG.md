@@ -4,6 +4,19 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.3.0] - 2026-10-08
+
+### Aggiunto
+- **App Android: sincronizzazione direttamente su Google Drive.** In «Sincronizzazione e backup» → «Imposta...» → «Il mio Google Drive» si accede con l'account Google
+  (OAuth 2.0 con PKCE nel browser del telefono: l'app non vede mai la password) e l'app crea nel Drive il file cifrato `PasswordGen-sync.pgx`.
+  Il file resta cifrato con la frase segreta; l'accesso è limitato ai file creati dall'app (ambito `drive.file`). Il token di rinnovo è nel Keystore.
+  Sul PC lo stesso file compare nella cartella di Google Drive per desktop e si sceglie con «Imposta...» come un normale file.
+- `PasswordGen.Core`: `GoogleOAuthClient`, `GoogleAccessTokenProvider`, `GoogleDriveStorage` (con test su un Google finto).
+
+### Modificato
+- L'app Android ha ora il permesso di usare la rete, **solo** per l'accesso facoltativo a Google Drive: senza attivarlo non invia né riceve nulla.
+- Le note delle release Android dicono che la rete serve a Google Drive.
+
 ## [1.2.0] - 2026-10-08
 
 ### Modificato

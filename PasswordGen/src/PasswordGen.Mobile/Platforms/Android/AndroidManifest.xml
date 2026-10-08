@@ -1,9 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-	<!-- Nessun accesso alla rete. Permessi: notifiche e riavvio (promemoria), impronta/PIN (blocco dell'app).
+	<!-- Rete: solo per l'accesso opzionale a Google Drive (sincronizzazione). Permessi: notifiche e riavvio (promemoria), impronta/PIN (blocco dell'app).
 	     allowBackup=false: impostazioni e storico non finiscono nei backup di Android. -->
 	<application android:allowBackup="false" android:icon="@mipmap/appicon" android:roundIcon="@mipmap/appicon_round" android:supportsRtl="true"></application>
+	<uses-permission android:name="android.permission.INTERNET" />
 	<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 	<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 	<uses-permission android:name="android.permission.USE_BIOMETRIC" />
+	<!-- Android 11+: serve per aprire il browser (Custom Tabs) dell'accesso a Google. -->
+	<queries>
+		<intent>
+			<action android:name="android.support.customtabs.action.CustomTabsService" />
+		</intent>
+	</queries>
 </manifest>
