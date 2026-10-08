@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="PasswordGen.Mobile.LockPage"
+             BackgroundColor="{StaticResource Header}">
+
+    <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="18" Padding="32">
+        <Label Text="🔒" FontSize="64" HorizontalOptions="Center" />
+        <Label Text="PasswordGen è bloccata" TextColor="White" FontSize="22" FontAttributes="Bold" HorizontalOptions="Center" />
+        <Label Text="Usa l'impronta, il volto o il PIN del telefono per continuare."
+               TextColor="#CCFFFFFF" HorizontalTextAlignment="Center" />
+        <Button Text="Sblocca" Clicked="OnUnlockClicked" BackgroundColor="White" TextColor="{StaticResource Header}"
+                FontAttributes="Bold" CornerRadius="10" WidthRequest="200" />
+    </VerticalStackLayout>
+</ContentPage>

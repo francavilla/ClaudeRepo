@@ -33,6 +33,8 @@ namespace PasswordGen.Core.Tests
             Assert.Equal(6, settings.SuggestionCount);
             Assert.Equal(10, settings.MinLength);
             Assert.True(settings.HistoryEnabled);
+            Assert.False(settings.LockEnabled);
+            Assert.Equal(30, settings.LockGraceSeconds);
             Assert.Equal(GenerationMode.Passphrase, settings.Mode);
             Assert.Equal(WordSourceMode.Builtin, settings.WordSource);
             Assert.Null(settings.CustomWordsPath);
@@ -54,6 +56,8 @@ namespace PasswordGen.Core.Tests
                 MinLength = 12,
                 RequireSpecial = false,
                 HistoryEnabled = false,
+                LockEnabled = true,
+                LockGraceSeconds = 300,
                 WordSource = WordSourceMode.Combined,
                 CustomWordsPath = @"C:\dati\parole.txt",
                 ValidityDays = 60,
@@ -70,6 +74,8 @@ namespace PasswordGen.Core.Tests
             Assert.Equal(12, loaded.MinLength);
             Assert.False(loaded.RequireSpecial);
             Assert.False(loaded.HistoryEnabled);
+            Assert.True(loaded.LockEnabled);
+            Assert.Equal(300, loaded.LockGraceSeconds);
             Assert.Equal(WordSourceMode.Combined, loaded.WordSource);
             Assert.Equal(@"C:\dati\parole.txt", loaded.CustomWordsPath);
             Assert.True(loaded.RequireUpper);
@@ -106,7 +112,7 @@ namespace PasswordGen.Core.Tests
         public void Load_ClampsOutOfRangeValues()
         {
             Directory.CreateDirectory(_directory);
-            File.WriteAllText(FilePath, "{\"WordCount\":99,\"MinLength\":1,\"ValidityDays\":0,\"SuggestionCount\":500}");
+            File.WriteAllText(FilePath, "{\"WordCount\":99,\"MinLength\":1,\"ValidityDays\":0,\"SuggestionCount\":500,\"LockGraceSeconds\":999999}");
 
             var settings = new SettingsStore(FilePath).Load();
 
@@ -114,6 +120,7 @@ namespace PasswordGen.Core.Tests
             Assert.Equal(6, settings.MinLength);
             Assert.Equal(7, settings.ValidityDays);
             Assert.Equal(AppSettings.MaxSuggestions, settings.SuggestionCount);
+            Assert.Equal(PasswordGen.Core.Security.AppLockState.MaxGraceSeconds, settings.LockGraceSeconds);
         }
 
         [Fact]

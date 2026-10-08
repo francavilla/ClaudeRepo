@@ -47,6 +47,12 @@ namespace PasswordGen.Core.Settings
         /// <summary>Percorso del file di parole dell'utente (nullo se non caricato).</summary>
         [DataMember] public string CustomWordsPath { get; set; }
 
+        /// <summary>Richiede impronta, PIN o Windows Hello per aprire l'app.</summary>
+        [DataMember] public bool LockEnabled { get; set; }
+
+        /// <summary>Secondi in secondo piano dopo i quali l'app si blocca di nuovo (0 = subito).</summary>
+        [DataMember] public int LockGraceSeconds { get; set; }
+
         [DataMember] public bool ReminderEnabled { get; set; }
         [DataMember] public int ValidityDays { get; set; }
         [DataMember] public int WarnDays { get; set; }
@@ -95,6 +101,8 @@ namespace PasswordGen.Core.Settings
             AvoidAmbiguous = policy.AvoidAmbiguous;
 
             HistoryEnabled = true;
+            LockEnabled = false;
+            LockGraceSeconds = 30;
             WordSource = WordSourceMode.Builtin;
             CustomWordsPath = null;
             ReminderEnabled = true;
@@ -111,6 +119,7 @@ namespace PasswordGen.Core.Settings
             SyllableCount = Clamp(SyllableCount, GenerationOptions.MinSyllables, GenerationOptions.MaxSyllables);
             RandomLength = Clamp(RandomLength, PasswordPolicy.MinAllowedLength, GenerationOptions.MaxRandomLength);
             SuggestionCount = Clamp(SuggestionCount, MinSuggestions, MaxSuggestions);
+            LockGraceSeconds = Clamp(LockGraceSeconds, 0, PasswordGen.Core.Security.AppLockState.MaxGraceSeconds);
             ValidityDays = Clamp(ValidityDays, 7, 365);
             WarnDays = Clamp(WarnDays, 0, 30);
             if (!Enum.IsDefined(typeof(WordSourceMode), WordSource))

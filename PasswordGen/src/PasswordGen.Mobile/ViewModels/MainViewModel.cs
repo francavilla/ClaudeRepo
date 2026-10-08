@@ -5,6 +5,7 @@ using System.Windows.Input;
 using PasswordGen.Core.Generation;
 using PasswordGen.Core.History;
 using PasswordGen.Core.Reminder;
+using PasswordGen.Core.Security;
 using PasswordGen.Core.Policy;
 using PasswordGen.Core.Settings;
 using PasswordGen.Mobile.Services;
@@ -23,6 +24,8 @@ public class MainViewModel : ObservableObject
     private readonly IReminderScheduler _scheduler;
     private readonly WordList _builtinWords;
     private readonly IWordFileService _wordFiles;
+    private readonly ISecurityService _security;
+    private readonly AppLockController _lock;
 
     private bool _loading = true;
     private GenerationMode _mode;
@@ -43,6 +46,8 @@ public class MainViewModel : ObservableObject
     private WordFileResult _customWords;
     private string _wordSummary = string.Empty;
     private string _wordWarning = string.Empty;
+    private bool _lockEnabled;
+    private int _lockGraceSeconds;
     private bool _historyEnabled;
     private bool _reminderEnabled;
     private int _validityDays;
@@ -59,7 +64,9 @@ public class MainViewModel : ObservableObject
         SecretClipboard clipboard,
         IDialogService dialogs,
         IReminderScheduler scheduler,
-        IWordFileService wordFiles)
+        IWordFileService wordFiles,
+        ISecurityService security,
+        AppLockController appLock)
     {
         _generator = generator;
         _store = store;
@@ -69,6 +76,8 @@ public class MainViewModel : ObservableObject
         _scheduler = scheduler;
         _builtinWords = builtinWords;
         _wordFiles = wordFiles;
+        _security = security;
+        _lock = appLock;
 
         _settings = store.Load();
         _mode = _settings.Mode;
@@ -85,6 +94,8 @@ public class MainViewModel : ObservableObject
         _reminderEnabled = _settings.ReminderEnabled;
         _validityDays = _settings.ValidityDays;
         _wordSource = _settings.WordSource;
+        _lockGraceSeconds = _settings.LockGraceSeconds;
+        _lockEnabled = _settings.LockEnabled && security.IsAvailable;
         _customWordsPath = _settings.CustomWordsPath;
         if (!string.IsNullOrEmpty(_customWordsPath))
         {
@@ -330,6 +341,79 @@ public class MainViewModel : ObservableObject
         StatusMessage = _clipboard.Copy(suggestion.Text)
             ? "Copiata negli appunti: verrà cancellata tra " + (int)_clipboard.ClearAfter.TotalSeconds + " secondi."
             : "Impossibile accedere agli appunti: riprova.";
+    }
+
+    // ---------------------------------------------------------------- Blocco dell'app
+
+    private static readonly int[] GraceSeconds = { 0, 30, 60, 300 };
+
+    public string[] LockGraceNames { get; } = { "Subito", "Dopo 30 secondi", "Dopo 1 minuto", "Dopo 5 minuti" };
+
+    /// <summary>True se il telefono ha un blocco schermo e Android 9 o successivo.</summary>
+    public bool LockAvailable => _security.IsAvailable;
+
+    public string LockHint => LockAvailable
+        ? "L'app chiede impronta, volto o PIN del telefono all'apertura e dopo il tempo scelto in secondo piano. Gli screenshot e l'anteprima tra le app recenti vengono bloccati."
+        : "Per usare il blocco imposta prima un PIN, una sequenza o un'impronta nelle impostazioni di sicurezza di Android (serve Android 9 o successivo).";
+
+    public bool LockEnabled
+    {
+        get => _lockEnabled;
+        set
+        {
+            if (value == _lockEnabled)
+            {
+                return;
+            }
+
+            // L'interruttore resta com'era finché l'autenticazione non è andata a buon fine.
+            OnPropertyChanged();
+            RunSafe(() => ChangeLockAsync(value));
+        }
+    }
+
+    public int LockGraceIndex
+    {
+        get
+        {
+            var index = Array.IndexOf(GraceSeconds, _lockGraceSeconds);
+            return index >= 0 ? index : 1;
+        }
+        set
+        {
+            if (value < 0 || value >= GraceSeconds.Length || GraceSeconds[value] == _lockGraceSeconds)
+            {
+                return;
+            }
+
+            _lockGraceSeconds = GraceSeconds[value];
+            _lock.State.GracePeriod = TimeSpan.FromSeconds(_lockGraceSeconds);
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
+    private async Task ChangeLockAsync(bool enable)
+    {
+        if (enable && !_security.IsAvailable)
+        {
+            StatusMessage = LockHint;
+            return;
+        }
+
+        // Attivare o disattivare il blocco richiede di autenticarsi: chi trova il telefono sbloccato non può toglierlo.
+        var subtitle = enable ? "Conferma per attivare il blocco" : "Conferma per disattivare il blocco";
+        if (!await _security.AuthenticateAsync("PasswordGen", subtitle))
+        {
+            StatusMessage = "Autenticazione non riuscita: il blocco è rimasto com'era.";
+            return;
+        }
+
+        _lockEnabled = enable;
+        _lock.SetEnabled(enable);
+        OnPropertyChanged(nameof(LockEnabled));
+        SaveSettings();
+        StatusMessage = enable ? "Blocco dell'app attivato." : "Blocco dell'app disattivato.";
     }
 
     // ---------------------------------------------------------------- Parole della passphrase
@@ -777,6 +861,8 @@ public class MainViewModel : ObservableObject
         _settings.RequireSpecial = _requireSpecial;
         _settings.AvoidAmbiguous = _avoidAmbiguous;
         _settings.HistoryEnabled = _historyEnabled;
+        _settings.LockEnabled = _lockEnabled;
+        _settings.LockGraceSeconds = _lockGraceSeconds;
         _settings.WordSource = _wordSource;
         _settings.CustomWordsPath = _customWordsPath;
         _settings.ReminderEnabled = _reminderEnabled;

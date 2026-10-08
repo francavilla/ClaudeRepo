@@ -1,0 +1,26 @@
+using PasswordGen.Mobile.Services;
+
+namespace PasswordGen.Mobile;
+
+/// <summary>Schermata che copre l'app finché l'utente non si autentica.</summary>
+public partial class LockPage : ContentPage
+{
+    private readonly AppLockController _controller;
+
+    public LockPage(AppLockController controller)
+    {
+        InitializeComponent();
+        _controller = controller;
+    }
+
+    private async void OnUnlockClicked(object sender, EventArgs e)
+    {
+        await _controller.TryUnlockAsync();
+    }
+
+    // Il tasto indietro non deve chiudere il blocco.
+    protected override bool OnBackButtonPressed()
+    {
+        return true;
+    }
+}

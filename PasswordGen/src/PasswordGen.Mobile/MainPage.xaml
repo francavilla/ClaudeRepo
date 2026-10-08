@@ -148,6 +148,21 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <!-- Blocco dell'app -->
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Blocco dell'app" Style="{StaticResource CardTitle}" />
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="Richiedi impronta, volto o PIN" VerticalOptions="Center" />
+                            <Switch Grid.Column="1" IsToggled="{Binding LockEnabled, Mode=TwoWay}" IsEnabled="{Binding LockAvailable}" />
+                        </Grid>
+                        <Label Text="Blocca di nuovo" Style="{StaticResource MutedText}" />
+                        <Picker ItemsSource="{Binding LockGraceNames}" SelectedIndex="{Binding LockGraceIndex, Mode=TwoWay}"
+                                IsEnabled="{Binding LockAvailable}" />
+                        <Label Text="{Binding LockHint}" Style="{StaticResource MutedText}" />
+                    </VerticalStackLayout>
+                </Border>
+
                 <!-- Impostazioni del promemoria -->
                 <Border Style="{StaticResource Card}">
                     <VerticalStackLayout Spacing="6">

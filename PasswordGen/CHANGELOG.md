@@ -4,6 +4,20 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.7.0] - 2026-10-08
+
+### Aggiunto
+- **App Android: blocco con impronta, volto o PIN.** Con il blocco attivo l'app chiede l'autenticazione del telefono all'avvio e dopo
+  il tempo scelto in secondo piano (subito, 30 secondi, 1 minuto, 5 minuti); finché non ti autentichi una schermata copre tutto.
+  L'autenticazione è quella di sistema (`BiometricPrompt`): l'app non vede mai impronta o PIN, riceve solo l'esito.
+  - Attivare o disattivare il blocco richiede di autenticarsi: chi trova il telefono sbloccato non può toglierlo.
+  - Con il blocco attivo vengono bloccati screenshot, registrazioni dello schermo e l'anteprima tra le app recenti.
+  - Disponibile con un blocco schermo impostato e Android 9 o successivo; altrimenti l'interruttore resta disattivato.
+- `PasswordGen.Core`: `AppLockState`, logica del blocco indipendente dalla piattaforma (con test), pronta per Windows Hello.
+
+### Modificato
+- L'app Android richiede anche il permesso di usare impronta/PIN (`USE_BIOMETRIC`, nessuna conferma all'installazione).
+
 ## [1.6.0] - 2026-10-08
 
 ### Aggiunto

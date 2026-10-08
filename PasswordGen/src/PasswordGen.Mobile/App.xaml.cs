@@ -2,6 +2,7 @@ using Microsoft.Maui.Storage;
 using PasswordGen.Core.Generation;
 using PasswordGen.Core.History;
 using PasswordGen.Core.Randomness;
+using PasswordGen.Core.Security;
 using PasswordGen.Core.Settings;
 using PasswordGen.Mobile.Services;
 using PasswordGen.Mobile.ViewModels;
@@ -28,18 +29,41 @@ public partial class App : Application
             ? null
             : new HistoryStore(Path.Combine(FileSystem.AppDataDirectory, "history.dat"), new AesHmacProtector(key));
 
+        var security = new AndroidSecurityService();
+        var saved = settings.Load();
+        var lockState = new AppLockState(TimeSpan.FromSeconds(saved.LockGraceSeconds)) { Enabled = saved.LockEnabled && security.IsAvailable };
+
+        TabbedPage tabs = null;
+        var appLock = new AppLockController(lockState, security, () => tabs);
+
         var viewModel = new MainViewModel(
             generator, words, settings, history, new SecretClipboard(TimeSpan.FromSeconds(30)),
-            new DialogService(), new AndroidReminderScheduler(), new WordFileService());
+            new DialogService(), new AndroidReminderScheduler(), new WordFileService(), security, appLock);
         viewModel.RestoreReminder();
 
-        var tabs = new TabbedPage();
+        tabs = new TabbedPage();
         tabs.Children.Add(new MainPage(viewModel));
         tabs.Children.Add(new HistoryPage(viewModel));
 
+        // All'avvio l'app parte bloccata (se il blocco è attivo): la schermata di blocco compare appena la pagina è visibile.
+        var started = false;
+        tabs.Appearing += (sender, args) =>
+        {
+            if (!started)
+            {
+                started = true;
+                appLock.Start();
+            }
+        };
+
         var window = new Window(tabs);
-        // Quando l'app va in secondo piano: via la password attuale e password dello storico di nuovo mascherate.
-        window.Stopped += (sender, args) => viewModel.ClearSensitive();
+        // In secondo piano: via la password attuale, password dello storico di nuovo mascherate, parte il conto del blocco.
+        window.Stopped += (sender, args) =>
+        {
+            viewModel.ClearSensitive();
+            appLock.Backgrounded();
+        };
+        window.Resumed += (sender, args) => appLock.Resumed();
         return window;
     }
 }
