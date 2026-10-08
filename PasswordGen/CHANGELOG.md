@@ -9,8 +9,9 @@ Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Bui
 ### Aggiunto
 - **App Android** (prima tappa, .NET MAUI, cartella `src/PasswordGen.Mobile`): le tre tipologie di password (parole italiane,
   sillabe, caratteri casuali), policy configurabile, numero di proposte regolabile, password attuale facoltativa e
-  copia negli appunti segnalata come sensibile e cancellata dopo 30 secondi. APK scaricabile dalla CI.
-  Storico, promemoria con notifiche e file di parole arriveranno nelle tappe successive.
+  copia negli appunti segnalata come sensibile e cancellata dopo 30 secondi. L'APK è allegata alla release
+  (Android 7.0 o successivo, nessun permesso). Storico, promemoria con notifiche e file di parole arriveranno nelle tappe successive.
+- Il workflow di release compila e allega anche l'APK (firma con la chiave fissa se i secret `ANDROID_KEYSTORE_*` sono configurati).
 
 ### Modificato
 - `PasswordGen.Core` ora è compilato sia per `net48` (app Windows e test) sia per `netstandard2.0` (app Android).

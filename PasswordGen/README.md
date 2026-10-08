@@ -84,7 +84,7 @@ Nella cartella `src/PasswordGen.Mobile` c'è l'app Android (.NET MAUI), che rius
 tre tipologie di password, policy, numero di proposte, password attuale facoltativa e copia sicura negli appunti. Seguiranno storico
 cifrato (Keystore di Android), promemoria con notifiche e file di parole personale.
 
-- L'APK si scarica dall'artifact del workflow *CI PasswordGen Android*. Per installarlo sul telefono servono le «origini sconosciute».
+- L'APK è allegata a ogni release (`PasswordGen-vX.Y.Z.apk`); le build di prova si scaricano anche dall'artifact del workflow *CI PasswordGen Android*. Per installarlo sul telefono servono le «origini sconosciute».
 - Senza un keystore fisso l'APK è firmato con una chiave di debug diversa a ogni build: per **aggiornare** l'app senza disinstallarla
   (e perdere le impostazioni) servirà una chiave fissa, da fornire come secret del repository.
 - Non c'è nella `PasswordGen.sln` perché richiede il workload Android: si compila con `dotnet publish` (vedi il workflow).
