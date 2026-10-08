@@ -4,6 +4,13 @@ Tutte le modifiche rilevanti di ExeBuilder sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.3.0] - 2026-10-08
+
+### Aggiunto
+- Icona dell'applicazione (quadrato blu sfumato con chiave inglese bianca), in 9 misure da 16 a 256 px:
+  file `.exe`, barra del titolo, barra delle applicazioni e Alt+Tab.
+- Script `tools/make_icon.py` (Python + Pillow) per rigenerare o modificare l'icona.
+
 ## [1.2.0] - 2026-10-08
 
 ### Aggiunto

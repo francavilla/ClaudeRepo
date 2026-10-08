@@ -8,8 +8,15 @@
     <AssemblyName>ExeBuilder</AssemblyName>
     <RootNamespace>ExeBuilder</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Icona del file .exe (Esplora risorse, collegamenti). Si rigenera con tools/make_icon.py. -->
+    <ApplicationIcon>Assets\ExeBuilder.ico</ApplicationIcon>
     <AssemblyTitle>ExeBuilder - crea eseguibili da progetti .NET</AssemblyTitle>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Icona della finestra (barra del titolo, barra delle applicazioni, Alt+Tab). -->
+    <Resource Include="Assets\ExeBuilder.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ExeBuilder.Core\ExeBuilder.Core.csproj" />
