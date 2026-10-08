@@ -15,6 +15,12 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" PrivateAssets="all" />
   </ItemGroup>
 
+  <!-- Senza shadow copy: su .NET Framework xunit copia solo gli assembly e le librerie native di SQLite (e_sqlite3.dll,
+       SQLite.Interop.dll) non verrebbero trovate. -->
+  <ItemGroup>
+    <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\DesktopAppTemplate.Core\DesktopAppTemplate.Core.csproj" />
     <ProjectReference Include="..\..\src\DesktopAppTemplate.Features\DesktopAppTemplate.Features.csproj" />

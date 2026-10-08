@@ -4,6 +4,12 @@ Tutte le modifiche rilevanti di DesktopAppTemplate sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [3.1.1] - 2026-10-08
+
+### Corretto
+- I test su SQLite fallivano con "Library e_sqlite3 not found": xunit su .NET Framework eseguiva i test in una copia (shadow copy) che non include le
+  librerie native. Aggiunto `xunit.runner.json` con `shadowCopy: false`.
+
 ## [3.1.0] - 2026-10-08
 
 ### Aggiunto
