@@ -18,6 +18,7 @@ namespace ExeBuilder
         public MainWindow()
         {
             InitializeComponent();
+            FitToWorkArea();
             DataContextChanged += (s, e) =>
             {
                 var vm = e.NewValue as MainViewModel;
@@ -56,7 +57,18 @@ namespace ExeBuilder
             }
         }
 
-        private void OnProjectRowPreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        /// <summary>
+        /// La dimensione predefinita (1380×1058) supera l'area utile di uno schermo Full HD con la barra
+        /// delle applicazioni: in quel caso la finestra viene ridotta per restare interamente visibile.
+        /// </summary>
+        private void FitToWorkArea()
+        {
+            var workArea = SystemParameters.WorkArea;
+            Width = Math.Max(MinWidth, Math.Min(Width, workArea.Width));
+            Height = Math.Max(MinHeight, Math.Min(Height, workArea.Height));
+        }
+
+                private void OnProjectRowPreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             // Non si marca l'evento come gestito: la CheckBox deve continuare a cambiare stato.
             ((ListViewItem)sender).IsSelected = true;

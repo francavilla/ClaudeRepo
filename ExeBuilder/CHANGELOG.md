@@ -4,6 +4,12 @@ Tutte le modifiche rilevanti di ExeBuilder sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.1.1] - 2026-10-08
+
+### Modificato
+- Dimensione predefinita della finestra aumentata del 15% (da 1200×920 a 1380×1058).
+  All'avvio la finestra viene ridotta, se necessario, per restare entro l'area utile dello schermo.
+
 ## [1.1.0] - 2026-10-08
 
 ### Aggiunto
