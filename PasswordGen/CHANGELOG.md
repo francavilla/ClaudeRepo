@@ -4,6 +4,18 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.4.0] - 2026-10-08
+
+### Aggiunto
+- **App Android** (prima tappa, .NET MAUI, cartella `src/PasswordGen.Mobile`): le tre tipologie di password (parole italiane,
+  sillabe, caratteri casuali), policy configurabile, numero di proposte regolabile, password attuale facoltativa e
+  copia negli appunti segnalata come sensibile e cancellata dopo 30 secondi. APK scaricabile dalla CI.
+  Storico, promemoria con notifiche e file di parole arriveranno nelle tappe successive.
+
+### Modificato
+- `PasswordGen.Core` ora è compilato sia per `net48` (app Windows e test) sia per `netstandard2.0` (app Android).
+  `DpapiProtector` resta disponibile solo su Windows.
+
 ## [1.3.0] - 2026-10-08
 
 ### Aggiunto

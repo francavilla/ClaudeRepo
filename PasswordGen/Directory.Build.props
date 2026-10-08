@@ -3,10 +3,10 @@
     <LangVersion>7.3</LangVersion>
     <Company>PasswordGen</Company>
     <Product>PasswordGen</Product>
-    <Version>1.3.0</Version>
+    <Version>1.4.0</Version>
   </PropertyGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
     <!-- Permette la build anche dove il Developer Pack .NET Framework non è installato (CI, container). -->
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
   </ItemGroup>

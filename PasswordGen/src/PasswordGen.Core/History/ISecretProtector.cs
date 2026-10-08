@@ -12,6 +12,7 @@ namespace PasswordGen.Core.History
         byte[] Unprotect(byte[] data);
     }
 
+#if NETFRAMEWORK
     /// <summary>
     /// DPAPI di Windows con ambito utente corrente: i dati si decifrano solo con lo stesso account Windows
     /// sullo stesso computer. Non protegge da un programma malevolo eseguito dallo stesso utente.
@@ -31,4 +32,5 @@ namespace PasswordGen.Core.History
             return ProtectedData.Unprotect(data, Entropy, DataProtectionScope.CurrentUser);
         }
     }
+#endif
 }

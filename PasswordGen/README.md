@@ -78,11 +78,24 @@ le varianti di quelle dello storico.
 `%AppData%\PasswordGen\settings.json`: tipo e lunghezze, regole della policy, durata della password e data dell'ultimo cambio.
 Non contiene mai password: quelle dello storico stanno nel file cifrato `history.dat`.
 
+## App Android (in sviluppo)
+
+Nella cartella `src/PasswordGen.Mobile` c'è l'app Android (.NET MAUI), che riusa lo stesso Core. **Prima tappa**: generazione delle
+tre tipologie di password, policy, numero di proposte, password attuale facoltativa e copia sicura negli appunti. Seguiranno storico
+cifrato (Keystore di Android), promemoria con notifiche e file di parole personale.
+
+- L'APK si scarica dall'artifact del workflow *CI PasswordGen Android*. Per installarlo sul telefono servono le «origini sconosciute».
+- Senza un keystore fisso l'APK è firmato con una chiave di debug diversa a ogni build: per **aggiornare** l'app senza disinstallarla
+  (e perdere le impostazioni) servirà una chiave fissa, da fornire come secret del repository.
+- Non c'è nella `PasswordGen.sln` perché richiede il workload Android: si compila con `dotnet publish` (vedi il workflow).
+- Permessi Android: nessuno (l'app non usa la rete); il backup di Android è disattivato.
+
 ## Struttura
 
 - `src/PasswordGen.Core` — logica senza dipendenze dalla UI: generatori, policy, somiglianza con la password precedente,
   promemoria, impostazioni.
 - `src/PasswordGen` — interfaccia WPF (MVVM, tema in `Themes/Theme.xaml`).
+- `src/PasswordGen.Mobile` — app Android (.NET MAUI).
 - `tests/PasswordGen.Core.Tests` — test xUnit del Core.
 - `tools/make_icon.py` — rigenera l'icona (Python + Pillow).
 

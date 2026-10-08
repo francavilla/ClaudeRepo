@@ -46,6 +46,8 @@ Più modifiche nella stessa richiesta = un solo incremento di versione.
   secondo una policy configurabile, con promemoria del cambio password mensile. Logica in `PasswordGen.Core` (testata in `tests/PasswordGen.Core.Tests`);
   UI in `src/PasswordGen` (MVVM, tema in `Themes/Theme.xaml`); versione in `PasswordGen/Directory.Build.props`;
   CI in `.github/workflows/ci-passwordgen.yml`.
+  App Android (.NET MAUI, `net10.0-android`) in `PasswordGen/src/PasswordGen.Mobile`, stessa versione dell'app Windows; CI in `.github/workflows/ci-passwordgen-android.yml`.
+  Il Core è `net48;netstandard2.0`: niente API solo-Windows fuori da `#if NETFRAMEWORK`.
 
 ## Stile del codice
 - C# 7.3 (`LangVersion` in `Directory.Build.props`), commenti e messaggi in italiano.
