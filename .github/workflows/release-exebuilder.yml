@@ -1,0 +1,61 @@
+# Crea una release di ExeBuilder quando viene pubblicato un tag vX.Y.Z.
+# Compila su Windows (WPF .NET Framework 4.8), esegue i test e allega lo zip dell'applicazione.
+name: Release ExeBuilder
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      DOTNET_NOLOGO: '1'
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verifica che il tag corrisponda alla versione
+        shell: pwsh
+        run: |
+          $tagVersion = '${{ github.ref_name }}'.TrimStart('v')
+          [xml]$props = Get-Content 'ExeBuilder/Directory.Build.props'
+          $projectVersion = ($props.Project.PropertyGroup | Where-Object { $_.Version }).Version
+          if ($tagVersion -ne $projectVersion) {
+            throw "Il tag $tagVersion non corrisponde a <Version>$projectVersion</Version> in ExeBuilder/Directory.Build.props"
+          }
+          Write-Host "Versione $projectVersion"
+
+      - name: Test
+        run: dotnet test ExeBuilder/tests/ExeBuilder.Core.Tests/ExeBuilder.Core.Tests.csproj -c Release
+
+      - name: Build Release
+        run: dotnet publish ExeBuilder/src/ExeBuilder/ExeBuilder.csproj -c Release -o publish/ExeBuilder
+
+      - name: Crea lo zip
+        shell: pwsh
+        run: Compress-Archive -Path 'publish/ExeBuilder/*' -DestinationPath 'ExeBuilder-${{ github.ref_name }}.zip'
+
+      - name: Note di rilascio dal CHANGELOG
+        shell: pwsh
+        run: |
+          $version = '${{ github.ref_name }}'.TrimStart('v')
+          $lines = Get-Content 'ExeBuilder/CHANGELOG.md' -Encoding UTF8
+          $start = [Array]::FindIndex($lines, [Predicate[string]]{ param($l) $l.StartsWith("## [$version]") })
+          if ($start -lt 0) { throw "Nessuna voce '## [$version]' in ExeBuilder/CHANGELOG.md" }
+          $end = [Array]::FindIndex($lines, $start + 1, [Predicate[string]]{ param($l) $l.StartsWith('## [') })
+          if ($end -lt 0) { $end = $lines.Length }
+          $notes = $lines[($start + 1)..($end - 1)] -join "`n"
+          $notes += "`n`n**Requisiti:** Windows 10/11 con .NET Framework 4.8. Estrarre lo zip e avviare ``ExeBuilder.exe``."
+          Set-Content -Path 'release-notes.md' -Value $notes -Encoding UTF8
+
+      - name: Crea la release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${{ github.ref_name }}" "ExeBuilder-${{ github.ref_name }}.zip" --title "ExeBuilder ${{ github.ref_name }}" --notes-file release-notes.md
