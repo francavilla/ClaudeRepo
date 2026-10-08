@@ -173,7 +173,7 @@ Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Bui
 - Le password dello storico sono salvate in `%AppData%\PasswordGen\history.dat`, cifrato con DPAPI (utente corrente).
   Disattivando lo storico il file viene cancellato (con conferma).
 
-## [1.2.0] - 2026-10-08
+## [1.1.0] - 2026-10-08
 
 ### Aggiunto
 - Numero di proposte regolabile dall'interfaccia (da 1 a 20, predefinito 6), salvato nelle preferenze.
