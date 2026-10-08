@@ -18,8 +18,9 @@ Ogni modifica a un'applicazione del repository deve aggiornare il suo numero di 
 Più modifiche nella stessa richiesta = un solo incremento di versione.
 
 ## Release
-- Le release di ExeBuilder si creano pubblicando un tag `vX.Y.Z` uguale a `<Version>`:
-  `git tag -a v1.2.0 -m "ExeBuilder 1.2.0" && git push origin v1.2.0`.
+- Le release di ExeBuilder si creano con il workflow `Release ExeBuilder`:
+  - avvio manuale (Actions → Run workflow, o API `workflow_dispatch` su `main`): usa `<Version>` e crea il tag `vX.Y.Z`;
+  - oppure pubblicando un tag `vX.Y.Z` uguale a `<Version>` (dalla sessione cloud il push dei tag non è consentito).
 - Il workflow `.github/workflows/release-exebuilder.yml` verifica la versione, esegue i test, compila su Windows
   e crea la release GitHub con lo zip e le note prese dal `CHANGELOG.md`.
 
