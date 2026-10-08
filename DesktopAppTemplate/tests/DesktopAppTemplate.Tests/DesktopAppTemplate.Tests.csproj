@@ -21,6 +21,7 @@
     <ProjectReference Include="..\..\src\DesktopAppTemplate.Infrastructure\DesktopAppTemplate.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\DesktopAppTemplate.Data\DesktopAppTemplate.Data.csproj" />
     <ProjectReference Include="..\..\src\DesktopAppTemplate.Data.Ado\DesktopAppTemplate.Data.Ado.csproj" />
+    <ProjectReference Include="..\..\src\DesktopAppTemplate.Data.Dal\DesktopAppTemplate.Data.Dal.csproj" />
     <ProjectReference Include="..\..\src\DesktopAppTemplate.Data.Dapper\DesktopAppTemplate.Data.Dapper.csproj" />
     <ProjectReference Include="..\..\src\DesktopAppTemplate.Data.EntityFramework\DesktopAppTemplate.Data.EntityFramework.csproj" />
   </ItemGroup>

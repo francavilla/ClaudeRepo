@@ -1,6 +1,7 @@
 using DesktopAppTemplate.Core.Data;
 using DesktopAppTemplate.Data;
 using DesktopAppTemplate.Data.Ado;
+using DesktopAppTemplate.Data.Dal;
 using DesktopAppTemplate.Data.Dapper;
 using DesktopAppTemplate.Data.EntityFramework;
 using DesktopAppTemplate.Infrastructure;
@@ -23,11 +24,13 @@ namespace DesktopAppTemplate.Host
 
             services.AddDatabase(storage.Provider, storage.ResolveConnectionString(appName));
 
-            // >>> AGGANCIO LIBRERIA ESISTENTE (esempio, da attivare quando c'è l'adattatore):
-            // services.AddSingleton<IDbExecutor, MiaLibreriaExecutor>();
-
             switch (storage.DataAccess)
             {
+                case DataAccessKind.Dal:
+                    // Repository ADO.NET sopra la libreria DAL: l'adattatore sostituisce l'executor predefinito.
+                    // Va registrato dopo AddDatabase (vale l'ultima registrazione); il collegamento a DAL è in Data.Dal/DalGateway.cs.
+                    services.AddDalAdapter();
+                    return services.AddAdoNetData();
                 case DataAccessKind.Dapper:
                     return services.AddDapperData();
                 case DataAccessKind.EntityFramework:

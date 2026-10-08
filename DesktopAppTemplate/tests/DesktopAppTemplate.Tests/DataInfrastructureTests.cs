@@ -225,6 +225,7 @@ namespace DesktopAppTemplate.Tests
         [InlineData("ado", DataAccessKind.Ado)]
         [InlineData("dapper", DataAccessKind.Dapper)]
         [InlineData("ef", DataAccessKind.EntityFramework)]
+        [InlineData("dal", DataAccessKind.Dal)]
         public void DataAccess_viene_letto_dalla_configurazione(string value, DataAccessKind expected)
         {
             Assert.Equal(expected, Settings(P("DataAccess", value)).DataAccess);

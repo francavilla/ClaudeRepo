@@ -57,14 +57,14 @@ Si sceglie come per ogni altro parametro (App.config o riga di comando):
 DesktopAppTemplate.exe --storage sqlite                               # predefinito: file <nome app>.db in %LocalAppData%\<nome app>
 DesktopAppTemplate.exe --storage sqlserver --connection-string "Server=.;Database=Demo;Integrated Security=True"
 DesktopAppTemplate.exe --storage file                                 # file JSON, senza database
-DesktopAppTemplate.exe --data-access dapper                           # ado (predefinito) | dapper | ef
+DesktopAppTemplate.exe --data-access dapper                           # ado (predefinito) | dapper | ef | dal
 ```
 
 Con SQL Server preferisci l'autenticazione di Windows (`Integrated Security=True`): una password in App.config è in chiaro.
 La stringa di connessione non viene mai scritta nei messaggi dell'app.
 
-### Tre tecnologie, stessa slice
-`--data-access` sceglie come si leggono e scrivono i dati. Le tre implementazioni di `ITaskRepository` usano le **stesse tabelle** e lo stesso SQL
+### Più tecnologie, stessa slice
+`--data-access` sceglie come si leggono e scrivono i dati. Le implementazioni di `ITaskRepository` usano le **stesse tabelle** e lo stesso SQL
 (`TaskSql`), quindi i dati scritti con una si leggono con le altre e si possono confrontare sullo stesso database:
 
 | Progetto | Tecnologia | Pacchetti |
@@ -72,6 +72,7 @@ La stringa di connessione non viene mai scritta nei messaggi dell'app.
 | `Data.Ado` (predefinita) | ADO.NET puro tramite `IDbExecutor` | nessuno in più |
 | `Data.Dapper` | Dapper (SQL tuo, meno codice di lettura) | Dapper |
 | `Data.EntityFramework` | Entity Framework 6 (net462; per SQLite usa il driver `System.Data.SQLite`) | EntityFramework, System.Data.SQLite.EF6 |
+| `Data.Dal` | libreria DAL esistente (vedi sotto) | il riferimento all'assembly di DAL |
 
 Nei progetti reali tieni quella che preferisci ed elimina le altre: un progetto `Data.*`, il suo `ProjectReference` nell'Host e il `case` in `Host/StorageRegistration.cs`.
 
@@ -89,6 +90,26 @@ Dopo `AddDatabase` (in `Host/StorageRegistration.cs`) basta registrare la propri
 Esempio: `services.AddSingleton<IDbExecutor, MiaLibreriaExecutor>();` e i repository ADO.NET usano la libreria senza altre modifiche
 (il test `Il_repository_ADO_usa_solo_l_executor_quindi_si_puo_agganciare_una_libreria` ne mostra il principio).
 Gli SQL del modello sono scritti con `@Nome`: il dialetto li adatta, quindi non vanno riscritti.
+
+### La libreria DAL (`--data-access dal`)
+Le applicazioni esistenti usano la libreria **DAL**: connessione unica (singleton) con locking, metodi che incapsulano quelli standard di ADO.NET,
+transazioni esplicite. Il progetto `Data.Dal` la integra senza toccare i repository:
+
+```
+repository ADO.NET  →  DalExecutor  →  IDalGateway  →  (DalGateway)  →  libreria DAL
+                       serializza        5 chiamate        UNICO FILE DA COMPLETARE
+```
+
+- **`DalGateway.cs` è l'unico file da completare**: cinque metodi (`ExecuteReader`, `ExecuteNonQuery`, `BeginTransaction`, `Commit`, `Rollback`) che
+  richiamano i metodi reali di DAL. Qui si aggiunge anche il riferimento all'assembly di DAL (in `Data.Dal.csproj`). Finché non è completato,
+  `--data-access dal` si ferma con un messaggio chiaro.
+- **Connessione singleton:** l'adattatore non apre, chiude né elimina connessioni. `DalLock` esegue **una sola operazione per volta** (attesa asincrona, le
+  chiamate a DAL girano fuori dal thread della UI: la finestra non si blocca). Se DAL espone un proprio oggetto di lock si può usare al posto del semaforo.
+- **Transazioni esplicite:** `ITransactionRunner.RunAsync(async ct => { ... })` apre la transazione, esegue il lavoro (i repository usati dentro ne fanno parte),
+  conferma se riesce e annulla se solleva un'eccezione. Durante la transazione le altre operazioni attendono; se ne viene richiesta una dentro un'altra,
+  partecipa a quella esterna. Senza `RunAsync` ogni comando è confermato subito, come in DAL.
+- **Schema e migrazioni** usano ancora una connessione propria alla stessa stringa di connessione (`--connection-string`), separata da quella di DAL.
+- I test usano una "finta DAL" (connessione unica, transazioni esplicite, rilevamento di accessi sovrapposti): servono da esempio e da prova del comportamento.
 
 ### Schema del database e migrazioni
 Lo schema si crea da solo all'avvio: gli script `Data/Scripts/<Database>/Vnnn_Nome.sql` (incorporati nell'assembly, uno per SQLite e uno per SQL Server)
@@ -123,7 +144,8 @@ src/
   DesktopAppTemplate.Features        netstandard2.0  Slice: richieste, handler, validatori, view model
   DesktopAppTemplate.Infrastructure  netstandard2.0  Implementazioni concrete (orologio, info app, archivio su file JSON)
   DesktopAppTemplate.Data            netstandard2.0  Accesso al database: connessioni, dialetto, executor ADO.NET, migrazioni
-  DesktopAppTemplate.Data.Ado/.Dapper/.EntityFramework   Le tre tecnologie di accesso (repository delle attività)
+  DesktopAppTemplate.Data.Ado/.Dapper/.EntityFramework   Le tecnologie di accesso (repository delle attività)
+  DesktopAppTemplate.Data.Dal        netstandard2.0  Adattatore per la libreria DAL (connessione singleton, transazioni esplicite)
   DesktopAppTemplate.UI.Wpf          net462          Solo view XAML + tema
   DesktopAppTemplate.UI.WinForms     net462          Solo view Windows Forms (con designer)
   DesktopAppTemplate.Host            net462          Composition root: DI e scelta della UI

@@ -4,6 +4,17 @@ Tutte le modifiche rilevanti di DesktopAppTemplate sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [3.1.0] - 2026-10-08
+
+### Aggiunto
+- Adattatore per la libreria DAL (`DesktopAppTemplate.Data.Dal`, `--data-access dal`): `DalExecutor` (implementa `IDbExecutor`) serializza l'uso della
+  connessione singleton con `DalLock` (attesa asincrona, chiamate fuori dal thread della UI); `DalTransactionRunner` gestisce le transazioni esplicite
+  (conferma/annulla, le operazioni interne ne fanno parte, le transazioni annidate partecipano a quella esterna).
+- `ITransactionRunner` in `Core.Data`: contratto per eseguire un gruppo di operazioni in una transazione.
+- `DalGateway`: unico file da completare con le chiamate reali di DAL (cinque metodi); `IDalGateway` ne definisce il contratto.
+- Test con una "finta DAL" a connessione unica: contratto comune dei repository, serializzazione, parametri, transazioni (conferma, annullamento,
+  attesa delle altre operazioni, annidamento) e segnalazione di DAL non collegata.
+
 ## [3.0.1] - 2026-10-08
 
 ### Corretto

@@ -18,11 +18,13 @@ namespace DesktopAppTemplate.Infrastructure
     /// <summary>Con quale tecnologia si accede al database.</summary>
     public enum DataAccessKind
     {
-        /// <summary>ADO.NET (tramite <c>IDbExecutor</c>, punto di aggancio per librerie esistenti).</summary>
+        /// <summary>ADO.NET puro (tramite <c>IDbExecutor</c>, punto di aggancio per librerie esistenti).</summary>
         Ado,
         Dapper,
         /// <summary>Entity Framework 6.</summary>
-        EntityFramework
+        EntityFramework,
+        /// <summary>Libreria DAL (connessione singleton, transazioni esplicite): repository ADO.NET sopra l'adattatore <c>Data.Dal</c>.</summary>
+        Dal
     }
 
     /// <summary>Impostazioni di archiviazione: dove e come si salvano i dati.</summary>
@@ -43,8 +45,8 @@ namespace DesktopAppTemplate.Infrastructure
             validate: OptionValidators.OneOf("file", "sqlite", "sqlserver"));
 
         public static readonly OptionDefinition DataAccessOption = new OptionDefinition(
-            DataAccessKey, "Tecnologia di accesso al database.", "ado|dapper|ef", "ado",
-            validate: OptionValidators.OneOf("ado", "dapper", "ef"));
+            DataAccessKey, "Tecnologia di accesso al database.", "ado|dapper|ef|dal", "ado",
+            validate: OptionValidators.OneOf("ado", "dapper", "ef", "dal"));
 
         public static readonly OptionDefinition ConnectionStringOption = new OptionDefinition(
             ConnectionStringKey,
@@ -129,6 +131,7 @@ namespace DesktopAppTemplate.Infrastructure
             {
                 case "dapper": return DataAccessKind.Dapper;
                 case "ef": return DataAccessKind.EntityFramework;
+                case "dal": return DataAccessKind.Dal;
                 default: return DataAccessKind.Ado;
             }
         }
