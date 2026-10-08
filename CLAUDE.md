@@ -1,7 +1,7 @@
 # Istruzioni per Claude su questo repository
 
 ## Branch
-- Lavorare e fare push sul branch **`main`**: dall'8 ottobre 2026 tutte le integrazioni avvengono lì.
+- Lavorare e fare push sul branch **`main`**: dall'8 ottobre 2026 tutte le integrazioni avvengono lì, anche se la sessione ne assegna un altro (confermato dall'utente).
 - **`Progetti_Claude` è congelato** allo stato di DesktopAppTemplate 4.2.2 (commit `b2d2eb3`): non aggiungervi altro.
 - DesktopAppTemplate riparte dalla versione **1.0.0** (equivalente alla 4.2.2); le versioni 1.0.0 – 4.2.2 del changelog sono la cronologia interna dello sviluppo precedente.
 
@@ -9,7 +9,7 @@
 Ogni modifica a un'applicazione del repository deve aggiornare il suo numero di versione:
 
 1. Aggiornare `<Version>` nel `Directory.Build.props` dell'applicazione
-   (per ExeBuilder: `ExeBuilder/Directory.Build.props`), seguendo il Semantic Versioning:
+   (per ExeBuilder: `ExeBuilder/Directory.Build.props`, per PasswordGen: `PasswordGen/Directory.Build.props`), seguendo il Semantic Versioning:
    - **PATCH** (1.1.0 → 1.1.1): correzione di bug senza nuove funzioni;
    - **MINOR** (1.1.0 → 1.2.0): nuove funzioni compatibili;
    - **MAJOR** (1.1.0 → 2.0.0): cambiamenti incompatibili (formato, comportamento, requisiti).
@@ -26,6 +26,9 @@ Più modifiche nella stessa richiesta = un solo incremento di versione.
 - Il workflow `.github/workflows/release-exebuilder.yml` verifica la versione, esegue i test, compila su Windows
   e crea la release GitHub con lo zip e le note prese dal `CHANGELOG.md`.
 
+- Le release di PasswordGen si creano con il workflow `Release PasswordGen` (`.github/workflows/release-passwordgen.yml`):
+  stesso funzionamento, ma il tag è `passwordgen-vX.Y.Z` per non confondersi con quelli delle altre app.
+
 ## CI
 - `.github/workflows/ci-exebuilder.yml` compila ExeBuilder su Windows (XAML compreso) ed esegue i test
   a ogni push su `Progetti_Claude`/`main` e a ogni PR verso `main`; l'app compilata è un artifact del run (14 giorni).
@@ -38,6 +41,11 @@ Più modifiche nella stessa richiesta = un solo incremento di versione.
 - `DesktopAppTemplate/` — modello di solution con architettura a slice, interfaccia WPF o Windows Forms (net462, scelta con `--ui wpf|winforms`).
   Logica in `Core`/`Features`/`Infrastructure` (netstandard2.0, testata in `tests/DesktopAppTemplate.Tests`); versione in `DesktopAppTemplate/Directory.Build.props`;
   CI in `.github/workflows/ci-desktopapptemplate.yml`.
+
+- `PasswordGen/` — WPF .NET Framework 4.8 che genera password casuali, sicure e memorizzabili (parole italiane, sillabe, caratteri casuali)
+  secondo una policy configurabile, con promemoria del cambio password mensile. Logica in `PasswordGen.Core` (testata in `tests/PasswordGen.Core.Tests`);
+  UI in `src/PasswordGen` (MVVM, tema in `Themes/Theme.xaml`); versione in `PasswordGen/Directory.Build.props`;
+  CI in `.github/workflows/ci-passwordgen.yml`.
 
 ## Stile del codice
 - C# 7.3 (`LangVersion` in `Directory.Build.props`), commenti e messaggi in italiano.
