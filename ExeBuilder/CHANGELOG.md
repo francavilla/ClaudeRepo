@@ -4,6 +4,24 @@ Tutte le modifiche rilevanti di ExeBuilder sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.2.0] - 2026-10-08
+
+### Aggiunto
+- Banner dell'esito sopra la console, sempre visibile: in corso (blu, icona animata), riuscita (verde, percorso
+  dell'eseguibile, durata e pulsante "Apri cartella"), fallita (rosso, progetti non riusciti), annullata (giallo).
+- Divisore trascinabile tra la parte superiore e la console del log; la parte superiore diventa scorrevole
+  e lascia sempre alla console uno spazio minimo.
+
+### Modificato
+- Intestazione e card più compatte per dare più spazio al log.
+- Elenco dei progetti senza barra di scorrimento orizzontale (colonne più strette).
+
+## [1.1.1] - 2026-10-08
+
+### Modificato
+- Dimensione predefinita della finestra aumentata del 15% (da 1200×920 a 1380×1058).
+  All'avvio la finestra viene ridotta, se necessario, per restare entro l'area utile dello schermo.
+
 ## [1.1.0] - 2026-10-08
 
 ### Aggiunto

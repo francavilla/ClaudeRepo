@@ -1,0 +1,57 @@
+# Integrazione continua di ExeBuilder: a ogni push o PR compila su Windows (XAML compreso),
+# esegue i test e rende scaricabile l'applicazione compilata come artifact del run.
+name: CI ExeBuilder
+
+on:
+  push:
+    branches: [ Progetti_Claude, main ]
+    paths:
+      - 'ExeBuilder/**'
+      - '.github/workflows/ci-exebuilder.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'ExeBuilder/**'
+      - '.github/workflows/ci-exebuilder.yml'
+  workflow_dispatch:
+
+# Un nuovo push sullo stesso branch annulla il run precedente ancora in corso.
+concurrency:
+  group: ci-exebuilder-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      DOTNET_NOLOGO: '1'
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Versione
+        id: version
+        shell: pwsh
+        run: |
+          [xml]$props = Get-Content 'ExeBuilder/Directory.Build.props'
+          $version = ($props.Project.PropertyGroup | Where-Object { $_.Version }).Version
+          "version=$version" >> $env:GITHUB_OUTPUT
+          Write-Host "ExeBuilder $version"
+
+      - name: Test
+        run: dotnet test ExeBuilder/tests/ExeBuilder.Core.Tests/ExeBuilder.Core.Tests.csproj -c Release
+
+      - name: Build Release (WPF + XAML)
+        run: dotnet publish ExeBuilder/src/ExeBuilder/ExeBuilder.csproj -c Release -o publish/ExeBuilder
+
+      - name: Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ExeBuilder-${{ steps.version.outputs.version }}-${{ github.run_number }}
+          path: publish/ExeBuilder
+          retention-days: 14
