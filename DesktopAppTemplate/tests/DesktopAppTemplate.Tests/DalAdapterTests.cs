@@ -37,7 +37,26 @@ namespace DesktopAppTemplate.Tests
 
         public IDataReader ExecuteReader(string sql, IReadOnlyList<KeyValuePair<string, object>> parameters)
         {
-            return Track("reader", sql, parameters, command => command.ExecuteReader());
+            // Il reader di SQLite si chiude insieme al comando che lo ha creato: le righe si copiano in una tabella e si
+            // restituisce un reader su quella, come farebbe un wrapper di DAL che consegna un reader utilizzabile.
+            return Track("reader", sql, parameters, command =>
+            {
+                using (var reader = command.ExecuteReader())
+                {
+                    var table = new DataTable();
+                    for (var i = 0; i < reader.FieldCount; i++)
+                        table.Columns.Add(reader.GetName(i), typeof(object));
+
+                    while (reader.Read())
+                    {
+                        var values = new object[reader.FieldCount];
+                        reader.GetValues(values);
+                        table.Rows.Add(values);
+                    }
+
+                    return (IDataReader)table.CreateDataReader();
+                }
+            });
         }
 
         public int ExecuteNonQuery(string sql, IReadOnlyList<KeyValuePair<string, object>> parameters)

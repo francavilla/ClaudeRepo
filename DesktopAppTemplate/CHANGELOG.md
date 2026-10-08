@@ -4,6 +4,12 @@ Tutte le modifiche rilevanti di DesktopAppTemplate sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [4.0.1] - 2026-10-08
+
+### Corretto
+- Nei test, la "finta DAL" restituiva un reader già chiuso (si chiude insieme al comando che lo ha creato): ora le righe si copiano in una tabella e si
+  restituisce un reader su quella. Nessuna modifica al codice dell'applicazione.
+
 ## [4.0.0] - 2026-10-08
 
 ### Modificato
