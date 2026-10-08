@@ -3,9 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using DesktopAppTemplate.Core.Data;
 using DesktopAppTemplate.Data;
-using DesktopAppTemplate.Data.Ado;
-using DesktopAppTemplate.Data.Dapper;
-using DesktopAppTemplate.Data.EntityFramework;
+using DesktopAppTemplate.Data.Tasks;
 using DesktopAppTemplate.Features.Tasks;
 using Xunit;
 
@@ -62,24 +60,6 @@ namespace DesktopAppTemplate.Tests
             await new DatabaseMigrator(connections, new SqlDialect()).MigrateAsync();
 
             await ExerciseAsync(new AdoNetTaskRepository(new AdoNetExecutor(connections, new SqlDialect())));
-        }
-
-        [SqlServerFact]
-        public async Task Repository_Dapper_su_SQL_Server()
-        {
-            var connections = Connections();
-            await new DatabaseMigrator(connections, new SqlDialect()).MigrateAsync();
-
-            await ExerciseAsync(new DapperTaskRepository(connections, new SqlDialect()));
-        }
-
-        [SqlServerFact]
-        public async Task Repository_Entity_Framework_su_SQL_Server()
-        {
-            var connections = Connections();
-            await new DatabaseMigrator(connections, new SqlDialect()).MigrateAsync();
-
-            await ExerciseAsync(new EntityFrameworkTaskRepository(connections));
         }
     }
 }

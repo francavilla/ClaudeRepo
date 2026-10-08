@@ -1,4 +1,6 @@
 using DesktopAppTemplate.Core.Data;
+using DesktopAppTemplate.Data.Tasks;
+using DesktopAppTemplate.Features.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DesktopAppTemplate.Data
@@ -17,6 +19,13 @@ namespace DesktopAppTemplate.Data
             services.AddSingleton(new AdoNetOptions());
             services.AddSingleton<IDbExecutor, AdoNetExecutor>();
             services.AddSingleton<IDatabaseMigrator, DatabaseMigrator>();
+            return services;
+        }
+
+        /// <summary>Usa ADO.NET (tramite <see cref="IDbExecutor"/>) per le attività.</summary>
+        public static IServiceCollection AddAdoNetData(this IServiceCollection services)
+        {
+            services.AddSingleton<ITaskRepository, AdoNetTaskRepository>();
             return services;
         }
     }

@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using DesktopAppTemplate.Core.Configuration;
 using DesktopAppTemplate.Core.Data;
 using DesktopAppTemplate.Data;
-using DesktopAppTemplate.Data.Ado;
 using DesktopAppTemplate.Data.Tasks;
 using DesktopAppTemplate.Features.Tasks;
 using DesktopAppTemplate.Infrastructure;
@@ -213,7 +212,6 @@ namespace DesktopAppTemplate.Tests
         }
 
         [Theory]
-        [InlineData("file", StorageKind.File)]
         [InlineData("SQLite", StorageKind.Sqlite)]
         [InlineData("sqlserver", StorageKind.SqlServer)]
         public void Storage_viene_letto_dalla_configurazione(string value, StorageKind expected)
@@ -223,8 +221,6 @@ namespace DesktopAppTemplate.Tests
 
         [Theory]
         [InlineData("ado", DataAccessKind.Ado)]
-        [InlineData("dapper", DataAccessKind.Dapper)]
-        [InlineData("ef", DataAccessKind.EntityFramework)]
         [InlineData("dal", DataAccessKind.Dal)]
         public void DataAccess_viene_letto_dalla_configurazione(string value, DataAccessKind expected)
         {
@@ -235,7 +231,7 @@ namespace DesktopAppTemplate.Tests
         public void Valori_non_ammessi_sono_segnalati_dalla_configurazione()
         {
             var built = new ConfigurationBuilder(StorageSettings.Options)
-                .AddSource(ConfigurationBuilder.CommandLineSourceName, new[] { P("Storage", "oracle"), P("DataAccess", "nhibernate") })
+                .AddSource(ConfigurationBuilder.CommandLineSourceName, new[] { P("Storage", "oracle"), P("DataAccess", "dapper") })
                 .Build();
 
             Assert.Equal(2, built.Errors.Count);
@@ -272,6 +268,22 @@ namespace DesktopAppTemplate.Tests
             Assert.Equal(
                 new[] { "--data-folder", "--storage", "--data-access", "--connection-string" },
                 StorageSettings.Options.Select(o => o.CommandLineName));
+        }
+
+        [Fact]
+        public void La_cartella_predefinita_sta_in_LocalAppData_con_il_nome_dell_app()
+        {
+            var folder = new StorageSettings(null).ResolveFolder("MiaApp");
+
+            Assert.Equal(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MiaApp"), folder);
+        }
+
+        [Fact]
+        public void La_cartella_configurata_espande_le_variabili_d_ambiente()
+        {
+            var folder = new StorageSettings(@"%TEMP%\MieiDati").ResolveFolder("MiaApp");
+
+            Assert.Equal(Path.Combine(Environment.ExpandEnvironmentVariables("%TEMP%"), "MieiDati"), folder);
         }
     }
 }

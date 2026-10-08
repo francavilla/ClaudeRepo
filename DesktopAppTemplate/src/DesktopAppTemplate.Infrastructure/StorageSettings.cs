@@ -6,24 +6,19 @@ using DesktopAppTemplate.Core.Data;
 
 namespace DesktopAppTemplate.Infrastructure
 {
-    /// <summary>Dove si salvano i dati.</summary>
+    /// <summary>Database in cui si salvano i dati.</summary>
     public enum StorageKind
     {
-        /// <summary>File JSON (nessun database).</summary>
-        File,
         Sqlite,
         SqlServer
     }
 
-    /// <summary>Con quale tecnologia si accede al database.</summary>
+    /// <summary>Come si esegue l'SQL: ADO.NET direttamente oppure tramite la libreria DAL.</summary>
     public enum DataAccessKind
     {
-        /// <summary>ADO.NET puro (tramite <c>IDbExecutor</c>, punto di aggancio per librerie esistenti).</summary>
+        /// <summary>ADO.NET (<c>AdoNetExecutor</c>).</summary>
         Ado,
-        Dapper,
-        /// <summary>Entity Framework 6.</summary>
-        EntityFramework,
-        /// <summary>Libreria DAL (connessione singleton, transazioni esplicite): repository ADO.NET sopra l'adattatore <c>Data.Dal</c>.</summary>
+        /// <summary>Libreria DAL (connessione singleton, transazioni esplicite): adattatore <c>Data.Dal</c>.</summary>
         Dal
     }
 
@@ -37,16 +32,16 @@ namespace DesktopAppTemplate.Infrastructure
 
         public static readonly OptionDefinition DataFolderOption = new OptionDefinition(
             DataFolderKey,
-            "Cartella dei dati (file JSON, database SQLite predefinito); sono ammesse variabili come %USERPROFILE%. Se vuota: %LocalAppData%\\<nome app>.",
+            "Cartella del database SQLite predefinito; sono ammesse variabili come %USERPROFILE%. Se vuota: %LocalAppData%\\<nome app>.",
             "cartella");
 
         public static readonly OptionDefinition StorageOption = new OptionDefinition(
-            StorageKey, "Dove salvare i dati.", "file|sqlite|sqlserver", "sqlite",
-            validate: OptionValidators.OneOf("file", "sqlite", "sqlserver"));
+            StorageKey, "Database in cui salvare i dati.", "sqlite|sqlserver", "sqlite",
+            validate: OptionValidators.OneOf("sqlite", "sqlserver"));
 
         public static readonly OptionDefinition DataAccessOption = new OptionDefinition(
-            DataAccessKey, "Tecnologia di accesso al database.", "ado|dapper|ef|dal", "ado",
-            validate: OptionValidators.OneOf("ado", "dapper", "ef", "dal"));
+            DataAccessKey, "Come si accede al database: ADO.NET diretto o libreria DAL.", "ado|dal", "ado",
+            validate: OptionValidators.OneOf("ado", "dal"));
 
         public static readonly OptionDefinition ConnectionStringOption = new OptionDefinition(
             ConnectionStringKey,
@@ -72,7 +67,6 @@ namespace DesktopAppTemplate.Infrastructure
         /// <summary>Stringa di connessione configurata (può essere vuota).</summary>
         public string ConnectionString { get; }
 
-        /// <summary>Database da usare quando <see cref="Storage"/> non è <see cref="StorageKind.File"/>.</summary>
         public DatabaseProvider Provider => Storage == StorageKind.SqlServer ? DatabaseProvider.SqlServer : DatabaseProvider.Sqlite;
 
         /// <summary>Opzioni da dichiarare nel catalogo dell'applicazione.</summary>
@@ -119,7 +113,6 @@ namespace DesktopAppTemplate.Infrastructure
         {
             switch ((value ?? string.Empty).Trim().ToLowerInvariant())
             {
-                case "file": return StorageKind.File;
                 case "sqlserver": return StorageKind.SqlServer;
                 default: return StorageKind.Sqlite;
             }
@@ -129,8 +122,6 @@ namespace DesktopAppTemplate.Infrastructure
         {
             switch ((value ?? string.Empty).Trim().ToLowerInvariant())
             {
-                case "dapper": return DataAccessKind.Dapper;
-                case "ef": return DataAccessKind.EntityFramework;
                 case "dal": return DataAccessKind.Dal;
                 default: return DataAccessKind.Ado;
             }

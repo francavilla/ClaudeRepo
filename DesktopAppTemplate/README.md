@@ -50,84 +50,63 @@ così il contesto non diventa un "service locator" e le dipendenze restano visib
 
 ## Dati e database
 
-Le attività si possono salvare in **SQLite** (predefinito, non richiede installare nulla), **SQL Server** oppure in un **file JSON**.
-Si sceglie come per ogni altro parametro (App.config o riga di comando):
+Le attività si salvano in un database, con **ADO.NET**: **SQLite** (predefinito, non richiede installare nulla) oppure **SQL Server**.
 
 ```
-DesktopAppTemplate.exe --storage sqlite                               # predefinito: file <nome app>.db in %LocalAppData%\<nome app>
+DesktopAppTemplate.exe                                                # SQLite: <nome app>.db in %LocalAppData%\<nome app>
 DesktopAppTemplate.exe --storage sqlserver --connection-string "Server=.;Database=Demo;Integrated Security=True"
-DesktopAppTemplate.exe --storage file                                 # file JSON, senza database
-DesktopAppTemplate.exe --data-access dapper                           # ado (predefinito) | dapper | ef | dal
+DesktopAppTemplate.exe --data-access dal                              # usa la libreria DAL (vedi sotto)
 ```
 
 Con SQL Server preferisci l'autenticazione di Windows (`Integrated Security=True`): una password in App.config è in chiaro.
-La stringa di connessione non viene mai scritta nei messaggi dell'app.
+L'account deve poter creare tabelle al primo avvio (oppure si fa eseguire lo script `Data/Scripts/SqlServer/V001_CreateTasks.sql`).
 
-### Più tecnologie, stessa slice
-`--data-access` sceglie come si leggono e scrivono i dati. Le implementazioni di `ITaskRepository` usano le **stesse tabelle** e lo stesso SQL
-(`TaskSql`), quindi i dati scritti con una si leggono con le altre e si possono confrontare sullo stesso database:
-
-| Progetto | Tecnologia | Pacchetti |
-|---|---|---|
-| `Data.Ado` (predefinita) | ADO.NET puro tramite `IDbExecutor` | nessuno in più |
-| `Data.Dapper` | Dapper (SQL tuo, meno codice di lettura) | Dapper |
-| `Data.EntityFramework` | Entity Framework 6 (net462; per SQLite usa il driver `System.Data.SQLite`) | EntityFramework, System.Data.SQLite.EF6 |
-| `Data.Dal` | libreria DAL esistente (vedi sotto) | il riferimento all'assembly di DAL |
-
-Nei progetti reali tieni quella che preferisci ed elimina le altre: un progetto `Data.*`, il suo `ProjectReference` nell'Host e il `case` in `Host/StorageRegistration.cs`.
+### Come è fatto
+```
+slice (ITaskRepository)  →  AdoNetTaskRepository  →  IDbExecutor  →  AdoNetExecutor  →  connessione (IDbConnectionFactory)
+```
+Tutto sta nel progetto `Data`; i repository ADO.NET non aprono connessioni né creano comandi: usano solo `IDbExecutor`.
+Gli SQL (`TaskSql`) sono scritti una volta sola con parametri `@Nome` e valgono per SQLite e SQL Server.
 
 ### Agganciare la libreria esistente (punti di aggancio)
-I repository ADO.NET non aprono connessioni né creano comandi: usano solo interfacce piccole, che si possono sostituire una per una.
-Dopo `AddDatabase` (in `Host/StorageRegistration.cs`) basta registrare la propria implementazione: **vale l'ultima registrazione**.
+Si sostituisce una interfaccia alla volta, registrandola dopo `AddDatabase` in `Host/StorageRegistration.cs` (**vale l'ultima registrazione**):
 
-| Punto di aggancio | A cosa serve | Quando sostituirlo |
-|---|---|---|
-| `IDbExecutor` | esegue SQL con parametri nominati (`QueryAsync`, `ExecuteAsync`) | la libreria ha già un modo suo di eseguire query: si scrive un adattatore che la richiama |
-| `IDbConnectionFactory` | come si ottiene una connessione | la libreria gestisce già connessioni e stringhe di connessione |
-| `ISqlDialect` | convenzione dei parametri (`@Nome`, `:Nome`...) | database o libreria con segnaposto diversi |
-| `AdoNetOptions.ConfigureCommand` | gancio su ogni comando prima dell'esecuzione (timeout, log delle query, regole della libreria) | serve solo personalizzare, senza sostituire |
-
-Esempio: `services.AddSingleton<IDbExecutor, MiaLibreriaExecutor>();` e i repository ADO.NET usano la libreria senza altre modifiche
-(il test `Il_repository_ADO_usa_solo_l_executor_quindi_si_puo_agganciare_una_libreria` ne mostra il principio).
-Gli SQL del modello sono scritti con `@Nome`: il dialetto li adatta, quindi non vanno riscritti.
+| Punto di aggancio | A cosa serve |
+|---|---|
+| `IDbExecutor` | esegue SQL con parametri nominati (`QueryAsync`, `ExecuteAsync`) |
+| `IDbConnectionFactory` | come si ottiene una connessione |
+| `ISqlDialect` | convenzione dei parametri (`@Nome`, `:Nome`...) |
+| `AdoNetOptions.ConfigureCommand` | gancio su ogni comando prima dell'esecuzione (timeout, log delle query) |
 
 ### La libreria DAL (`--data-access dal`)
-Le applicazioni esistenti usano la libreria **DAL**: connessione unica (singleton) con locking, metodi che incapsulano quelli standard di ADO.NET,
-transazioni esplicite. Il progetto `Data.Dal` la integra senza toccare i repository:
+DAL ha una connessione unica (singleton) con locking, metodi che incapsulano quelli standard di ADO.NET e transazioni esplicite.
+Il progetto `Data.Dal` la integra senza toccare i repository:
 
 ```
-repository ADO.NET  →  DalExecutor  →  IDalGateway  →  (DalGateway)  →  libreria DAL
-                       serializza        5 chiamate        UNICO FILE DA COMPLETARE
+repository ADO.NET  →  DalExecutor  →  IDalGateway  →  DalGateway  →  libreria DAL
+                       serializza        5 chiamate     UNICO FILE DA COMPLETARE
 ```
 
 - **`DalGateway.cs` è l'unico file da completare**: cinque metodi (`ExecuteReader`, `ExecuteNonQuery`, `BeginTransaction`, `Commit`, `Rollback`) che
-  richiamano i metodi reali di DAL. Qui si aggiunge anche il riferimento all'assembly di DAL (in `Data.Dal.csproj`). Finché non è completato,
+  richiamano i metodi reali di DAL; qui si aggiunge anche il riferimento all'assembly di DAL (in `Data.Dal.csproj`). Finché non è completato,
   `--data-access dal` si ferma con un messaggio chiaro.
-- **Connessione singleton:** l'adattatore non apre, chiude né elimina connessioni. `DalLock` esegue **una sola operazione per volta** (attesa asincrona, le
-  chiamate a DAL girano fuori dal thread della UI: la finestra non si blocca). Se DAL espone un proprio oggetto di lock si può usare al posto del semaforo.
-- **Transazioni esplicite:** `ITransactionRunner.RunAsync(async ct => { ... })` apre la transazione, esegue il lavoro (i repository usati dentro ne fanno parte),
-  conferma se riesce e annulla se solleva un'eccezione. Durante la transazione le altre operazioni attendono; se ne viene richiesta una dentro un'altra,
+- **Connessione singleton:** l'adattatore non apre, chiude né elimina connessioni. `DalLock` esegue **una sola operazione per volta** (attesa asincrona,
+  chiamate a DAL fuori dal thread della UI: la finestra non si blocca).
+- **Transazioni esplicite:** `ITransactionRunner.RunAsync(async ct => { ... })` apre la transazione, esegue il lavoro (i repository usati dentro ne fanno
+  parte), conferma se riesce e annulla se solleva un'eccezione. Durante la transazione le altre operazioni attendono; una transazione richiesta dentro un'altra
   partecipa a quella esterna. Senza `RunAsync` ogni comando è confermato subito, come in DAL.
-- **Schema e migrazioni** usano ancora una connessione propria alla stessa stringa di connessione (`--connection-string`), separata da quella di DAL.
-- I test usano una "finta DAL" (connessione unica, transazioni esplicite, rilevamento di accessi sovrapposti): servono da esempio e da prova del comportamento.
+- Schema e migrazioni usano una connessione propria alla stessa stringa di connessione, separata da quella di DAL.
 
 ### Schema del database e migrazioni
-Lo schema si crea da solo all'avvio: gli script `Data/Scripts/<Database>/Vnnn_Nome.sql` (incorporati nell'assembly, uno per SQLite e uno per SQL Server)
-non ancora applicati vengono eseguiti in ordine, ciascuno in una transazione; la versione corrente è nella tabella `SchemaVersion`.
-Per cambiare lo schema si **aggiunge** uno script (`V002_...`), senza modificare quelli già applicati. Al primo avvio con database nuovo si inseriscono
-le attività di esempio. Se il database non è raggiungibile l'app lo segnala e esce con codice 3.
-
-Le colonne usano tipi semplici e uguali nei due database (testo e interi, data in formato ISO 8601): niente conversioni dipendenti dal driver.
-
-### Salvataggio su file JSON (`--storage file`)
-- Le attività stanno in `tasks.json` nella cartella dei dati (`--data-folder`, predefinita `%LocalAppData%\<nome app>`).
-- Ogni modifica riscrive il file in modo sicuro (file temporaneo + sostituzione); se è danneggiato l'app mostra l'errore con il percorso e **non lo tocca**.
-- È pensato per una sola istanza dell'app alla volta.
+Lo schema si crea da solo all'avvio: gli script `Data/Scripts/<Database>/Vnnn_Nome.sql` (incorporati nell'assembly) non ancora applicati vengono eseguiti
+in ordine, ciascuno in una transazione; la versione corrente è nella tabella `SchemaVersion`. Per cambiare lo schema si **aggiunge** uno script
+(`V002_...`), senza modificare quelli già applicati. Con database nuovo si inseriscono le attività di esempio. Se il database non è raggiungibile l'app
+lo segnala ed esce con codice 3. Le colonne usano tipi semplici e uguali nei due database (testo e interi, data in formato ISO 8601).
 
 ### Test sul database
-I test girano su SQLite in un file temporaneo, con le stesse verifiche per le tre tecnologie. SQL Server **non è provato in CI**: i test
-`SqlServerTests` si attivano solo se imposti la variabile d'ambiente `DESKTOPAPPTEMPLATE_SQLSERVER` con la connessione a un database di prova
-(le tabelle `Tasks` e `SchemaVersion` vengono create se mancano; i test eliminano solo le righe che inseriscono).
+I test girano su SQLite in un file temporaneo. SQL Server **non è provato in CI**: i test `SqlServerTests` si attivano solo se imposti la variabile
+d'ambiente `DESKTOPAPPTEMPLATE_SQLSERVER` con la connessione a un database di prova (le tabelle `Tasks` e `SchemaVersion` vengono create se mancano;
+i test eliminano solo le righe che inseriscono).
 
 ## Icona e versione
 
@@ -142,9 +121,8 @@ e nelle proprietà dell'`.exe`.
 src/
   DesktopAppTemplate.Core            netstandard2.0  Mediator, validazione, MVVM, astrazioni (nessuna UI)
   DesktopAppTemplate.Features        netstandard2.0  Slice: richieste, handler, validatori, view model
-  DesktopAppTemplate.Infrastructure  netstandard2.0  Implementazioni concrete (orologio, info app, archivio su file JSON)
-  DesktopAppTemplate.Data            netstandard2.0  Accesso al database: connessioni, dialetto, executor ADO.NET, migrazioni
-  DesktopAppTemplate.Data.Ado/.Dapper/.EntityFramework   Le tecnologie di accesso (repository delle attività)
+  DesktopAppTemplate.Infrastructure  netstandard2.0  Implementazioni concrete (orologio, info app, impostazioni di archiviazione)
+  DesktopAppTemplate.Data            netstandard2.0  Accesso al database con ADO.NET: connessioni, dialetto, executor, migrazioni, repository
   DesktopAppTemplate.Data.Dal        netstandard2.0  Adattatore per la libreria DAL (connessione singleton, transazioni esplicite)
   DesktopAppTemplate.UI.Wpf          net462          Solo view XAML + tema
   DesktopAppTemplate.UI.WinForms     net462          Solo view Windows Forms (con designer)
@@ -197,7 +175,7 @@ che dipendono dai view model registrati, vengono create nel codice di `MainForm`
    oltre alla riga di registrazione della pagina e alla view.
 4. **Una sola interfaccia?** Eliminare il progetto `UI.*` non necessario, il suo `ProjectReference` nell'Host e il ramo
    corrispondente in `Program.cs`.
-5. **Persistenza**: i dati sono già su database (SQLite/SQL Server, con tre tecnologie a scelta) o su file JSON: vedi *Dati e database*.
+5. **Persistenza**: i dati sono già su database (SQLite/SQL Server, ADO.NET): vedi *Dati e database*.
    Per una nuova slice si aggiunge uno script di migrazione, uno `ITaskRepository`-like derivato da `IRepository<,>` e la sua implementazione.
 6. **Versione e changelog**: `<Version>` in `Directory.Build.props` e `CHANGELOG.md`.
 

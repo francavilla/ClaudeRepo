@@ -28,7 +28,6 @@ namespace DesktopAppTemplate.Tests
         {
             // I pool di connessioni tengono il file aperto: vanno svuotati prima di eliminarlo.
             SqliteConnection.ClearAllPools();
-            System.Data.SQLite.SQLiteConnection.ClearAllPools();
 
             try
             {

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Parti comuni dell'accesso al database: connessioni (SQLite, SQL Server), dialetto SQL, executor ADO.NET,
-       migrazioni dello schema, righe e SQL delle attività. Le tre tecnologie di accesso stanno in progetti separati. -->
+  <!-- Accesso al database con ADO.NET: connessioni (SQLite, SQL Server), dialetto SQL, executor, migrazioni dello schema, riga, SQL
+       e repository delle attività. -->
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>DesktopAppTemplate.Data</RootNamespace>

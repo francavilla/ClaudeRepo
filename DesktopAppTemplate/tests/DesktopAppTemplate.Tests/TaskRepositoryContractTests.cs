@@ -4,17 +4,15 @@ using System.Threading;
 using System.Threading.Tasks;
 using DesktopAppTemplate.Core.Data;
 using DesktopAppTemplate.Data;
-using DesktopAppTemplate.Data.Ado;
-using DesktopAppTemplate.Data.Dapper;
-using DesktopAppTemplate.Data.EntityFramework;
+using DesktopAppTemplate.Data.Tasks;
 using DesktopAppTemplate.Features.Tasks;
 using Xunit;
 
 namespace DesktopAppTemplate.Tests
 {
     /// <summary>
-    /// Stesse verifiche per ogni tecnologia di accesso (ADO.NET, Dapper, Entity Framework): devono comportarsi
-    /// in modo identico, perché le slice non devono accorgersi di quale è in uso.
+    /// Verifiche comuni a ogni implementazione di <see cref="ITaskRepository"/> su database: devono comportarsi
+    /// in modo identico, perché le slice non devono accorgersi di quale è in uso (ADO.NET diretto o tramite DAL).
     /// </summary>
     public abstract class TaskRepositoryContractTests : IDisposable
     {
@@ -134,49 +132,5 @@ namespace DesktopAppTemplate.Tests
     {
         internal override ITaskRepository CreateRepository(IDbConnectionFactory connections)
             => new AdoNetTaskRepository(new AdoNetExecutor(connections, new SqlDialect()));
-    }
-
-    public class DapperTaskRepositoryTests : TaskRepositoryContractTests
-    {
-        internal override ITaskRepository CreateRepository(IDbConnectionFactory connections)
-            => new DapperTaskRepository(connections, new SqlDialect());
-    }
-
-    public class EntityFrameworkTaskRepositoryTests : TaskRepositoryContractTests
-    {
-        internal override ITaskRepository CreateRepository(IDbConnectionFactory connections)
-            => new EntityFrameworkTaskRepository(connections);
-    }
-
-    /// <summary>Le tre tecnologie leggono e scrivono le stesse tabelle: i dati scritti da una si leggono con le altre.</summary>
-    public class CrossTechnologyTests : IDisposable
-    {
-        private static readonly CancellationToken None = default(CancellationToken);
-
-        private readonly SqliteTestDatabase _database = new SqliteTestDatabase();
-
-        public void Dispose() => _database.Dispose();
-
-        [Fact]
-        public async Task I_dati_scritti_con_una_tecnologia_si_leggono_con_le_altre()
-        {
-            var connections = _database.Connections;
-            var ado = new AdoNetTaskRepository(new AdoNetExecutor(connections, new SqlDialect()));
-            var dapper = new DapperTaskRepository(connections, new SqlDialect());
-            var ef = new EntityFrameworkTaskRepository(connections);
-            var task = new TaskItem(Guid.NewGuid(), "Scritta con ADO.NET", new DateTime(2026, 10, 8, 9, 30, 15, DateTimeKind.Local));
-
-            await ado.AddAsync(task, None);
-            Assert.Equal("Scritta con ADO.NET", (await dapper.GetAsync(task.Id, None)).Title);
-            Assert.Equal("Scritta con ADO.NET", (await ef.GetAsync(task.Id, None)).Title);
-
-            await ef.UpdateAsync(task.WithCompleted(true), None);
-            Assert.True((await ado.GetAsync(task.Id, None)).IsCompleted);
-            Assert.True((await dapper.GetAsync(task.Id, None)).IsCompleted);
-
-            await dapper.RemoveAsync(task.Id, None);
-            Assert.Null(await ado.GetAsync(task.Id, None));
-            Assert.Empty(await ef.GetAllAsync(None));
-        }
     }
 }

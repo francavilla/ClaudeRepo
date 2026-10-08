@@ -7,7 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using DesktopAppTemplate.Core.Data;
 using DesktopAppTemplate.Data;
-using DesktopAppTemplate.Data.Ado;
+using DesktopAppTemplate.Data.Tasks;
 using DesktopAppTemplate.Data.Dal;
 using DesktopAppTemplate.Features.Tasks;
 using Microsoft.Extensions.DependencyInjection;

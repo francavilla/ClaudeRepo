@@ -4,14 +4,13 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using DesktopAppTemplate.Core.Data;
-using DesktopAppTemplate.Data.Tasks;
 using DesktopAppTemplate.Features.Tasks;
 
-namespace DesktopAppTemplate.Data.Ado
+namespace DesktopAppTemplate.Data.Tasks
 {
     /// <summary>
     /// Archivio delle attività con ADO.NET. Non apre connessioni né crea comandi: delega tutto a
-    /// <see cref="IDbExecutor"/>, che è il punto in cui si aggancia una libreria esistente.
+    /// <see cref="IDbExecutor"/>, che è il punto in cui si aggancia una libreria esistente (vedi <c>Data.Dal</c>).
     /// </summary>
     public sealed class AdoNetTaskRepository : ITaskRepository
     {

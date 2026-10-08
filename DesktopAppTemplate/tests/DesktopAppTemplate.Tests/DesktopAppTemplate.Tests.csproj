@@ -10,13 +10,11 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
-    <!-- Dipendenza diretta: porta nell'output le librerie native di SQLite usate da Entity Framework 6. -->
-    <PackageReference Include="System.Data.SQLite.Core" Version="1.0.118" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" PrivateAssets="all" />
   </ItemGroup>
 
-  <!-- Senza shadow copy: su .NET Framework xunit copia solo gli assembly e le librerie native di SQLite (e_sqlite3.dll,
-       SQLite.Interop.dll) non verrebbero trovate. -->
+  <!-- Senza shadow copy: su .NET Framework xunit copia solo gli assembly e la libreria nativa di SQLite (e_sqlite3.dll)
+       non verrebbe trovata. -->
   <ItemGroup>
     <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
@@ -26,10 +24,7 @@
     <ProjectReference Include="..\..\src\DesktopAppTemplate.Features\DesktopAppTemplate.Features.csproj" />
     <ProjectReference Include="..\..\src\DesktopAppTemplate.Infrastructure\DesktopAppTemplate.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\DesktopAppTemplate.Data\DesktopAppTemplate.Data.csproj" />
-    <ProjectReference Include="..\..\src\DesktopAppTemplate.Data.Ado\DesktopAppTemplate.Data.Ado.csproj" />
     <ProjectReference Include="..\..\src\DesktopAppTemplate.Data.Dal\DesktopAppTemplate.Data.Dal.csproj" />
-    <ProjectReference Include="..\..\src\DesktopAppTemplate.Data.Dapper\DesktopAppTemplate.Data.Dapper.csproj" />
-    <ProjectReference Include="..\..\src\DesktopAppTemplate.Data.EntityFramework\DesktopAppTemplate.Data.EntityFramework.csproj" />
   </ItemGroup>
 
 </Project>

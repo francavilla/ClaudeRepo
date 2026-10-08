@@ -4,6 +4,20 @@ Tutte le modifiche rilevanti di DesktopAppTemplate sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [4.0.0] - 2026-10-08
+
+### Modificato
+- **Semplificazione, incompatibile:** l'accesso ai dati è solo ADO.NET (SQLite e SQL Server). Il repository ADO.NET è ora nel progetto `Data`
+  (`Data.Tasks.AdoNetTaskRepository`, `AddAdoNetData()` in `DataServiceCollectionExtensions`).
+- `--data-access` ammette solo `ado` (predefinito) e `dal`; `--storage` ammette solo `sqlite` (predefinito) e `sqlserver`.
+- `AddStorage` in `Host/StorageRegistration.cs` si riduce a: `AddDatabase`, eventuale `AddDalAdapter`, `AddAdoNetData`.
+
+### Rimosso
+- Progetti `Data.Dapper`, `Data.EntityFramework` e `Data.Ado` (assorbito in `Data`) e relativi pacchetti (Dapper, EntityFramework, System.Data.SQLite).
+- Archivio su file JSON (`--storage file`, `JsonFileTaskRepository`, `AddFileStorage`) e il pacchetto Newtonsoft.Json.
+- Test delle tecnologie rimosse e dello scambio di dati tra tecnologie; restano il contratto dei repository (ADO.NET diretto e tramite DAL),
+  migrazioni, executor, punti di aggancio, adattatore DAL e impostazioni.
+
 ## [3.1.1] - 2026-10-08
 
 ### Corretto

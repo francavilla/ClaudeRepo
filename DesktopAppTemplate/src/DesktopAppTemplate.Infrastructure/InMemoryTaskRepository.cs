@@ -7,7 +7,7 @@ using DesktopAppTemplate.Features.Tasks;
 
 namespace DesktopAppTemplate.Infrastructure
 {
-    /// <summary>Archivio in memoria (thread-safe), utile nei test. L'applicazione usa <see cref="JsonFileTaskRepository"/>.</summary>
+    /// <summary>Archivio in memoria (thread-safe), utile nei test. L'applicazione usa il database (vedi <c>Data.Tasks.AdoNetTaskRepository</c>).</summary>
     public sealed class InMemoryTaskRepository : ITaskRepository
     {
         private readonly object _gate = new object();
