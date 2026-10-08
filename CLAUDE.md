@@ -33,6 +33,10 @@ Più modifiche nella stessa richiesta = un solo incremento di versione.
 - `ExeBuilder/` — WPF .NET Framework 4.8 che compila in Release progetti e solution .NET/.NET Framework.
   La logica sta in `ExeBuilder.Core` (testata in `tests/ExeBuilder.Core.Tests`); la UI in `src/ExeBuilder` (MVVM, tema in `Themes/Theme.xaml`).
 
+- `DesktopAppTemplate/` — modello di solution con architettura a slice, interfaccia WPF o Windows Forms (net462, scelta con `--ui wpf|winforms`).
+  Logica in `Core`/`Features`/`Infrastructure` (netstandard2.0, testata in `tests/DesktopAppTemplate.Tests`); versione in `DesktopAppTemplate/Directory.Build.props`;
+  CI in `.github/workflows/ci-desktopapptemplate.yml`.
+
 ## Stile del codice
 - C# 7.3 (`LangVersion` in `Directory.Build.props`), commenti e messaggi in italiano.
 - L'utente sviluppa principalmente in C# con .NET Framework e .NET Core.

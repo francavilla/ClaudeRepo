@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Interfaccia Windows Forms (solo view): tutta la logica sta nei view model di Features. -->
+  <PropertyGroup>
+    <TargetFramework>net462</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>DesktopAppTemplate.UI.WinForms</RootNamespace>
+  </PropertyGroup>
+
+  <!-- Raggruppa i file del designer sotto la rispettiva classe e indica a Visual Studio il tipo di designer. -->
+  <ItemGroup>
+    <Compile Update="MainForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="MainForm.Designer.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Update="Views\TaskListView.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Views\TaskListView.Designer.cs">
+      <DependentUpon>TaskListView.cs</DependentUpon>
+    </Compile>
+    <Compile Update="Views\AboutView.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Views\AboutView.Designer.cs">
+      <DependentUpon>AboutView.cs</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DesktopAppTemplate.Core\DesktopAppTemplate.Core.csproj" />
+    <ProjectReference Include="..\DesktopAppTemplate.Features\DesktopAppTemplate.Features.csproj" />
+  </ItemGroup>
+
+</Project>
