@@ -27,7 +27,6 @@ Più modifiche nella stessa richiesta = un solo incremento di versione.
 ## Applicazioni
 - `ExeBuilder/` — WPF .NET Framework 4.8 che compila in Release progetti e solution .NET/.NET Framework.
   La logica sta in `ExeBuilder.Core` (testata in `tests/ExeBuilder.Core.Tests`); la UI in `src/ExeBuilder` (MVVM, tema in `Themes/Theme.xaml`).
-- `Catalog/` — scheletro Clean Architecture su .NET Framework 4.6.2 (Web API 2, EF6, Autofac).
 
 ## Stile del codice
 - C# 7.3 (`LangVersion` in `Directory.Build.props`), commenti e messaggi in italiano.
