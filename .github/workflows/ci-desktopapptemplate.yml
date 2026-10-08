@@ -1,0 +1,63 @@
+# Integrazione continua di DesktopAppTemplate: compila su Windows (WPF e Windows Forms),
+# esegue i test e rende scaricabile l'applicazione compilata come artifact del run.
+name: CI DesktopAppTemplate
+
+on:
+  push:
+    branches: [ Progetti_Claude, main, 'claude/**' ]
+    paths:
+      - 'DesktopAppTemplate/**'
+      - '.github/workflows/ci-desktopapptemplate.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'DesktopAppTemplate/**'
+      - '.github/workflows/ci-desktopapptemplate.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ci-desktopapptemplate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      DOTNET_NOLOGO: '1'
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Versione
+        id: version
+        shell: pwsh
+        run: |
+          [xml]$props = Get-Content 'DesktopAppTemplate/Directory.Build.props'
+          $version = ($props.Project.PropertyGroup | Where-Object { $_.Version }).Version
+          "version=$version" >> $env:GITHUB_OUTPUT
+          Write-Host "DesktopAppTemplate $version"
+
+      - name: Test
+        run: dotnet test DesktopAppTemplate/tests/DesktopAppTemplate.Tests/DesktopAppTemplate.Tests.csproj -c Release
+
+      - name: Build Release (WPF + Windows Forms)
+        run: dotnet publish DesktopAppTemplate/src/DesktopAppTemplate.Host/DesktopAppTemplate.Host.csproj -c Release -o publish/DesktopAppTemplate
+
+      - name: Il template è riutilizzabile (New-Project.ps1 + build del progetto generato)
+        shell: pwsh
+        run: |
+          ./DesktopAppTemplate/New-Project.ps1 -NewName Acme.DemoApp -Destination "$env:RUNNER_TEMP/Acme.DemoApp"
+          dotnet test "$env:RUNNER_TEMP/Acme.DemoApp/tests/Acme.DemoApp.Tests/Acme.DemoApp.Tests.csproj" -c Release
+          dotnet build "$env:RUNNER_TEMP/Acme.DemoApp/Acme.DemoApp.sln" -c Release
+
+      - name: Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DesktopAppTemplate-${{ steps.version.outputs.version }}-${{ github.run_number }}
+          path: publish/DesktopAppTemplate
+          retention-days: 14

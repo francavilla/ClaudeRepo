@@ -1,0 +1,68 @@
+<Window x:Class="DesktopAppTemplate.UI.Wpf.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:DesktopAppTemplate.UI.Wpf.Views"
+        xmlns:tasks="clr-namespace:DesktopAppTemplate.Features.Tasks;assembly=DesktopAppTemplate.Features"
+        xmlns:about="clr-namespace:DesktopAppTemplate.Features.About;assembly=DesktopAppTemplate.Features"
+        Title="{Binding WindowTitle}"
+        Icon="pack://application:,,,/DesktopAppTemplate.UI.Wpf;component/Resources/app.ico"
+        Width="1100" Height="720" MinWidth="820" MinHeight="560"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource AppBackgroundBrush}"
+        FontFamily="Segoe UI" FontSize="14"
+        TextOptions.TextFormattingMode="Display">
+
+    <Window.Resources>
+        <!-- Pagina (view model) -> view. Una riga per ogni nuova pagina. -->
+        <DataTemplate DataType="{x:Type tasks:TaskListViewModel}">
+            <views:TaskListView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type about:AboutViewModel}">
+            <views:AboutView />
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="240" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Menu laterale -->
+        <Grid Background="{StaticResource SidebarBrush}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Margin="24,28,24,24">
+                <TextBlock Text="{Binding AppName}" Foreground="White" FontSize="18" FontWeight="SemiBold"
+                           TextWrapping="Wrap" />
+                <TextBlock Text="Applicazione desktop" Foreground="#9CA3AF" FontSize="12" Margin="0,4,0,0" />
+            </StackPanel>
+
+            <ItemsControl Grid.Row="1" ItemsSource="{Binding Pages}" Margin="12,0">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button Style="{StaticResource NavButton}"
+                                CommandParameter="{Binding}"
+                                Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding Icon}" FontFamily="{StaticResource IconFont}" FontSize="16"
+                                           Width="28" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock Grid.Row="2" Text="{Binding VersionText}" Foreground="#6B7280" FontSize="12"
+                       Margin="24,0,24,20" />
+        </Grid>
+
+        <!-- Pagina corrente -->
+        <ContentControl Grid.Column="1" Content="{Binding SelectedPage}" />
+    </Grid>
+</Window>

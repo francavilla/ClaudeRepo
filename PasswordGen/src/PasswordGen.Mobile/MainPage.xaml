@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:PasswordGen.Mobile.ViewModels"
+             x:Class="PasswordGen.Mobile.MainPage"
+             x:DataType="vm:MainViewModel"
+             Title="Genera"
+             BackgroundColor="#F1F5F9">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- Intestazione -->
+        <VerticalStackLayout Grid.Row="0" BackgroundColor="{StaticResource Header}" Padding="18,14" Spacing="2">
+            <Label Text="{Binding Title}" TextColor="White" FontSize="22" FontAttributes="Bold" />
+            <Label Text="Password casuali, sicure e facili da ricordare. Tutto resta sul telefono."
+                   TextColor="#CCFFFFFF" FontSize="12" />
+        </VerticalStackLayout>
+
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="14" Spacing="12">
+
+                <!-- Promemoria -->
+                <Border BackgroundColor="{Binding ReminderBackground}" Stroke="#E2E8F0" StrokeThickness="1" Padding="14">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="{Binding ReminderMessage}" FontAttributes="Bold" TextColor="#0F172A" />
+                        <Label Text="{Binding LastChangeText}" Style="{StaticResource MutedText}" />
+                        <Button Text="Ho cambiato la password" Command="{Binding MarkChangedCommand}"
+                                BackgroundColor="White" TextColor="{StaticResource Accent}" BorderColor="#CBD5E1" BorderWidth="1" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Proposte -->
+                <Button Text="Genera nuove proposte" Style="{StaticResource PrimaryButton}" Command="{Binding GenerateCommand}" />
+
+                <VerticalStackLayout Spacing="8" BindableLayout.ItemsSource="{Binding Suggestions}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="vm:SuggestionItem">
+                            <Border Style="{StaticResource Card}">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                    <VerticalStackLayout Spacing="2">
+                                        <Label Text="{Binding Text}" FontFamily="monospace" FontSize="17" FontAttributes="Bold"
+                                               LineBreakMode="CharacterWrap" />
+                                        <HorizontalStackLayout Spacing="6">
+                                            <Label Text="{Binding LevelText}" TextColor="{Binding LevelColor}" FontAttributes="Bold" FontSize="12" />
+                                            <Label Text="{Binding BitsText}" Style="{StaticResource MutedText}" />
+                                        </HorizontalStackLayout>
+                                    </VerticalStackLayout>
+                                    <Button Grid.Column="1" Text="Copia" Command="{Binding CopyCommand}" VerticalOptions="Center"
+                                            BackgroundColor="White" TextColor="{StaticResource Accent}" BorderColor="#CBD5E1" BorderWidth="1" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+
+                <!-- Tipo di password -->
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Tipo di password" Style="{StaticResource CardTitle}" />
+                        <Picker ItemsSource="{Binding ModeNames}" SelectedIndex="{Binding ModeIndex, Mode=TwoWay}" />
+
+                        <VerticalStackLayout IsVisible="{Binding IsPassphrase}">
+                            <Label Text="{Binding WordCount, StringFormat='Numero di parole: {0:0}'}" />
+                            <Slider Minimum="3" Maximum="8" Value="{Binding WordCount, Mode=TwoWay}" />
+                            <Label Style="{StaticResource MutedText}"
+                                   Text="Più parole = più sicura. 4 sono un buon compromesso, 5 o più per le password importanti." />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout IsVisible="{Binding IsSyllables}">
+                            <Label Text="{Binding SyllableCount, StringFormat='Numero di sillabe: {0:0}'}" />
+                            <Slider Minimum="6" Maximum="15" Value="{Binding SyllableCount, Mode=TwoWay}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout IsVisible="{Binding IsRandom}">
+                            <Label Text="{Binding RandomLength, StringFormat='Lunghezza: {0:0} caratteri'}" />
+                            <Slider Minimum="8" Maximum="40" Value="{Binding RandomLength, Mode=TwoWay}" />
+                            <Label Style="{StaticResource MutedText}" Text="Difficile da ricordare: pensata per i casi in cui basta copiarla." />
+                        </VerticalStackLayout>
+
+                        <Label Text="{Binding SuggestionCount, StringFormat='Proposte per volta: {0:0}'}" Margin="0,6,0,0" />
+                        <Slider Minimum="1" Maximum="20" Value="{Binding SuggestionCount, Mode=TwoWay}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Parole della passphrase -->
+                <Border Style="{StaticResource Card}" IsVisible="{Binding IsPassphrase}">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Parole della passphrase" Style="{StaticResource CardTitle}" />
+                        <Label Text="{Binding WordSummary}" FontAttributes="Bold" />
+
+                        <RadioButton GroupName="Words" Content="Solo la lista integrata" IsChecked="{Binding IsBuiltinWords, Mode=TwoWay}" />
+                        <RadioButton GroupName="Words" Content="Aggiungi il mio file alla lista integrata"
+                                     IsEnabled="{Binding HasCustomWords}" IsChecked="{Binding IsCombinedWords, Mode=TwoWay}" />
+                        <RadioButton GroupName="Words" Content="Solo il mio file (almeno 300 parole)"
+                                     IsEnabled="{Binding HasCustomWords}" IsChecked="{Binding IsCustomOnlyWords, Mode=TwoWay}" />
+
+                        <Label Text="{Binding CustomFileSummary}" Style="{StaticResource MutedText}" Margin="0,4,0,0" />
+                        <Border BackgroundColor="#FFFBEB" Stroke="#FDE68A" StrokeThickness="1" Padding="10,6" IsVisible="{Binding HasWordWarning}">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <Label Text="{Binding WordWarning}" TextColor="#B45309" FontSize="12" />
+                        </Border>
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,6,0,0">
+                            <Button Text="Carica file..." Command="{Binding LoadWordFileCommand}"
+                                    BackgroundColor="White" TextColor="{StaticResource Accent}" BorderColor="#CBD5E1" BorderWidth="1" />
+                            <Button Grid.Column="1" Text="Ripristina integrata" Command="{Binding ResetWordsCommand}"
+                                    BackgroundColor="White" TextColor="{StaticResource Accent}" BorderColor="#CBD5E1" BorderWidth="1" />
+                        </Grid>
+                        <Label Style="{StaticResource MutedText}"
+                               Text="File di testo con una parola per riga (4-9 lettere, accenti rimossi, # per i commenti). Viene copiato nella memoria privata dell'app." />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Policy -->
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Regole della policy aziendale" Style="{StaticResource CardTitle}" />
+                        <Label Text="{Binding PolicySummary}" Style="{StaticResource MutedText}" />
+
+                        <Label Text="{Binding MinLength, StringFormat='Lunghezza minima: {0:0}'}" Margin="0,6,0,0" />
+                        <Slider Minimum="6" Maximum="32" Value="{Binding MinLength, Mode=TwoWay}" />
+
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="Maiuscole" VerticalOptions="Center" />
+                            <Switch Grid.Column="1" IsToggled="{Binding RequireUpper, Mode=TwoWay}" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="Minuscole" VerticalOptions="Center" />
+                            <Switch Grid.Column="1" IsToggled="{Binding RequireLower, Mode=TwoWay}" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="Numeri" VerticalOptions="Center" />
+                            <Switch Grid.Column="1" IsToggled="{Binding RequireDigit, Mode=TwoWay}" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="Caratteri speciali" VerticalOptions="Center" />
+                            <Switch Grid.Column="1" IsToggled="{Binding RequireSpecial, Mode=TwoWay}" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="Evita caratteri ambigui (0 O 1 l I)" VerticalOptions="Center" />
+                            <Switch Grid.Column="1" IsToggled="{Binding AvoidAmbiguous, Mode=TwoWay}" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Blocco dell'app -->
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Blocco dell'app" Style="{StaticResource CardTitle}" />
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="Richiedi impronta, volto o PIN" VerticalOptions="Center" />
+                            <Switch Grid.Column="1" IsToggled="{Binding LockEnabled, Mode=TwoWay}" IsEnabled="{Binding LockAvailable}" />
+                        </Grid>
+                        <Label Text="Blocca di nuovo" Style="{StaticResource MutedText}" />
+                        <Picker ItemsSource="{Binding LockGraceNames}" SelectedIndex="{Binding LockGraceIndex, Mode=TwoWay}"
+                                IsEnabled="{Binding LockAvailable}" />
+                        <Label Text="{Binding CredentialText}" Style="{StaticResource MutedText}" Margin="0,4,0,0" />
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                            <Button Text="Imposta o cambia PIN/password" Command="{Binding SetCredentialCommand}" IsEnabled="{Binding CanSetCredential}"
+                                    BackgroundColor="White" TextColor="{StaticResource Accent}" BorderColor="#CBD5E1" BorderWidth="1" FontSize="12" />
+                            <Button Grid.Column="1" Text="Rimuovi PIN/password" Command="{Binding RemoveCredentialCommand}" IsVisible="{Binding HasCredential}"
+                                    BackgroundColor="White" TextColor="#DC2626" BorderColor="#FECACA" BorderWidth="1" FontSize="12" />
+                        </Grid>
+                        <Button Text="Blocca adesso" Command="{Binding LockNowCommand}" IsEnabled="{Binding CanLockNow}"
+                                BackgroundColor="White" TextColor="{StaticResource Accent}" BorderColor="#CBD5E1" BorderWidth="1" />
+                        <Label Text="{Binding LockHint}" Style="{StaticResource MutedText}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Impostazioni del promemoria -->
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Promemoria cambio password" Style="{StaticResource CardTitle}" />
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="Avvisami prima della scadenza" VerticalOptions="Center" />
+                            <Switch Grid.Column="1" IsToggled="{Binding ReminderEnabled, Mode=TwoWay}" />
+                        </Grid>
+                        <Label Text="{Binding ValidityDays, StringFormat='La password dura {0:0} giorni'}" />
+                        <Slider Minimum="14" Maximum="90" Value="{Binding ValidityDays, Mode=TwoWay}" />
+                        <Label Style="{StaticResource MutedText}"
+                               Text="Una notifica al giorno (verso le 9) quando mancano al massimo 5 giorni o la password è scaduta. Premi «Ho cambiato la password» dopo ogni cambio." />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Password attuale -->
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Password attuale (facoltativa)" Style="{StaticResource CardTitle}" />
+                        <Entry x:Name="PreviousEntry" IsPassword="True" Placeholder="Password attuale"
+                               Text="{Binding PreviousPassword, Mode=TwoWay}" />
+                        <Label Style="{StaticResource MutedText}"
+                               Text="Se la indichi, le nuove proposte saranno sensibilmente diverse. Resta solo in memoria: non viene mai salvata." />
+                    </VerticalStackLayout>
+                </Border>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Stato -->
+        <Border Grid.Row="2" Background="White" Stroke="#E2E8F0" StrokeThickness="1" Padding="14,8">
+            <Label Text="{Binding StatusMessage}" Style="{StaticResource MutedText}" LineBreakMode="TailTruncation" />
+        </Border>
+    </Grid>
+</ContentPage>

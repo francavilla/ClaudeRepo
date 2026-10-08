@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Composition root: sceglie l'interfaccia (WPF o Windows Forms), registra i servizi e avvia l'app. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net462</TargetFramework>
+    <AssemblyName>DesktopAppTemplate</AssemblyName>
+    <RootNamespace>DesktopAppTemplate.Host</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Icona del .exe (Esplora risorse, collegamenti). Si rigenera con tools/make_icon.py. -->
+    <ApplicationIcon>..\..\assets\app.ico</ApplicationIcon>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <AssemblyTitle>DesktopAppTemplate</AssemblyTitle>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Configuration" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DesktopAppTemplate.Core\DesktopAppTemplate.Core.csproj" />
+    <ProjectReference Include="..\DesktopAppTemplate.Features\DesktopAppTemplate.Features.csproj" />
+    <ProjectReference Include="..\DesktopAppTemplate.Infrastructure\DesktopAppTemplate.Infrastructure.csproj" />
+    <ProjectReference Include="..\DesktopAppTemplate.Data\DesktopAppTemplate.Data.csproj" />
+    <ProjectReference Include="..\DesktopAppTemplate.Data.Dal\DesktopAppTemplate.Data.Dal.csproj" />
+    <ProjectReference Include="..\DesktopAppTemplate.Logging\DesktopAppTemplate.Logging.csproj" />
+    <ProjectReference Include="..\DesktopAppTemplate.UI.WinForms\DesktopAppTemplate.UI.WinForms.csproj" />
+    <ProjectReference Include="..\DesktopAppTemplate.UI.Wpf\DesktopAppTemplate.UI.Wpf.csproj" />
+  </ItemGroup>
+
+</Project>

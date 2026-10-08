@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Interfaccia WPF (solo view XAML): tutta la logica sta nei view model di Features. -->
+  <PropertyGroup>
+    <TargetFramework>net462</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>DesktopAppTemplate.UI.Wpf</RootNamespace>
+  </PropertyGroup>
+
+  <!-- Icona della finestra (barra del titolo, barra delle applicazioni, Alt+Tab): stesso file dell'.exe. -->
+  <ItemGroup>
+    <Resource Include="..\..\assets\app.ico" Link="Resources\app.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DesktopAppTemplate.Core\DesktopAppTemplate.Core.csproj" />
+    <ProjectReference Include="..\DesktopAppTemplate.Features\DesktopAppTemplate.Features.csproj" />
+  </ItemGroup>
+
+</Project>

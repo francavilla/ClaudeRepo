@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Adattatore per la libreria DAL (connessione singleton con locking, wrapper dei metodi ADO.NET, transazioni esplicite).
+       Tutto ciò che tocca DAL sta in DalGateway.cs: è l'unico file da completare. Per usare la libreria aggiungere qui il
+       riferimento al suo assembly (ProjectReference o Reference). -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>DesktopAppTemplate.Data.Dal</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DesktopAppTemplate.Data\DesktopAppTemplate.Data.csproj" />
+  </ItemGroup>
+
+</Project>

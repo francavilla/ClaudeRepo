@@ -1,0 +1,431 @@
+<Window x:Class="PasswordGen.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:PasswordGen.ViewModels"
+        Title="{Binding WindowTitle}" Icon="Assets/PasswordGen.ico" Width="1060" Height="800" MinWidth="900" MinHeight="640"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource WindowBrush}"
+        Foreground="{StaticResource TextBrush}"
+        FontFamily="Segoe UI" FontSize="13"
+        TextOptions.TextFormattingMode="Display"
+        UseLayoutRounding="True">
+
+    <Window.InputBindings>
+        <KeyBinding Key="F5" Command="{Binding GenerateCommand}" />
+    </Window.InputBindings>
+
+    <Grid>
+    <DockPanel x:Name="MainContent">
+        <!-- ============================================================ Intestazione -->
+        <Border DockPanel.Dock="Top" Background="{StaticResource HeaderBrush}" Padding="24,14">
+            <DockPanel>
+                <Border DockPanel.Dock="Left" Width="46" Height="46" CornerRadius="12" Background="#33FFFFFF">
+                    <TextBlock Style="{StaticResource Icon}" Text="&#xE72E;" FontSize="22" Foreground="White" HorizontalAlignment="Center" />
+                </Border>
+                <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="PasswordGen" FontSize="22" FontWeight="SemiBold" Foreground="White" />
+                        <Border Background="#33FFFFFF" CornerRadius="9" Padding="8,1" Margin="10,0,0,0" VerticalAlignment="Center"
+                                ToolTip="Versione dell'applicazione">
+                            <TextBlock Text="{Binding AppVersion, StringFormat='v{0}'}" FontSize="11" FontWeight="SemiBold" Foreground="White" />
+                        </Border>
+                    </StackPanel>
+                    <TextBlock Text="Password casuali, sicure e facili da ricordare. Tutto resta su questo computer." Foreground="#CCFFFFFF" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- ============================================================ Barra di stato -->
+        <Border DockPanel.Dock="Bottom" Background="{StaticResource CardBrush}" BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,1,0,0" Padding="24,8">
+            <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis" />
+        </Border>
+
+        <!-- ============================================================ Promemoria -->
+        <Border DockPanel.Dock="Top" Padding="24,10">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Background" Value="{StaticResource InfoSoftBrush}" />
+                    <Setter Property="BorderBrush" Value="{StaticResource InfoBorderBrush}" />
+                    <Setter Property="BorderThickness" Value="0,0,0,1" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ReminderLevel}" Value="Ok">
+                            <Setter Property="Background" Value="{StaticResource SuccessSoftBrush}" />
+                            <Setter Property="BorderBrush" Value="{StaticResource SuccessBorderBrush}" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding ReminderLevel}" Value="Warn">
+                            <Setter Property="Background" Value="{StaticResource WarningSoftBrush}" />
+                            <Setter Property="BorderBrush" Value="{StaticResource WarningBorderBrush}" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding ReminderLevel}" Value="Error">
+                            <Setter Property="Background" Value="{StaticResource ErrorSoftBrush}" />
+                            <Setter Property="BorderBrush" Value="{StaticResource ErrorBorderBrush}" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Command="{Binding MarkChangedCommand}"
+                        VerticalAlignment="Center" Margin="16,0,0,0"
+                        ToolTip="Registra oggi come data dell'ultimo cambio password">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource Icon}" Text="&#xE73E;" Margin="0,0,8,0" />
+                        <TextBlock Text="Ho cambiato la password" />
+                    </StackPanel>
+                </Button>
+                <TextBlock Style="{StaticResource Icon}" Text="&#xE787;" FontSize="18" Margin="0,0,12,0" />
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{Binding ReminderMessage}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding LastChangeText}" Style="{StaticResource Muted}" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- ============================================================ Suggerimento: attiva il blocco -->
+        <Border DockPanel.Dock="Top" Padding="24,10" Background="{StaticResource WarningSoftBrush}"
+                BorderBrush="{StaticResource WarningBorderBrush}" BorderThickness="0,0,0,1"
+                Visibility="{Binding ShowLockHint, Converter={StaticResource BoolToVisibility}}">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
+                    <Button Style="{StaticResource PrimaryButton}" Command="{Binding EnableLockFromHintCommand}" Content="Attiva il blocco" />
+                    <Button Style="{StaticResource GhostButton}" Command="{Binding DismissLockHintCommand}" Content="Non ora" Margin="8,0,0,0" />
+                </StackPanel>
+                <TextBlock VerticalAlignment="Center" TextWrapping="Wrap"
+                           Text="Proteggi PasswordGen con Windows Hello: chi usa il tuo PC non potrà vedere lo storico delle password." />
+            </DockPanel>
+        </Border>
+
+        <!-- ============================================================ Quale proposta hai usato? -->
+        <Border DockPanel.Dock="Top" Padding="24,10" Background="{StaticResource AccentSoftBrush}"
+                BorderBrush="{StaticResource InfoBorderBrush}" BorderThickness="0,0,0,1"
+                Visibility="{Binding IsChoosing, Converter={StaticResource BoolToVisibility}}">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
+                    <Button Style="{StaticResource PrimaryButton}" Command="{Binding ConfirmChangeCommand}" Content="Conferma" />
+                    <Button Style="{StaticResource GhostButton}" Command="{Binding CancelChangeCommand}" Content="Annulla" Margin="8,0,0,0" />
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="Quale proposta hai usato come nuova password?" FontWeight="SemiBold" Margin="0,0,0,6" />
+                    <ComboBox ItemsSource="{Binding ChoiceItems}" SelectedIndex="{Binding ChoiceIndex, Mode=TwoWay}"
+                              FontFamily="{StaticResource MonoFont}" Padding="8,5" />
+                    <TextBlock Style="{StaticResource Muted}" Margin="0,6,0,0"
+                               Text="Verrà conservata nello storico (cifrata per il tuo utente Windows), così potrai ritrovarla." />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- ============================================================ Contenuto -->
+        <Grid Margin="24,18,24,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="370" />
+                <ColumnDefinition Width="20" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Opzioni -->
+            <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource CardTitle}" Text="Tipo di password" />
+
+                            <RadioButton GroupName="Mode" IsChecked="{Binding IsPassphraseMode, Mode=TwoWay}">
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold" Text="Parole italiane (consigliata)" />
+                                    <TextBlock Style="{StaticResource Muted}" Text="Lampo-Cavallo-Nebbia-Fiume47!" FontFamily="{StaticResource MonoFont}" />
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton GroupName="Mode" IsChecked="{Binding IsSyllablesMode, Mode=TwoWay}">
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold" Text="Sillabe pronunciabili" />
+                                    <TextBlock Style="{StaticResource Muted}" Text="Bamelo-Tirusa-Pevono83=" FontFamily="{StaticResource MonoFont}" />
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton GroupName="Mode" IsChecked="{Binding IsRandomMode, Mode=TwoWay}">
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold" Text="Caratteri casuali" />
+                                    <TextBlock Style="{StaticResource Muted}" Text="k7Q#mP2v!xR4tw9N" FontFamily="{StaticResource MonoFont}" />
+                                </StackPanel>
+                            </RadioButton>
+
+                            <Separator Margin="0,10" Background="{StaticResource BorderBrush}" />
+
+                            <!-- Lunghezza: dipende dal tipo -->
+                            <StackPanel Visibility="{Binding IsPassphraseMode, Converter={StaticResource BoolToVisibility}}">
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Right" FontWeight="SemiBold" Text="{Binding WordCount}" />
+                                    <TextBlock Text="Numero di parole" />
+                                </DockPanel>
+                                <Slider Minimum="3" Maximum="8" Value="{Binding WordCount, Mode=TwoWay}" Margin="0,6,0,0" />
+                                <TextBlock Style="{StaticResource Muted}" Text="Più parole = più sicura. 4 sono un buon compromesso, 5 o più per le password importanti." />
+                            </StackPanel>
+                            <StackPanel Visibility="{Binding IsSyllablesMode, Converter={StaticResource BoolToVisibility}}">
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Right" FontWeight="SemiBold" Text="{Binding SyllableCount}" />
+                                    <TextBlock Text="Numero di sillabe" />
+                                </DockPanel>
+                                <Slider Minimum="6" Maximum="15" Value="{Binding SyllableCount, Mode=TwoWay}" Margin="0,6,0,0" />
+                                <TextBlock Style="{StaticResource Muted}" Text="Le sillabe sono raggruppate a tre per volta e separate da un simbolo." />
+                            </StackPanel>
+                            <StackPanel Visibility="{Binding IsRandomMode, Converter={StaticResource BoolToVisibility}}">
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Right" FontWeight="SemiBold" Text="{Binding RandomLength}" />
+                                    <TextBlock Text="Lunghezza (caratteri)" />
+                                </DockPanel>
+                                <Slider Minimum="8" Maximum="40" Value="{Binding RandomLength, Mode=TwoWay}" Margin="0,6,0,0" />
+                                <TextBlock Style="{StaticResource Muted}" Text="Difficile da ricordare: pensata per i casi in cui basta copiarla." />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}"
+                            Visibility="{Binding IsPassphraseMode, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource CardTitle}" Text="Parole della passphrase" />
+                            <TextBlock Text="{Binding WordSummary}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,6" />
+
+                            <RadioButton GroupName="Words" Content="Solo la lista integrata" IsChecked="{Binding IsBuiltinWords, Mode=TwoWay}" />
+                            <RadioButton GroupName="Words" Content="Aggiungi il mio file alla lista integrata"
+                                         IsEnabled="{Binding HasCustomWords}" IsChecked="{Binding IsCombinedWords, Mode=TwoWay}" />
+                            <RadioButton GroupName="Words" Content="Solo il mio file (almeno 300 parole)"
+                                         IsEnabled="{Binding HasCustomWords}" IsChecked="{Binding IsCustomOnlyWords, Mode=TwoWay}" />
+
+                            <TextBlock Style="{StaticResource Muted}" Text="{Binding CustomFileSummary}" Margin="0,6,0,0" />
+                            <Border Background="{StaticResource WarningSoftBrush}" BorderBrush="{StaticResource WarningBorderBrush}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,8,0,0"
+                                    Visibility="{Binding HasWordWarning, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Text="{Binding WordWarning}" TextWrapping="Wrap" Foreground="{StaticResource WarningBrush}" FontSize="12" />
+                            </Border>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                <Button Style="{StaticResource GhostButton}" Command="{Binding LoadWordFileCommand}" Content="Carica file..." />
+                                <Button Style="{StaticResource GhostButton}" Command="{Binding ResetWordsCommand}" Content="Ripristina integrata" Margin="8,0,0,0" />
+                            </StackPanel>
+                            <TextBlock Style="{StaticResource Muted}" Margin="0,8,0,0"
+                                       Text="File di testo con una parola per riga (4-9 lettere, accenti rimossi, # per i commenti). Il file resta sul tuo computer." />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource CardTitle}" Text="Numero di proposte" />
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" FontWeight="SemiBold" Text="{Binding SuggestionCount}" />
+                                <TextBlock Text="Quante password generare per volta" />
+                            </DockPanel>
+                            <Slider Minimum="1" Maximum="20" Value="{Binding SuggestionCount, Mode=TwoWay}" Margin="0,6,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource CardTitle}" Text="Regole della policy aziendale" />
+                            <TextBlock Style="{StaticResource Muted}" Text="{Binding PolicySummary}" Margin="0,0,0,8" />
+
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" FontWeight="SemiBold" Text="{Binding MinLength}" />
+                                <TextBlock Text="Lunghezza minima" />
+                            </DockPanel>
+                            <Slider Minimum="6" Maximum="32" Value="{Binding MinLength, Mode=TwoWay}" Margin="0,6,0,6" />
+
+                            <UniformGrid Columns="2">
+                                <CheckBox Content="Maiuscole" IsChecked="{Binding RequireUpper, Mode=TwoWay}" />
+                                <CheckBox Content="Minuscole" IsChecked="{Binding RequireLower, Mode=TwoWay}" />
+                                <CheckBox Content="Numeri" IsChecked="{Binding RequireDigit, Mode=TwoWay}" />
+                                <CheckBox Content="Caratteri speciali" IsChecked="{Binding RequireSpecial, Mode=TwoWay}" />
+                            </UniformGrid>
+                            <CheckBox Content="Evita caratteri ambigui (0 O 1 l I)" IsChecked="{Binding AvoidAmbiguous, Mode=TwoWay}" Margin="0,6,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource CardTitle}" Text="Blocco dell'app (Windows Hello)" />
+                            <CheckBox Content="Richiedi PIN, impronta o volto per aprire l'app" IsChecked="{Binding LockEnabled, Mode=TwoWay}" />
+                            <TextBlock Style="{StaticResource Muted}" Text="Blocca di nuovo" Margin="0,8,0,2" />
+                            <ComboBox ItemsSource="{Binding LockGraceNames}" SelectedIndex="{Binding LockGraceIndex, Mode=TwoWay}" Padding="6,4" />
+                            <Button Style="{StaticResource GhostButton}" Command="{Binding LockNowCommand}" Content="Blocca adesso"
+                                    HorizontalAlignment="Left" Margin="0,10,0,0" />
+                            <TextBlock Style="{StaticResource Muted}" Margin="0,8,0,0"
+                                       Text="Windows Hello deve essere configurato (Impostazioni, Account, Opzioni di accesso). Con il blocco attivo la finestra è esclusa anche da screenshot e registrazioni dello schermo." />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource CardTitle}" Text="Password attuale (facoltativa)" />
+                            <PasswordBox x:Name="PreviousBox" Padding="6,5" PasswordChanged="OnPreviousPasswordChanged" />
+                            <TextBlock Style="{StaticResource Muted}" Margin="0,6,0,0"
+                                       Text="Se la indichi, le nuove proposte saranno sensibilmente diverse (molte policy vietano varianti della precedente). Resta solo in memoria: non viene mai salvata." />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource CardTitle}" Text="Promemoria cambio password" />
+                            <CheckBox Content="Avvisami prima della scadenza" IsChecked="{Binding ReminderEnabled, Mode=TwoWay}" />
+                            <StackPanel IsEnabled="{Binding ReminderEnabled}" Margin="0,6,0,0">
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Right" FontWeight="SemiBold" Text="{Binding ValidityDays, StringFormat='{}{0} giorni'}" />
+                                    <TextBlock Text="La password dura" />
+                                </DockPanel>
+                                <Slider Minimum="14" Maximum="90" Value="{Binding ValidityDays, Mode=TwoWay}" Margin="0,6,0,6" />
+                                <CheckBox Content="Ricordamelo anche all'accesso a Windows" IsChecked="{Binding StartWithWindows, Mode=TwoWay}"
+                                          ToolTip="All'avvio di Windows l'app si apre solo se la password è in scadenza" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource CardTitle}" Text="Storico delle password" />
+                            <CheckBox Content="Conserva le password scelte" IsChecked="{Binding HistoryEnabled, Mode=TwoWay}" />
+                            <TextBlock Style="{StaticResource Muted}" Margin="0,6,0,0"
+                                       Text="Quando premi «Ho cambiato la password» l'app ti chiede quale proposta hai usato e la salva in un file cifrato per il tuo utente Windows (ultime 12). Le nuove proposte evitano le varianti di quelle passate. Disattivandolo, lo storico viene cancellato." />
+                            <Button Style="{StaticResource GhostButton}" Command="{Binding ClearHistoryCommand}" Content="Cancella tutto lo storico"
+                                    HorizontalAlignment="Left" Margin="0,10,0,0" />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource CardTitle}" Text="Sincronizzazione e backup" />
+                            <TextBlock Style="{StaticResource Muted}" Text="{Binding SyncSummary}" TextWrapping="Wrap" />
+                            <TextBlock Style="{StaticResource Muted}" Margin="0,6,0,0"
+                                       Text="Per vedere lo storico anche sul telefono scegli un file in una cartella sincronizzata (per esempio Google Drive): l'app lo tiene aggiornato, cifrato con una frase segreta che solo tu conosci. Storico, data dell'ultimo cambio e durata della password si uniscono senza perdere nulla." />
+                            <WrapPanel Margin="0,10,0,0">
+                                <Button Style="{StaticResource GhostButton}" Command="{Binding SetupSyncCommand}" Content="Imposta..." Margin="0,0,8,6" />
+                                <Button Style="{StaticResource GhostButton}" Command="{Binding SyncNowCommand}" Content="Sincronizza ora" Margin="0,0,8,6" />
+                                <Button Style="{StaticResource GhostButton}" Command="{Binding StopSyncCommand}" Content="Disattiva" Margin="0,0,8,6" />
+                            </WrapPanel>
+                            <WrapPanel>
+                                <Button Style="{StaticResource GhostButton}" Command="{Binding ExportCommand}" Content="Esporta..." Margin="0,0,8,0" />
+                                <Button Style="{StaticResource GhostButton}" Command="{Binding ImportCommand}" Content="Importa..." />
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Proposte -->
+            <Border Grid.Column="2" Style="{StaticResource Card}" Margin="0,0,0,0">
+                <TabControl BorderThickness="0" Padding="0,10,0,0" Background="Transparent">
+                <TabItem Header="Proposte">
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Command="{Binding GenerateCommand}"
+                                ToolTip="Genera nuove proposte (F5)">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource Icon}" Text="&#xE72C;" Margin="0,0,8,0" />
+                                <TextBlock Text="Genera nuove proposte" />
+                            </StackPanel>
+                        </Button>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource CardTitle}" Text="Proposte" Margin="0" />
+                            <TextBlock Style="{StaticResource Muted}"
+                                       Text="Scegli quella che ti suona meglio. Dopo la copia, gli appunti si svuotano dopo 30 secondi o alla chiusura." />
+                        </StackPanel>
+                    </DockPanel>
+
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding Suggestions}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:SuggestionViewModel}">
+                                    <Border Background="{StaticResource SubtleBrush}" BorderBrush="{StaticResource BorderBrush}"
+                                            BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,8">
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Command="{Binding CopyCommand}"
+                                                    VerticalAlignment="Center" Margin="12,0,0,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE8C8;" Margin="0,0,8,0" />
+                                                    <TextBlock Text="Copia" />
+                                                </StackPanel>
+                                            </Button>
+                                            <StackPanel>
+                                                <TextBox Text="{Binding Text, Mode=OneWay}" IsReadOnly="True" BorderThickness="0"
+                                                         Background="Transparent" FontFamily="{StaticResource MonoFont}"
+                                                         FontSize="19" FontWeight="SemiBold" Padding="0" />
+                                                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                                    <TextBlock Text="{Binding LevelText}" FontWeight="SemiBold" FontSize="12">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Foreground" Value="{StaticResource SuccessBrush}" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Level}" Value="Weak">
+                                                                        <Setter Property="Foreground" Value="{StaticResource ErrorBrush}" />
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Level}" Value="Fair">
+                                                                        <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                    <TextBlock Text="{Binding BitsText, StringFormat=' · {0} di entropia'}" Style="{StaticResource Muted}" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+                </TabItem>
+
+                <TabItem Header="{Binding HistoryHeader}">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Style="{StaticResource Muted}" Margin="0,0,0,10"
+                                   Text="Le ultime password che hai usato, dalla più recente. Sono mascherate: mostrale o copiale solo quando servono." />
+                        <TextBlock DockPanel.Dock="Top" Style="{StaticResource Muted}" FontStyle="Italic"
+                                   Text="Lo storico è ancora vuoto: dopo aver cambiato la password premi «Ho cambiato la password» in alto."
+                                   Visibility="{Binding HasHistory, Converter={StaticResource InverseBoolToVisibility}}" />
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <ItemsControl ItemsSource="{Binding HistoryEntries}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:HistoryEntryViewModel}">
+                                        <Border Background="{StaticResource SubtleBrush}" BorderBrush="{StaticResource BorderBrush}"
+                                                BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,8">
+                                            <DockPanel>
+                                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                                                    <Button Style="{StaticResource GhostButton}" Command="{Binding ToggleCommand}" Content="{Binding ToggleText}" />
+                                                    <Button Style="{StaticResource GhostButton}" Command="{Binding CopyCommand}" Content="Copia" Margin="6,0,0,0" />
+                                                    <Button Style="{StaticResource GhostButton}" Command="{Binding DeleteCommand}" Content="Elimina" Margin="6,0,0,0" />
+                                                </StackPanel>
+                                                <StackPanel>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                                        <TextBlock Style="{StaticResource Muted}" Margin="8,0,0,0">
+                                                            <Run Text="{Binding DateText, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding ModeText, Mode=OneWay}" />
+                                                        </TextBlock>
+                                                    </StackPanel>
+                                                    <TextBlock Text="{Binding DisplayText}" FontFamily="{StaticResource MonoFont}" FontSize="17"
+                                                               FontWeight="SemiBold" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+                                            </DockPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </DockPanel>
+                </TabItem>
+                </TabControl>
+            </Border>
+        </Grid>
+    </DockPanel>
+
+    <!-- Schermata di blocco: copre tutto finché l'utente non si autentica con Windows Hello -->
+    <Border Background="{StaticResource HeaderBrush}"
+            Visibility="{Binding Lock.IsLocked, Converter={StaticResource BoolToVisibility}}">
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="460">
+            <TextBlock Style="{StaticResource Icon}" Text="&#xE72E;" FontSize="56" Foreground="White" HorizontalAlignment="Center" />
+            <TextBlock Text="PasswordGen è bloccata" FontSize="24" FontWeight="SemiBold" Foreground="White"
+                       HorizontalAlignment="Center" Margin="0,16,0,6" />
+            <TextBlock Text="Usa Windows Hello (PIN, impronta o volto) per continuare." Foreground="#CCFFFFFF"
+                       TextAlignment="Center" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding Lock.Message}" Foreground="#FCA5A5" TextAlignment="Center" TextWrapping="Wrap" Margin="0,10,0,0" />
+            <Button Style="{StaticResource PrimaryButton}" Command="{Binding Lock.UnlockCommand}" Content="Sblocca"
+                    Margin="0,22,0,0" HorizontalAlignment="Center" MinWidth="180" />
+        </StackPanel>
+    </Border>
+    </Grid>
+</Window>
