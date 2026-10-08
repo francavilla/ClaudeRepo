@@ -1,7 +1,9 @@
 # Istruzioni per Claude su questo repository
 
 ## Branch
-- Lavorare e fare push sempre sul branch **`Progetti_Claude`**.
+- Lavorare e fare push sul branch **`main`**: dall'8 ottobre 2026 tutte le integrazioni avvengono lì.
+- **`Progetti_Claude` è congelato** allo stato di DesktopAppTemplate 4.2.2 (commit `b2d2eb3`): non aggiungervi altro.
+- DesktopAppTemplate riparte dalla versione **1.0.0** (equivalente alla 4.2.2); le versioni 1.0.0 – 4.2.2 del changelog sono la cronologia interna dello sviluppo precedente.
 
 ## Versioni (obbligatorio a ogni modifica)
 Ogni modifica a un'applicazione del repository deve aggiornare il suo numero di versione:

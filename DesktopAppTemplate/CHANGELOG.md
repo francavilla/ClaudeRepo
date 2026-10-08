@@ -4,6 +4,24 @@ Tutte le modifiche rilevanti di DesktopAppTemplate sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.0.0] - 2026-10-08
+
+Prima versione stabile del modello: corrisponde esattamente allo stato della 4.2.2, l'ultima della fase di sviluppo su `Progetti_Claude`
+(branch congelato). Da qui in avanti le modifiche si integrano su `main`, con numerazione che riparte da questa versione.
+
+### Contenuto
+- Solution a slice verticali (`Core`, `Features`, `Infrastructure`, `Data`, `Data.Dal`, `Logging`) con due interfacce intercambiabili, WPF e Windows Forms
+  (con il designer), scelte con `--ui wpf|winforms`; layout moderno con menu laterale e card, icona e versione nel titolo.
+- Configurazione unificata (valori predefiniti, `App.config`, riga di comando) con validazione, origine di ogni valore e `--help` generato; contesto applicativo `IAppContext`.
+- Accesso al database con ADO.NET su SQLite (predefinito) e SQL Server, repository generico, migrazioni dello schema, `--no-migrate`, punti di aggancio
+  (`IDbExecutor`, `IDbConnectionFactory`, `ISqlDialect`) e adattatore con segnaposto per la libreria DAL (connessione singleton, transazioni esplicite).
+- Logging con `ILogger<T>` su file, database o entrambi, in background e senza mai bloccare l'app.
+- `New-Project.ps1` per creare un nuovo progetto dal modello; CI su Windows con test, compilazione e prova del progetto generato.
+
+## Cronologia dello sviluppo (versioni interne 1.0.0 – 4.2.2, branch Progetti_Claude)
+
+I numeri qui sotto sono quelli interni della fase di sviluppo: non vanno confusi con le versioni pubbliche, che ripartono da 1.0.0 (sopra).
+
 ## [4.2.2] - 2026-10-08
 
 ### Corretto
