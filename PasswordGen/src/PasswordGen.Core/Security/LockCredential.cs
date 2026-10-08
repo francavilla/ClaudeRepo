@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Security.Cryptography;
-using System.Text;
 
 namespace PasswordGen.Core.Security
 {
@@ -194,29 +193,7 @@ namespace PasswordGen.Core.Security
 
         private static byte[] Derive(string secret, byte[] salt, int iterations)
         {
-            // PBKDF2-HMAC-SHA256 (RFC 8018) scritto a mano: netstandard2.0 non offre Rfc2898DeriveBytes con SHA-256.
-            // HashLength deve essere al massimo 32 byte (un solo blocco).
-            using (var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(secret)))
-            {
-                var input = new byte[salt.Length + 4];
-                Buffer.BlockCopy(salt, 0, input, 0, salt.Length);
-                input[salt.Length + 3] = 1;   // indice del blocco (big endian)
-
-                var u = hmac.ComputeHash(input);
-                var result = (byte[])u.Clone();
-                for (var i = 1; i < iterations; i++)
-                {
-                    u = hmac.ComputeHash(u);
-                    for (var j = 0; j < result.Length; j++)
-                    {
-                        result[j] ^= u[j];
-                    }
-                }
-
-                var output = new byte[HashLength];
-                Buffer.BlockCopy(result, 0, output, 0, HashLength);
-                return output;
-            }
+            return Pbkdf2.Derive(secret, salt, iterations, HashLength);
         }
     }
 }

@@ -53,6 +53,15 @@ namespace PasswordGen.Core.Settings
         /// <summary>Secondi in secondo piano dopo i quali l'app si blocca di nuovo (0 = subito).</summary>
         [DataMember] public int LockGraceSeconds { get; set; }
 
+        /// <summary>L'avviso che invita ad attivare il blocco è stato chiuso dall'utente.</summary>
+        [DataMember] public bool LockHintDismissed { get; set; }
+
+        /// <summary>File di sincronizzazione (percorso su Windows, indirizzo del documento su Android); vuoto se non attiva.</summary>
+        [DataMember] public string SyncPath { get; set; }
+
+        /// <summary>Ultima sincronizzazione riuscita (UTC, formato yyyy-MM-ddTHH:mm:ssZ).</summary>
+        [DataMember] public string LastSyncUtcText { get; set; }
+
         [DataMember] public bool ReminderEnabled { get; set; }
         [DataMember] public int ValidityDays { get; set; }
         [DataMember] public int WarnDays { get; set; }
@@ -103,6 +112,9 @@ namespace PasswordGen.Core.Settings
             HistoryEnabled = true;
             LockEnabled = false;
             LockGraceSeconds = 30;
+            LockHintDismissed = false;
+            SyncPath = null;
+            LastSyncUtcText = null;
             WordSource = WordSourceMode.Builtin;
             CustomWordsPath = null;
             ReminderEnabled = true;

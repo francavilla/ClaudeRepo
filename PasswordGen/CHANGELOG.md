@@ -4,6 +4,14 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.1.0] - 2026-10-08
+
+### Aggiunto
+- **Sincronizzazione tra app Windows e Android** con un file cifrato condiviso (per esempio in Google Drive): storico, data dell'ultimo cambio e durata
+  della password. Il file è cifrato con una frase segreta (AES-256 + HMAC, chiave PBKDF2-SHA256); l'unione non cancella mai nulla di locale.
+- **Esporta / importa** lo storico in un file cifrato con frase segreta, utile anche per cambiare telefono.
+- `PasswordGen.Core`: `PassphraseProtector`, `ExchangeFile`, `SyncEngine`, `FileSyncStorage`, `SyncPassphraseStore`, `PasswordHistory.Merge` (con test).
+
 ## [1.0.0] - 2026-10-08
 
 ### Modificato
