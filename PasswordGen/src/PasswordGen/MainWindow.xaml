@@ -147,6 +147,17 @@
 
                     <Border Style="{StaticResource Card}">
                         <StackPanel>
+                            <TextBlock Style="{StaticResource CardTitle}" Text="Proposte" />
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" FontWeight="SemiBold" Text="{Binding SuggestionCount}" />
+                                <TextBlock Text="Quante password generare per volta" />
+                            </DockPanel>
+                            <Slider Minimum="1" Maximum="20" Value="{Binding SuggestionCount, Mode=TwoWay}" Margin="0,6,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
                             <TextBlock Style="{StaticResource CardTitle}" Text="Regole della policy aziendale" />
                             <TextBlock Style="{StaticResource Muted}" Text="{Binding PolicySummary}" Margin="0,0,0,8" />
 

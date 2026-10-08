@@ -13,8 +13,6 @@ namespace PasswordGen.ViewModels
 {
     public class MainViewModel : ObservableObject
     {
-        private const int SuggestionCount = 6;
-
         private readonly PasswordGenerator _generator;
         private readonly SettingsStore _store;
         private readonly ISecretClipboard _clipboard;
@@ -27,6 +25,7 @@ namespace PasswordGen.ViewModels
         private int _wordCount;
         private int _syllableCount;
         private int _randomLength;
+        private int _suggestionCount;
         private int _minLength;
         private bool _requireUpper;
         private bool _requireLower;
@@ -60,6 +59,7 @@ namespace PasswordGen.ViewModels
             _wordCount = _settings.WordCount;
             _syllableCount = _settings.SyllableCount;
             _randomLength = _settings.RandomLength;
+            _suggestionCount = _settings.SuggestionCount;
             _minLength = _settings.MinLength;
             _requireUpper = _settings.RequireUpper;
             _requireLower = _settings.RequireLower;
@@ -163,6 +163,13 @@ namespace PasswordGen.ViewModels
         {
             get { return _randomLength; }
             set { SetOption(ref _randomLength, value); }
+        }
+
+        /// <summary>Quante proposte generare per volta (1-20).</summary>
+        public int SuggestionCount
+        {
+            get { return _suggestionCount; }
+            set { SetOption(ref _suggestionCount, value); }
         }
 
         // ------------------------------------------------------------ Policy
@@ -387,7 +394,7 @@ namespace PasswordGen.ViewModels
         {
             try
             {
-                var items = _generator.GenerateMany(BuildOptions(), SuggestionCount);
+                var items = _generator.GenerateMany(BuildOptions(), _suggestionCount);
                 Suggestions.Clear();
                 foreach (var item in items)
                 {
@@ -426,6 +433,7 @@ namespace PasswordGen.ViewModels
             _settings.WordCount = _wordCount;
             _settings.SyllableCount = _syllableCount;
             _settings.RandomLength = _randomLength;
+            _settings.SuggestionCount = _suggestionCount;
             _settings.MinLength = _minLength;
             _settings.RequireUpper = _requireUpper;
             _settings.RequireLower = _requireLower;

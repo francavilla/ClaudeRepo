@@ -7,7 +7,7 @@ Tutto avviene sul computer: nessuna connessione di rete, nessun salvataggio dell
 
 ## Uso
 
-1. Avviare `PasswordGen.exe`: compaiono sei proposte (**F5** o *Genera nuove proposte* per averne altre).
+1. Avviare `PasswordGen.exe`: compaiono sei proposte (**F5** o *Genera nuove proposte* per averne altre; il numero, da 1 a 20, si regola nella card *Proposte*).
 2. Scegliere il **tipo di password**:
 
    | Tipo | Esempio | Quando |

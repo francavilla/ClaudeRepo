@@ -14,6 +14,9 @@ namespace PasswordGen.Core.Settings
     public sealed class AppSettings
     {
         public const string DateFormat = "yyyy-MM-dd";
+        public const int MinSuggestions = 1;
+        public const int MaxSuggestions = 20;
+        public const int DefaultSuggestions = 6;
 
         public AppSettings()
         {
@@ -24,6 +27,9 @@ namespace PasswordGen.Core.Settings
         [DataMember] public int WordCount { get; set; }
         [DataMember] public int SyllableCount { get; set; }
         [DataMember] public int RandomLength { get; set; }
+
+        /// <summary>Quante proposte mostrare per volta.</summary>
+        [DataMember] public int SuggestionCount { get; set; }
 
         [DataMember] public int MinLength { get; set; }
         [DataMember] public bool RequireUpper { get; set; }
@@ -70,6 +76,7 @@ namespace PasswordGen.Core.Settings
             WordCount = options.WordCount;
             SyllableCount = options.SyllableCount;
             RandomLength = options.RandomLength;
+            SuggestionCount = DefaultSuggestions;
 
             MinLength = policy.MinLength;
             RequireUpper = policy.RequireUpper;
@@ -91,6 +98,7 @@ namespace PasswordGen.Core.Settings
             WordCount = Clamp(WordCount, GenerationOptions.MinWords, GenerationOptions.MaxWords);
             SyllableCount = Clamp(SyllableCount, GenerationOptions.MinSyllables, GenerationOptions.MaxSyllables);
             RandomLength = Clamp(RandomLength, PasswordPolicy.MinAllowedLength, GenerationOptions.MaxRandomLength);
+            SuggestionCount = Clamp(SuggestionCount, MinSuggestions, MaxSuggestions);
             ValidityDays = Clamp(ValidityDays, 7, 365);
             WarnDays = Clamp(WarnDays, 0, 30);
             if (!Enum.IsDefined(typeof(GenerationMode), Mode))

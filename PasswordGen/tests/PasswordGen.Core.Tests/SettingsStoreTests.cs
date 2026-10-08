@@ -30,6 +30,7 @@ namespace PasswordGen.Core.Tests
 
             Assert.Equal(GenerationMode.Passphrase, settings.Mode);
             Assert.Equal(4, settings.WordCount);
+            Assert.Equal(6, settings.SuggestionCount);
             Assert.Equal(10, settings.MinLength);
             Assert.True(settings.ReminderEnabled);
             Assert.Equal(30, settings.ValidityDays);
@@ -45,6 +46,7 @@ namespace PasswordGen.Core.Tests
                 Mode = GenerationMode.Random,
                 WordCount = 6,
                 RandomLength = 20,
+                SuggestionCount = 12,
                 MinLength = 12,
                 RequireSpecial = false,
                 ValidityDays = 60,
@@ -57,6 +59,7 @@ namespace PasswordGen.Core.Tests
             Assert.Equal(GenerationMode.Random, loaded.Mode);
             Assert.Equal(6, loaded.WordCount);
             Assert.Equal(20, loaded.RandomLength);
+            Assert.Equal(12, loaded.SuggestionCount);
             Assert.Equal(12, loaded.MinLength);
             Assert.False(loaded.RequireSpecial);
             Assert.True(loaded.RequireUpper);
@@ -93,13 +96,14 @@ namespace PasswordGen.Core.Tests
         public void Load_ClampsOutOfRangeValues()
         {
             Directory.CreateDirectory(_directory);
-            File.WriteAllText(FilePath, "{\"WordCount\":99,\"MinLength\":1,\"ValidityDays\":0}");
+            File.WriteAllText(FilePath, "{\"WordCount\":99,\"MinLength\":1,\"ValidityDays\":0,\"SuggestionCount\":500}");
 
             var settings = new SettingsStore(FilePath).Load();
 
             Assert.Equal(GenerationOptions.MaxWords, settings.WordCount);
             Assert.Equal(6, settings.MinLength);
             Assert.Equal(7, settings.ValidityDays);
+            Assert.Equal(AppSettings.MaxSuggestions, settings.SuggestionCount);
         }
 
         [Fact]
