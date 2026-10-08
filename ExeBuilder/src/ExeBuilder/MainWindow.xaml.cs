@@ -13,12 +13,18 @@ namespace ExeBuilder
     /// </summary>
     public partial class MainWindow : Window
     {
+        private const double ConsoleMinHeight = 210;
+
         private bool _scrollPending;
 
         public MainWindow()
         {
             InitializeComponent();
             FitToWorkArea();
+
+            // La parte superiore non può togliere alla console più spazio del suo minimo:
+            // oltre quel limite diventa scorrevole.
+            ContentGrid.SizeChanged += (s, e) => TopScroller.MaxHeight = Math.Max(120, ContentGrid.ActualHeight - ConsoleMinHeight);
             DataContextChanged += (s, e) =>
             {
                 var vm = e.NewValue as MainViewModel;

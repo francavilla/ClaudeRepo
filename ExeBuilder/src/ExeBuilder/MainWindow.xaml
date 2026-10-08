@@ -15,7 +15,7 @@
 
     <DockPanel>
         <!-- ============================================================ Intestazione -->
-        <Border DockPanel.Dock="Top" Background="{StaticResource HeaderBrush}" Padding="24,16">
+        <Border DockPanel.Dock="Top" Background="{StaticResource HeaderBrush}" Padding="24,12">
             <DockPanel>
                 <Border DockPanel.Dock="Left" Width="46" Height="46" CornerRadius="12" Background="#33FFFFFF">
                     <TextBlock Style="{StaticResource Icon}" Text="&#xE90F;" FontSize="22" Foreground="White" HorizontalAlignment="Center" />
@@ -52,14 +52,17 @@
         </Border>
 
         <!-- ============================================================ Contenuto -->
-        <Grid Margin="20,16,20,14">
+        <Grid x:Name="ContentGrid" Margin="20,14,20,14">
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" MinHeight="120" />
                 <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" MinHeight="170" />
+                <RowDefinition Height="*" MinHeight="180" />
             </Grid.RowDefinitions>
 
-            <Grid Grid.Row="0">
+            <!-- Parte superiore: diventa scorrevole quando si allarga la console con il divisore -->
+            <ScrollViewer x:Name="TopScroller" Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,2,0">
+            <StackPanel>
+            <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="11*" />
                     <ColumnDefinition Width="16" />
@@ -72,7 +75,7 @@
                     <!-- 1. Progetto o solution -->
                     <Border Style="{StaticResource Card}">
                         <StackPanel>
-                            <DockPanel Margin="0,0,0,12">
+                            <DockPanel Margin="0,0,0,10">
                                 <Border Style="{StaticResource StepBadge}">
                                     <TextBlock Text="1" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                 </Border>
@@ -126,6 +129,7 @@
                                     <TextBlock Text="{Binding SelectionSummary}" FontWeight="SemiBold" VerticalAlignment="Center" TextWrapping="Wrap" />
                                 </DockPanel>
                                 <ListView Style="{StaticResource ProjectList}" ItemsSource="{Binding Projects}" SelectedItem="{Binding CurrentProject}" MaxHeight="190"
+                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                           ToolTip="Spunta i progetti da compilare; clicca una riga per vederne l'analisi">
                                     <ListView.ItemContainerStyle>
                                         <Style TargetType="ListViewItem">
@@ -160,21 +164,21 @@
                                                     </DataTemplate>
                                                 </GridViewColumn.CellTemplate>
                                             </GridViewColumn>
-                                            <GridViewColumn Header="Progetto" Width="190">
+                                            <GridViewColumn Header="Progetto" Width="170">
                                                 <GridViewColumn.CellTemplate>
                                                     <DataTemplate>
                                                         <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding Info.FullPath}" />
                                                     </DataTemplate>
                                                 </GridViewColumn.CellTemplate>
                                             </GridViewColumn>
-                                            <GridViewColumn Header="Target" Width="150">
+                                            <GridViewColumn Header="Target" Width="140">
                                                 <GridViewColumn.CellTemplate>
                                                     <DataTemplate>
                                                         <TextBlock Text="{Binding SelectedTargetFramework.DisplayName}" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis" />
                                                     </DataTemplate>
                                                 </GridViewColumn.CellTemplate>
                                             </GridViewColumn>
-                                            <GridViewColumn Header="Stato" Width="200">
+                                            <GridViewColumn Header="Stato" Width="170">
                                                 <GridViewColumn.CellTemplate>
                                                     <DataTemplate>
                                                         <TextBlock Text="{Binding Status}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Status}" />
@@ -191,7 +195,7 @@
                     <!-- 2. Cartella di output -->
                     <Border Style="{StaticResource Card}">
                         <StackPanel>
-                            <DockPanel Margin="0,0,0,12">
+                            <DockPanel Margin="0,0,0,10">
                                 <Border Style="{StaticResource StepBadge}">
                                     <TextBlock Text="2" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                 </Border>
@@ -246,7 +250,7 @@
                 <!-- ======================================== Colonna destra: analisi -->
                 <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Stretch">
                     <DockPanel>
-                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
                             <Border Style="{StaticResource StepBadge}">
                                 <TextBlock Text="3" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
@@ -372,7 +376,7 @@
             </Grid>
 
             <!-- ============================================================ Azioni -->
-            <DockPanel Grid.Row="1" Margin="0,0,0,14">
+            <DockPanel Margin="0,0,0,4">
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <Button Style="{StaticResource SecondaryButton}" Command="{Binding OpenOutputCommand}">
                         <StackPanel Orientation="Horizontal">
@@ -404,8 +408,42 @@
                 </StackPanel>
             </DockPanel>
 
+            </StackPanel>
+            </ScrollViewer>
+
+            <!-- Divisore trascinabile: più spazio alla console o alla parte superiore -->
+            <GridSplitter Grid.Row="1" Style="{StaticResource RowSplitter}" />
+
+            <DockPanel Grid.Row="2">
+            <!-- ============================================================ Esito della build -->
+            <Border DockPanel.Dock="Top" Style="{StaticResource OutcomeBanner}"
+                    Visibility="{Binding HasOutcome, Converter={StaticResource BoolToVisibility}}">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}" Command="{Binding OpenOutputCommand}"
+                            VerticalAlignment="Center" Margin="12,0,0,0">
+                        <Button.Visibility>
+                            <Binding Path="Outcome" Converter="{x:Static conv:EqualsToVisibilityConverter.Instance}" ConverterParameter="Succeeded" />
+                        </Button.Visibility>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource Icon}" Text="&#xE838;" />
+                            <TextBlock Text="Apri cartella" Margin="8,0,0,0" />
+                        </StackPanel>
+                    </Button>
+                    <TextBlock DockPanel.Dock="Left" Style="{StaticResource OutcomeIcon}" Margin="0,0,12,0">
+                        <TextBlock.RenderTransform>
+                            <RotateTransform />
+                        </TextBlock.RenderTransform>
+                    </TextBlock>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding OutcomeTitle}" FontSize="15" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding OutcomeDetail}" FontSize="12" TextTrimming="CharacterEllipsis" Margin="0,2,0,0" Opacity="0.9"
+                                   ToolTip="{Binding OutcomeDetail}" />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
             <!-- ============================================================ Console del log -->
-            <Border Grid.Row="2" Background="{StaticResource ConsoleBrush}" CornerRadius="10">
+            <Border Background="{StaticResource ConsoleBrush}" CornerRadius="10">
                 <DockPanel>
                     <Border DockPanel.Dock="Top" Background="{StaticResource ConsoleHeaderBrush}" CornerRadius="10,10,0,0" Padding="14,6">
                         <DockPanel>
@@ -456,6 +494,7 @@
                     </ListBox>
                 </DockPanel>
             </Border>
+            </DockPanel>
         </Grid>
     </DockPanel>
 </Window>

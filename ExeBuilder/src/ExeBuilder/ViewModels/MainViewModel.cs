@@ -41,6 +41,9 @@ namespace ExeBuilder.ViewModels
         private bool _isBusy;
         private string _statusText = "Pronto.";
         private bool _suspendPlanUpdates;
+        private BuildOutcome _outcome;
+        private string _outcomeTitle;
+        private string _outcomeDetail;
         private CancellationTokenSource _cancellation;
 
         public MainViewModel(
@@ -325,6 +328,36 @@ namespace ExeBuilder.ViewModels
             private set { SetProperty(ref _statusText, value); }
         }
 
+        /// <summary>Esito dell'ultima build (banner sopra la console, sempre visibile).</summary>
+        public BuildOutcome Outcome
+        {
+            get { return _outcome; }
+            private set
+            {
+                if (SetProperty(ref _outcome, value))
+                {
+                    OnPropertyChanged("HasOutcome");
+                }
+            }
+        }
+
+        public bool HasOutcome
+        {
+            get { return Outcome != BuildOutcome.None; }
+        }
+
+        public string OutcomeTitle
+        {
+            get { return _outcomeTitle; }
+            private set { SetProperty(ref _outcomeTitle, value); }
+        }
+
+        public string OutcomeDetail
+        {
+            get { return _outcomeDetail; }
+            private set { SetProperty(ref _outcomeDetail, value); }
+        }
+
         private string BaseDirectory
         {
             get
@@ -371,6 +404,11 @@ namespace ExeBuilder.ViewModels
 
         private void LoadInput()
         {
+            if (!IsBusy)
+            {
+                SetOutcome(BuildOutcome.None, null, null);
+            }
+
             InputError = null;
             IsSolution = false;
             CurrentProject = null;
@@ -675,7 +713,9 @@ namespace ExeBuilder.ViewModels
 
             Log.Clear();
             IsBusy = true;
+            SetOutcome(BuildOutcome.Running, "Build in corso...", null);
             _cancellation = new CancellationTokenSource();
+            var startedAt = DateTime.Now;
             var succeeded = new List<ProjectItemViewModel>();
             var failed = new List<ProjectItemViewModel>();
             var executables = new List<string>();
@@ -693,6 +733,10 @@ namespace ExeBuilder.ViewModels
                     CurrentProject = item;
                     item.RunStatus = "in corso...";
                     StatusText = string.Format("Build {0}/{1}: {2} ({3})...", i + 1, targets.Count, item.Name, item.Plan.TargetFramework.DisplayName);
+                    SetOutcome(
+                        BuildOutcome.Running,
+                        targets.Count > 1 ? string.Format("Build in corso {0}/{1}: {2}", i + 1, targets.Count, item.Name) : "Build in corso: " + item.Name,
+                        item.Plan.TargetFramework.DisplayName + " → " + item.OutputDirectory);
 
                     if (targets.Count > 1)
                     {
@@ -742,6 +786,25 @@ namespace ExeBuilder.ViewModels
                     ? (succeeded.Count == 1 ? "Build completata." : string.Format("Tutte le {0} build completate.", succeeded.Count))
                     : string.Format("{0} riuscite, {1} fallite: {2}.", succeeded.Count, failed.Count, string.Join(", ", failed.Select(f => f.Name)));
 
+                var totalSeconds = targets.Count == 0 ? 0 : (DateTime.Now - startedAt).TotalSeconds;
+                if (failed.Count == 0)
+                {
+                    SetOutcome(
+                        BuildOutcome.Succeeded,
+                        succeeded.Count == 1 ? "Build riuscita" : string.Format("Tutte le {0} build riuscite", succeeded.Count),
+                        (executables.Count == 0 ? "Nessun .exe trovato in " + ResolvedOutputDirectory
+                            : executables.Count == 1 ? executables[0]
+                            : string.Format("{0} eseguibili in {1}", executables.Count, ResolvedOutputDirectory))
+                            + string.Format("  ·  {0:0.0} s", totalSeconds));
+                }
+                else
+                {
+                    SetOutcome(
+                        BuildOutcome.Failed,
+                        succeeded.Count == 0 ? "Build fallita" : string.Format("{0} riuscite, {1} fallite", succeeded.Count, failed.Count),
+                        "Non riuscite: " + string.Join(", ", failed.Select(f => f.Name)) + ". Le righe in rosso nel log indicano gli errori.");
+                }
+
                 if (targets.Count > 1)
                 {
                     AppendLog(new LogLine("Riepilogo: " + StatusText, failed.Count == 0 ? LogKind.Success : LogKind.Error));
@@ -755,6 +818,7 @@ namespace ExeBuilder.ViewModels
             {
                 StatusText = "Build annullata.";
                 AppendLog(new LogLine(StatusText, LogKind.Warning));
+                SetOutcome(BuildOutcome.Cancelled, "Build annullata", "La build è stata interrotta: l'output potrebbe essere incompleto.");
             }
             finally
             {
@@ -785,6 +849,7 @@ namespace ExeBuilder.ViewModels
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is InvalidOperationException)
             {
                 StatusText = "Impossibile svuotare la cartella di output: build non avviata.";
+                SetOutcome(BuildOutcome.Failed, "Build non avviata", "Impossibile svuotare la cartella di output: un file è in uso (programma aperto o Esplora risorse?).");
                 AppendLog(new LogLine(StatusText, LogKind.Error));
                 AppendLog(new LogLine(ex.Message, LogKind.Error));
                 AppendLog(new LogLine("Probabilmente un file è in uso: chiudere il programma avviato da quella cartella (o Esplora risorse) e riprovare.", LogKind.Warning));
@@ -798,6 +863,13 @@ namespace ExeBuilder.ViewModels
         }
 
         // ---------------------------------------------------------------- Varie
+
+        private void SetOutcome(BuildOutcome outcome, string title, string detail)
+        {
+            OutcomeTitle = title;
+            OutcomeDetail = detail;
+            Outcome = outcome;
+        }
 
         private void AppendLog(LogLine line)
         {
@@ -850,6 +922,7 @@ namespace ExeBuilder.ViewModels
         {
             IsBusy = false;
             StatusText = "Errore: " + ex.Message;
+            SetOutcome(BuildOutcome.Failed, "Errore imprevisto", ex.Message);
             try
             {
                 AppendLog(new LogLine(ex.ToString(), LogKind.Error));
