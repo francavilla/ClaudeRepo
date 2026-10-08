@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Implementazioni concrete delle astrazioni (orologio, informazioni app, archivio dati). -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>DesktopAppTemplate.Infrastructure</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DesktopAppTemplate.Core\DesktopAppTemplate.Core.csproj" />
+    <ProjectReference Include="..\DesktopAppTemplate.Features\DesktopAppTemplate.Features.csproj" />
+  </ItemGroup>
+
+</Project>

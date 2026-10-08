@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Interfaccia Windows Forms (solo view): tutta la logica sta nei view model di Features. -->
+  <PropertyGroup>
+    <TargetFramework>net462</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>DesktopAppTemplate.UI.WinForms</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DesktopAppTemplate.Core\DesktopAppTemplate.Core.csproj" />
+    <ProjectReference Include="..\DesktopAppTemplate.Features\DesktopAppTemplate.Features.csproj" />
+  </ItemGroup>
+
+</Project>

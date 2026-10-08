@@ -1,0 +1,56 @@
+# Integrazione continua di DesktopAppTemplate: compila su Windows (WPF e Windows Forms),
+# esegue i test e rende scaricabile l'applicazione compilata come artifact del run.
+name: CI DesktopAppTemplate
+
+on:
+  push:
+    branches: [ Progetti_Claude, main, 'claude/**' ]
+    paths:
+      - 'DesktopAppTemplate/**'
+      - '.github/workflows/ci-desktopapptemplate.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'DesktopAppTemplate/**'
+      - '.github/workflows/ci-desktopapptemplate.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ci-desktopapptemplate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      DOTNET_NOLOGO: '1'
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Versione
+        id: version
+        shell: pwsh
+        run: |
+          [xml]$props = Get-Content 'DesktopAppTemplate/Directory.Build.props'
+          $version = ($props.Project.PropertyGroup | Where-Object { $_.Version }).Version
+          "version=$version" >> $env:GITHUB_OUTPUT
+          Write-Host "DesktopAppTemplate $version"
+
+      - name: Test
+        run: dotnet test DesktopAppTemplate/tests/DesktopAppTemplate.Tests/DesktopAppTemplate.Tests.csproj -c Release
+
+      - name: Build Release (WPF + Windows Forms)
+        run: dotnet publish DesktopAppTemplate/src/DesktopAppTemplate.Host/DesktopAppTemplate.Host.csproj -c Release -o publish/DesktopAppTemplate
+
+      - name: Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DesktopAppTemplate-${{ steps.version.outputs.version }}-${{ github.run_number }}
+          path: publish/DesktopAppTemplate
+          retention-days: 14

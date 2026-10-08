@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Slice verticali: ogni funzione (cartella) contiene richieste, handler, validatori e view model. -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>DesktopAppTemplate.Features</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DesktopAppTemplate.Core\DesktopAppTemplate.Core.csproj" />
+  </ItemGroup>
+
+</Project>
