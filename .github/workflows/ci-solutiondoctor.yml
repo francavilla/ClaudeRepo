@@ -103,7 +103,8 @@ jobs:
             Write-Host ("Sezioni: " + (($tabs | ForEach-Object { $_.Current.Name }) -join ' | '))
             if ($tabs.Count -ne 4) { Fail "Attese 4 sezioni, trovate $($tabs.Count)." }
 
-            function Test-Tab($index, $minimumRows, $expectedText) {
+            # Legge tutte le righe della griglia visibile (poche) e verifica che i testi attesi compaiano in almeno una.
+            function Test-Tab($index, $minimumRows, $expected) {
               $tab = $tabs[$index]
               $tab.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
               Start-Sleep -Seconds 1
@@ -112,23 +113,30 @@ jobs:
               $pattern = $grids[0].GetCurrentPattern([System.Windows.Automation.GridPattern]::Pattern)
               $rows = $pattern.Current.RowCount
               $columns = $pattern.Current.ColumnCount
-              $cells = @()
-              for ($c = 0; $c -lt $columns; $c++) {
-                $cell = $pattern.GetItem(0, $c)
-                $texts = @(Find-All $cell ([System.Windows.Automation.ControlType]::Text) | ForEach-Object { $_.Current.Name })
-                if ($texts.Count -eq 0) { $texts = @($cell.Current.Name) }
-                $cells += ($texts -join '/')
+              $lines = @()
+              for ($r = 0; $r -lt [Math]::Min($rows, 15); $r++) {
+                $cells = @()
+                for ($c = 0; $c -lt $columns; $c++) {
+                  $cell = $pattern.GetItem($r, $c)
+                  $texts = @(Find-All $cell ([System.Windows.Automation.ControlType]::Text) | ForEach-Object { $_.Current.Name })
+                  if ($texts.Count -eq 0) { $texts = @($cell.Current.Name) }
+                  $cells += ($texts -join '/')
+                }
+                $lines += ($cells -join ' | ')
               }
-              $line = $cells -join ' | '
-              Write-Host ("[{0}] righe={1} colonne={2} prima riga: {3}" -f $tab.Current.Name, $rows, $columns, $line)
+              Write-Host ("[{0}] righe={1} colonne={2}" -f $tab.Current.Name, $rows, $columns)
+              foreach ($line in $lines) { Write-Host ("    " + $line) }
               if ($rows -lt $minimumRows) { Fail "Sezione '$($tab.Current.Name)': attese almeno $minimumRows righe, trovate $rows." }
-              if ($line -notlike "*$expectedText*") { Fail "Sezione '$($tab.Current.Name)': la prima riga non contiene '$expectedText'." }
+              $all = $lines -join "`n"
+              foreach ($text in $expected) {
+                if ($all -notlike "*$text*") { Fail "Sezione '$($tab.Current.Name)': nessuna riga contiene '$text'." }
+              }
             }
 
-            Test-Tab 0 3 'Gestionale.OrdiniForm'
-            Test-Tab 1 10 'Alta'
-            Test-Tab 2 2 'net452'
-            Test-Tab 3 2 'Dati'
+            Test-Tab 0 3 @('Gestionale.OrdiniForm', 'Gestionale.ClientiForm', 'Gestionale.Program')
+            Test-Tab 1 10 @('Alta', 'Media', 'WF004', 'PJ001')
+            Test-Tab 2 2 @('Dati', 'Gestionale', 'net48', 'net452', 'packages.config')
+            Test-Tab 3 2 @('Dati', 'Gestionale', 'nessuna dipendenza', 'dipende da Dati')
           }
           catch {
             Fail "Controllo dell'interfaccia non riuscito: $($_.Exception.Message)"
