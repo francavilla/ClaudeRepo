@@ -1,0 +1,77 @@
+# Crea una release di ExeBuilder.
+# - push di un tag vX.Y.Z: il tag deve corrispondere a <Version> in ExeBuilder/Directory.Build.props;
+# - avvio manuale (Actions → Release ExeBuilder → Run workflow): la versione si legge da
+#   Directory.Build.props e il tag vX.Y.Z viene creato insieme alla release.
+# Compila su Windows (WPF .NET Framework 4.8), esegue i test e allega lo zip dell'applicazione.
+name: Release ExeBuilder
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      DOTNET_NOLOGO: '1'
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Versione
+        id: version
+        shell: pwsh
+        run: |
+          [xml]$props = Get-Content 'ExeBuilder/Directory.Build.props'
+          $version = ($props.Project.PropertyGroup | Where-Object { $_.Version }).Version
+          if ('${{ github.ref_type }}' -eq 'tag') {
+            $tagVersion = '${{ github.ref_name }}'.TrimStart('v')
+            if ($tagVersion -ne $version) {
+              throw "Il tag $tagVersion non corrisponde a <Version>$version</Version> in ExeBuilder/Directory.Build.props"
+            }
+          }
+          gh release view "v$version" *> $null
+          if ($LASTEXITCODE -eq 0) { throw "La release v$version esiste già: aggiornare <Version> prima di rilasciare." }
+          $global:LASTEXITCODE = 0
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=v$version" >> $env:GITHUB_OUTPUT
+          Write-Host "Rilascio di ExeBuilder $version"
+
+      - name: Test
+        run: dotnet test ExeBuilder/tests/ExeBuilder.Core.Tests/ExeBuilder.Core.Tests.csproj -c Release
+
+      - name: Build Release
+        run: dotnet publish ExeBuilder/src/ExeBuilder/ExeBuilder.csproj -c Release -o publish/ExeBuilder
+
+      - name: Crea lo zip
+        shell: pwsh
+        run: Compress-Archive -Path 'publish/ExeBuilder/*' -DestinationPath 'ExeBuilder-${{ steps.version.outputs.tag }}.zip'
+
+      - name: Note di rilascio dal CHANGELOG
+        shell: pwsh
+        run: |
+          $version = '${{ steps.version.outputs.version }}'
+          $lines = Get-Content 'ExeBuilder/CHANGELOG.md' -Encoding UTF8
+          $start = [Array]::FindIndex($lines, [Predicate[string]]{ param($l) $l.StartsWith("## [$version]") })
+          if ($start -lt 0) { throw "Nessuna voce '## [$version]' in ExeBuilder/CHANGELOG.md" }
+          $end = [Array]::FindIndex($lines, $start + 1, [Predicate[string]]{ param($l) $l.StartsWith('## [') })
+          if ($end -lt 0) { $end = $lines.Length }
+          $notes = $lines[($start + 1)..($end - 1)] -join "`n"
+          $notes += "`n`n**Requisiti:** Windows 10/11 con .NET Framework 4.8. Estrarre lo zip e avviare ``ExeBuilder.exe``."
+          Set-Content -Path 'release-notes.md' -Value $notes -Encoding UTF8
+
+      - name: Crea la release
+        shell: pwsh
+        run: |
+          gh release create '${{ steps.version.outputs.tag }}' 'ExeBuilder-${{ steps.version.outputs.tag }}.zip' `
+            --target '${{ github.sha }}' `
+            --title 'ExeBuilder ${{ steps.version.outputs.tag }}' `
+            --notes-file release-notes.md

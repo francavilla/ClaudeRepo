@@ -17,6 +17,13 @@ Ogni modifica a un'applicazione del repository deve aggiornare il suo numero di 
 
 Più modifiche nella stessa richiesta = un solo incremento di versione.
 
+## Release
+- Le release di ExeBuilder si creano con il workflow `Release ExeBuilder`:
+  - avvio manuale (Actions → Run workflow, o API `workflow_dispatch` su `main`): usa `<Version>` e crea il tag `vX.Y.Z`;
+  - oppure pubblicando un tag `vX.Y.Z` uguale a `<Version>` (dalla sessione cloud il push dei tag non è consentito).
+- Il workflow `.github/workflows/release-exebuilder.yml` verifica la versione, esegue i test, compila su Windows
+  e crea la release GitHub con lo zip e le note prese dal `CHANGELOG.md`.
+
 ## Applicazioni
 - `ExeBuilder/` — WPF .NET Framework 4.8 che compila in Release progetti e solution .NET/.NET Framework.
   La logica sta in `ExeBuilder.Core` (testata in `tests/ExeBuilder.Core.Tests`); la UI in `src/ExeBuilder` (MVVM, tema in `Themes/Theme.xaml`).
