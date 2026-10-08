@@ -89,7 +89,7 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <!-- ------------------------------------------------------- Opzioni -->
+            <!-- Opzioni -->
             <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel>
                     <Border Style="{StaticResource Card}">
@@ -193,7 +193,7 @@
                 </StackPanel>
             </ScrollViewer>
 
-            <!-- ------------------------------------------------------- Proposte -->
+            <!-- Proposte -->
             <Border Grid.Column="2" Style="{StaticResource Card}" Margin="0,0,0,0">
                 <DockPanel>
                     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
