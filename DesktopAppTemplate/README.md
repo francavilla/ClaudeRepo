@@ -50,16 +50,27 @@ così il contesto non diventa un "service locator" e le dipendenze restano visib
 
 ## Dati e database
 
-Le attività si salvano in un database, con **ADO.NET**: **SQLite** (predefinito, non richiede installare nulla) oppure **SQL Server**.
+Le attività si salvano in un database, con **ADO.NET**. Il predefinito è **SQL Server sull'istanza locale**:
+
+| | Predefinito |
+|---|---|
+| Server | SQL Server, istanza `.` (il computer locale) |
+| Database | `ClaudeDB` — **si crea da solo se non esiste** |
+| Autenticazione | Windows (`Integrated Security=True`) |
+| Stringa di connessione | `Server=.;Database=ClaudeDB;Integrated Security=True` |
 
 ```
-DesktopAppTemplate.exe                                                # SQLite: <nome app>.db in %LocalAppData%\<nome app>
-DesktopAppTemplate.exe --storage sqlserver --connection-string "Server=.;Database=Demo;Integrated Security=True"
+DesktopAppTemplate.exe                                                # SQL Server locale, database ClaudeDB
+DesktopAppTemplate.exe --connection-string "Server=SRV\ISTANZA;Database=Altro;Integrated Security=True"
+DesktopAppTemplate.exe --storage sqlite                               # SQLite: file <nome app>.db in %LocalAppData%\<nome app>, niente da installare
 DesktopAppTemplate.exe --data-access dal                              # usa la libreria DAL (vedi sotto)
 ```
 
-Con SQL Server preferisci l'autenticazione di Windows (`Integrated Security=True`): una password in App.config è in chiaro.
-L'account deve poter creare tabelle al primo avvio, oppure si usa `--no-migrate` (vedi sotto) con lo schema creato da chi amministra il database.
+- **Creazione del database:** all'avvio, se il database indicato nella stringa di connessione non esiste, l'app lo crea (`CREATE DATABASE`) e poi crea le tabelle.
+  Serve quindi il permesso di creare database sul server. Se manca, l'app lo segnala con un errore chiaro ed esce con codice 3: si fa creare il database
+  a chi amministra il server e si avvia con `--no-migrate` (vedi sotto), oppure si usa `--storage sqlite`. Con `--no-migrate` l'app non crea né il database né le tabelle.
+- **Senza SQL Server installato** l'app non parte con il predefinito: usare `--storage sqlite` (o `Storage=sqlite` in `App.config`).
+- Preferisci sempre l'autenticazione di Windows: una password in App.config è in chiaro. La stringa di connessione non viene mai scritta nei messaggi dell'app.
 
 ### Come è fatto
 ```
@@ -103,7 +114,7 @@ repository ADO.NET  →  DalExecutor  →  IDalGateway  →  DalGateway  →  li
 - Schema e migrazioni usano una connessione propria alla stessa stringa di connessione, separata da quella di DAL.
 
 ### Schema già esistente: `--no-migrate`
-Normalmente l'app, all'avvio, **crea e aggiorna le tabelle** da sola (vedi sotto). Con `--no-migrate` (o `NoMigrate=true` in App.config) **non tocca lo schema**:
+Normalmente l'app, all'avvio, **crea il database (se manca) e crea e aggiorna le tabelle** da sola (vedi sotto). Con `--no-migrate` (o `NoMigrate=true` in App.config) **non tocca nulla**:
 presume che le tabelle esistano già e non inserisce neppure le attività di esempio. Serve quando l'account con cui gira l'app **non ha il permesso di
 creare o modificare tabelle** (tipico di SQL Server aziendale con `Integrated Security=True`), perché lo schema lo gestisce chi amministra il database.
 All'avvio l'app controlla comunque che la tabella `Tasks` sia accessibile: se manca, mostra un errore chiaro ed esce con codice 3.

@@ -1,4 +1,5 @@
 using System;
+using System.Data.SqlClient;
 using System.Threading;
 using System.Threading.Tasks;
 using DesktopAppTemplate.Core.Data;
@@ -60,6 +61,39 @@ namespace DesktopAppTemplate.Tests
             await new DatabaseMigrator(connections, new SqlDialect()).MigrateAsync();
 
             await ExerciseAsync(new AdoNetTaskRepository(new AdoNetExecutor(connections, new SqlDialect())));
+        }
+
+        [SqlServerFact]
+        public async Task Il_database_mancante_viene_creato_e_poi_lo_schema_si_applica()
+        {
+            var builder = new SqlConnectionStringBuilder(Environment.GetEnvironmentVariable(SqlServerFactAttribute.Variable));
+            var name = "ClaudeDB_test_" + Guid.NewGuid().ToString("N").Substring(0, 12);
+            builder.InitialCatalog = name;
+            var connections = new DbConnectionFactory(DatabaseProvider.SqlServer, builder.ConnectionString);
+
+            try
+            {
+                var result = await new DatabaseMigrator(connections, new SqlDialect()).MigrateAsync();
+                Assert.True(result.IsNewDatabase);
+
+                await DatabaseCreator.EnsureExistsAsync(connections);   // già esistente: non deve fallire né ricreare nulla
+                await ExerciseAsync(new AdoNetTaskRepository(new AdoNetExecutor(connections, new SqlDialect())));
+            }
+            finally
+            {
+                SqlConnection.ClearAllPools();
+                builder.InitialCatalog = "master";
+                using (var master = new SqlConnection(builder.ConnectionString))
+                {
+                    master.Open();
+                    using (var command = master.CreateCommand())
+                    {
+                        command.CommandText = "IF DB_ID(@name) IS NOT NULL BEGIN DECLARE @sql NVARCHAR(MAX) = N'ALTER DATABASE ' + QUOTENAME(@name) + N' SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE ' + QUOTENAME(@name); EXEC (@sql); END";
+                        command.Parameters.AddWithValue("@name", name);
+                        command.ExecuteNonQuery();
+                    }
+                }
+            }
         }
     }
 }

@@ -202,14 +202,14 @@ namespace DesktopAppTemplate.Tests
         private static KeyValuePair<string, string> P(string key, string value) => new KeyValuePair<string, string>(key, value);
 
         [Fact]
-        public void I_valori_predefiniti_sono_SQLite_con_ADO()
+        public void I_valori_predefiniti_sono_SQL_Server_locale_con_ADO()
         {
             var settings = Settings();
 
-            Assert.Equal(StorageKind.Sqlite, settings.Storage);
+            Assert.Equal(StorageKind.SqlServer, settings.Storage);
             Assert.Equal(DataAccessKind.Ado, settings.DataAccess);
-            Assert.Equal(DatabaseProvider.Sqlite, settings.Provider);
-            Assert.Empty(settings.Validate());
+            Assert.Equal(DatabaseProvider.SqlServer, settings.Provider);
+            Assert.Equal("Server=.;Database=ClaudeDB;Integrated Security=True", settings.ResolveConnectionString("MiaApp"));
         }
 
         [Theory]
@@ -241,16 +241,17 @@ namespace DesktopAppTemplate.Tests
         }
 
         [Fact]
-        public void SQL_Server_richiede_la_stringa_di_connessione()
+        public void Con_SQL_Server_la_connessione_configurata_vince_su_quella_predefinita()
         {
-            Assert.NotEmpty(Settings(P("Storage", "sqlserver")).Validate());
-            Assert.Empty(Settings(P("Storage", "sqlserver"), P("ConnectionString", "Server=.;Database=D;Integrated Security=True")).Validate());
+            Assert.Equal(StorageSettings.DefaultSqlServerConnectionString, Settings(P("Storage", "sqlserver")).ResolveConnectionString("MiaApp"));
+            Assert.Equal("Server=SRV;Database=Altro;Integrated Security=True",
+                Settings(P("ConnectionString", "Server=SRV;Database=Altro;Integrated Security=True")).ResolveConnectionString("MiaApp"));
         }
 
         [Fact]
         public void La_connessione_SQLite_predefinita_e_un_file_nella_cartella_dei_dati()
         {
-            var settings = Settings(P("DataFolder", @"C:\Dati"));
+            var settings = Settings(P("Storage", "sqlite"), P("DataFolder", @"C:\Dati"));
 
             Assert.Equal(@"Data Source=C:\Dati\MiaApp.db", settings.ResolveConnectionString("MiaApp"));
         }
@@ -337,6 +338,35 @@ namespace DesktopAppTemplate.Tests
                 var rows = await executor.QueryAsync("SELECT COUNT(*) FROM Tasks", null, r => r.GetInt64(0));
                 Assert.Equal(0L, rows.Single());
             }
+        }
+
+        // --- Creazione del database (SQL Server) ---
+
+        [Fact]
+        public async Task La_creazione_del_database_non_fa_nulla_con_SQLite()
+        {
+            await DatabaseCreator.EnsureExistsAsync(new DbConnectionFactory(DatabaseProvider.Sqlite, "Data Source=non-serve.db"));
+        }
+
+        [Fact]
+        public async Task Senza_nome_del_database_nella_connessione_non_si_tenta_nessuna_creazione()
+        {
+            // Nessun collegamento: se ci provasse, il server inesistente farebbe fallire il test.
+            await DatabaseCreator.EnsureExistsAsync(new DbConnectionFactory(DatabaseProvider.SqlServer, "Server=server-inesistente;Integrated Security=True;Connect Timeout=1"));
+        }
+
+        [Fact]
+        public async Task Se_il_server_non_risponde_l_errore_dice_database_server_e_come_procedere()
+        {
+            var factory = new DbConnectionFactory(DatabaseProvider.SqlServer, "Server=127.0.0.1,1;Database=ClaudeDB;Integrated Security=True;Connect Timeout=1");
+
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => DatabaseCreator.EnsureExistsAsync(factory));
+
+            Assert.Contains("ClaudeDB", ex.Message);
+            Assert.Contains("127.0.0.1", ex.Message);
+            Assert.Contains("--no-migrate", ex.Message);
+            Assert.Contains("--storage sqlite", ex.Message);
+            Assert.NotNull(ex.InnerException);
         }
     }
 }

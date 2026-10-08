@@ -4,6 +4,20 @@ Tutte le modifiche rilevanti di DesktopAppTemplate sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [2.0.0] - 2026-10-08
+
+### Aggiunto
+- Connessione predefinita a SQL Server: istanza locale `.`, database `ClaudeDB`, autenticazione di Windows
+  (`Server=.;Database=ClaudeDB;Integrated Security=True`); `--connection-string` o la chiave `ConnectionString` la sostituiscono.
+- Creazione automatica del database se non esiste (`DatabaseCreator`, eseguita dal migratore prima di collegarsi): richiede il permesso `CREATE DATABASE`;
+  se manca o il server non risponde, errore chiaro con le alternative (`--no-migrate`, `--storage sqlite`). Con `--no-migrate` non si crea nulla.
+- Test sulla connessione predefinita e sugli errori di creazione; test su SQL Server (non eseguito in CI) che crea un database temporaneo, applica lo schema e lo elimina.
+
+### Modificato
+- **Incompatibile:** l'archivio predefinito è SQL Server locale e non più SQLite; per SQLite usare `--storage sqlite` (o `Storage=sqlite`).
+  Senza SQL Server installato l'app con il predefinito non parte (errore con codice 3 e il suggerimento di usare SQLite).
+- Con `--storage sqlserver` la stringa di connessione non è più obbligatoria: vale quella predefinita.
+
 ## [1.1.0] - 2026-10-08
 
 ### Aggiunto

@@ -31,13 +31,16 @@ namespace DesktopAppTemplate.Infrastructure
         public const string ConnectionStringKey = "ConnectionString";
         public const string NoMigrateKey = "NoMigrate";
 
+        /// <summary>Connessione predefinita a SQL Server: istanza predefinita del computer locale (<c>.</c>), database ClaudeDB, autenticazione di Windows.</summary>
+        public const string DefaultSqlServerConnectionString = "Server=.;Database=ClaudeDB;Integrated Security=True";
+
         public static readonly OptionDefinition DataFolderOption = new OptionDefinition(
             DataFolderKey,
             "Cartella del database SQLite predefinito; sono ammesse variabili come %USERPROFILE%. Se vuota: %LocalAppData%\\<nome app>.",
             "cartella");
 
         public static readonly OptionDefinition StorageOption = new OptionDefinition(
-            StorageKey, "Database in cui salvare i dati.", "sqlite|sqlserver", "sqlite",
+            StorageKey, "Database in cui salvare i dati.", "sqlserver|sqlite", "sqlserver",
             validate: OptionValidators.OneOf("sqlite", "sqlserver"));
 
         public static readonly OptionDefinition DataAccessOption = new OptionDefinition(
@@ -46,7 +49,8 @@ namespace DesktopAppTemplate.Infrastructure
 
         public static readonly OptionDefinition ConnectionStringOption = new OptionDefinition(
             ConnectionStringKey,
-            "Stringa di connessione al database. Obbligatoria con sqlserver; con sqlite, se vuota, si usa un file nella cartella dei dati.",
+            "Stringa di connessione al database. Se vuota: con sqlserver " + DefaultSqlServerConnectionString +
+            " (il database si crea se manca); con sqlite un file nella cartella dei dati.",
             "stringa");
 
         public static readonly OptionDefinition NoMigrateOption = new OptionDefinition(
@@ -54,7 +58,7 @@ namespace DesktopAppTemplate.Infrastructure
             "Non crea né aggiorna le tabelle all'avvio: lo schema deve già esistere (creato con gli script di Data/Scripts).",
             isFlag: true);
 
-        public StorageSettings(string dataFolder = null, StorageKind storage = StorageKind.Sqlite,
+        public StorageSettings(string dataFolder = null, StorageKind storage = StorageKind.SqlServer,
             DataAccessKind dataAccess = DataAccessKind.Ado, string connectionString = null, bool noMigrate = false)
         {
             DataFolder = dataFolder ?? string.Empty;
@@ -93,13 +97,6 @@ namespace DesktopAppTemplate.Infrastructure
                 configuration.GetBool(NoMigrateKey));
         }
 
-        /// <summary>Controlli che coinvolgono più parametri insieme (restituisce i messaggi d'errore).</summary>
-        public IEnumerable<string> Validate()
-        {
-            if (Storage == StorageKind.SqlServer && string.IsNullOrWhiteSpace(ConnectionString))
-                yield return "Con --storage sqlserver serve la stringa di connessione (--connection-string o chiave ConnectionString in App.config).";
-        }
-
         /// <summary>Cartella effettiva: quella configurata (con le variabili d'ambiente espanse) oppure <c>%LocalAppData%\nome app</c>, che non richiede permessi di amministratore.</summary>
         public string ResolveFolder(string appName)
         {
@@ -109,7 +106,10 @@ namespace DesktopAppTemplate.Infrastructure
             return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), appName);
         }
 
-        /// <summary>Stringa di connessione effettiva: quella configurata (variabili espanse) oppure, per SQLite, un file <c>nome app.db</c> nella cartella dei dati.</summary>
+        /// <summary>
+        /// Stringa di connessione effettiva: quella configurata (variabili espanse) oppure quella predefinita del database scelto:
+        /// <see cref="DefaultSqlServerConnectionString"/> per SQL Server, un file <c>nome app.db</c> nella cartella dei dati per SQLite.
+        /// </summary>
         public string ResolveConnectionString(string appName)
         {
             if (!string.IsNullOrWhiteSpace(ConnectionString))
@@ -117,15 +117,15 @@ namespace DesktopAppTemplate.Infrastructure
 
             return Storage == StorageKind.Sqlite
                 ? "Data Source=" + Path.Combine(ResolveFolder(appName), appName + ".db")
-                : null;
+                : DefaultSqlServerConnectionString;
         }
 
         private static StorageKind ParseStorage(string value)
         {
             switch ((value ?? string.Empty).Trim().ToLowerInvariant())
             {
-                case "sqlserver": return StorageKind.SqlServer;
-                default: return StorageKind.Sqlite;
+                case "sqlite": return StorageKind.Sqlite;
+                default: return StorageKind.SqlServer;
             }
         }
 

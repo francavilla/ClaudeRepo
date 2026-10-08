@@ -40,6 +40,9 @@ namespace DesktopAppTemplate.Data
         {
             var scripts = LoadScripts();
 
+            // Con SQL Server il database può non esistere ancora: lo si crea prima di collegarsi (con --no-migrate non si arriva qui).
+            await DatabaseCreator.EnsureExistsAsync(_connections, cancellationToken).ConfigureAwait(false);
+
             using (var connection = await _connections.OpenConnectionAsync(cancellationToken).ConfigureAwait(false))
             {
                 await ExecuteAsync(connection, null, VersionTableSql(), null, cancellationToken).ConfigureAwait(false);

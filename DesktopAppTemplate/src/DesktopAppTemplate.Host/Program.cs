@@ -54,7 +54,7 @@ namespace DesktopAppTemplate.Host
 
             var storage = StorageSettings.From(built.Configuration);
             var logging = LoggingSettings.From(built.Configuration);
-            var errors = commandLine.Errors.Concat(built.Errors).Concat(storage.Validate()).ToList();
+            var errors = commandLine.Errors.Concat(built.Errors).ToList();
             if (errors.Count > 0)
             {
                 ConsoleOutput.Show(info.Name, string.Join(Environment.NewLine, errors)
@@ -101,7 +101,9 @@ namespace DesktopAppTemplate.Host
                 {
                     log.LogError(ex, "Impossibile preparare l'archivio dei dati");
                     provider.StartDeferredLogSinks();   // il log su database ripiega sul file
-                    ConsoleOutput.Show(info.Name, "Impossibile preparare l'archivio dei dati: " + ex.Message, isError: true);
+                    ConsoleOutput.Show(info.Name, "Impossibile preparare l'archivio dei dati: " + ex.Message
+                                                  + Environment.NewLine + Environment.NewLine
+                                                  + "Per provare senza SQL Server: --storage sqlite.", isError: true);
                     return ExitStorageError;
                 }
 
