@@ -7,10 +7,12 @@
     <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="18" Padding="32">
         <Label Text="🔒" FontSize="64" HorizontalOptions="Center" />
         <Label Text="PasswordGen è bloccata" TextColor="White" FontSize="22" FontAttributes="Bold" HorizontalOptions="Center" />
-        <Label Text="Usa l'impronta, il volto o il PIN del telefono per continuare."
+        <Label Text="Scegli come sbloccare: impronta o volto, oppure il PIN, la sequenza o la password del telefono."
                TextColor="#CCFFFFFF" HorizontalTextAlignment="Center" />
         <Label x:Name="MessageLabel" TextColor="#FCA5A5" FontSize="12" HorizontalTextAlignment="Center" IsVisible="False" />
-        <Button Text="Sblocca" Clicked="OnUnlockClicked" BackgroundColor="White" TextColor="{StaticResource Header}"
-                FontAttributes="Bold" CornerRadius="10" WidthRequest="200" />
+        <Button Text="Sblocca con impronta" Clicked="OnUnlockClicked" BackgroundColor="White" TextColor="{StaticResource Header}"
+                FontAttributes="Bold" CornerRadius="10" WidthRequest="240" />
+        <Button Text="Usa PIN o password" Clicked="OnCredentialClicked" BackgroundColor="Transparent" TextColor="White"
+                BorderColor="#99FFFFFF" BorderWidth="1" CornerRadius="10" WidthRequest="240" />
     </VerticalStackLayout>
 </ContentPage>

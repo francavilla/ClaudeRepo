@@ -34,11 +34,20 @@ public sealed class AppLockController
 
     public void Backgrounded()
     {
-        _state.Backgrounded(DateTime.UtcNow);
+        // Mentre è aperta la schermata del PIN (o dell'impronta) l'app esce dal primo piano: non conta come uscita.
+        if (!_security.IsAuthenticating && !_authenticating)
+        {
+            _state.Backgrounded(DateTime.UtcNow);
+        }
     }
 
     public void Resumed()
     {
+        if (_security.IsAuthenticating || _authenticating)
+        {
+            return;
+        }
+
         _state.Foregrounded(DateTime.UtcNow);
         ShowIfLocked();
     }
@@ -57,7 +66,8 @@ public sealed class AppLockController
         ShowIfLocked();
     }
 
-    public async Task<bool> TryUnlockAsync()
+    /// <param name="useDeviceCredential">True per aprire subito la schermata del PIN, sequenza o password.</param>
+    public async Task<bool> TryUnlockAsync(bool useDeviceCredential = false)
     {
         if (_authenticating)
         {
@@ -67,7 +77,11 @@ public sealed class AppLockController
         _authenticating = true;
         try
         {
-            var outcome = await _security.AuthenticateAsync("PasswordGen", "Sblocca per vedere le tue password");
+            const string title = "PasswordGen";
+            const string subtitle = "Sblocca per vedere le tue password";
+            var outcome = useDeviceCredential
+                ? await _security.AuthenticateWithDeviceCredentialAsync(title, subtitle)
+                : await _security.AuthenticateAsync(title, subtitle);
             if (!outcome.Success)
             {
                 _page?.ShowMessage("Non sbloccata: " + outcome.Reason);

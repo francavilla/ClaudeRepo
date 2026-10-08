@@ -25,6 +25,11 @@ public partial class LockPage : ContentPage
         await _controller.TryUnlockAsync();
     }
 
+    private async void OnCredentialClicked(object sender, EventArgs e)
+    {
+        await _controller.TryUnlockAsync(useDeviceCredential: true);
+    }
+
     // Il tasto indietro non deve chiudere il blocco.
     protected override bool OnBackButtonPressed()
     {

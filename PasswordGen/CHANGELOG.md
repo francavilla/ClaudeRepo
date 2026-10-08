@@ -4,6 +4,15 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.8.1] - 2026-10-08
+
+### Corretto
+- **App Android: sblocco con PIN, sequenza o password.** Su alcuni telefoni la finestra dell'impronta non offriva alternative e non c'era modo
+  di sbloccare con il PIN. Ora la schermata di blocco ha due pulsanti, «Sblocca con impronta» e «Usa PIN o password» (apre la schermata
+  del telefono), la finestra dell'impronta ha il suo pulsante «Usa PIN o password» e, se l'impronta non è utilizzabile (non registrata,
+  sensore occupato, troppi tentativi), l'app passa da sola al PIN.
+- Con il tempo di blocco «Subito», la schermata del PIN non fa più bloccare di nuovo l'app appena si rientra.
+
 ## [1.8.0] - 2026-10-08
 
 ### Aggiunto
