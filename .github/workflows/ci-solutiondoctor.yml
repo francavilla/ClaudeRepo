@@ -1,5 +1,6 @@
-# Integrazione continua di SolutionDoctor: a ogni push o PR compila su Windows, esegue i test,
-# prova la CLI pubblicata sulla solution ExeBuilder e rende scaricabile l'applicazione come artifact del run.
+# Integrazione continua di SolutionDoctor: a ogni push o PR compila su Windows (app WPF e XAML compresi), esegue i test,
+# pubblica CLI e interfaccia, prova la CLI su ExeBuilder, prova l'avvio dell'interfaccia e rende scaricabile tutto
+# come artifact del run.
 name: CI SolutionDoctor
 
 on:
@@ -45,14 +46,45 @@ jobs:
           "version=$version" >> $env:GITHUB_OUTPUT
           Write-Host "SolutionDoctor $version"
 
+      # Compila l'intera solution, app WPF e XAML compresi, ed esegue tutti i test.
       - name: Test
         run: dotnet test SolutionDoctor/SolutionDoctor.sln -c Release
 
       - name: Pubblica la CLI
-        run: dotnet publish SolutionDoctor/src/SolutionDoctor.Cli/SolutionDoctor.Cli.csproj -c Release -o publish/SolutionDoctor
+        run: dotnet publish SolutionDoctor/src/SolutionDoctor.Cli/SolutionDoctor.Cli.csproj -c Release -o publish/SolutionDoctor-Cli
 
-      - name: Prova su ExeBuilder (con cronologia git)
-        run: publish/SolutionDoctor/solutiondoctor.exe analyze ExeBuilder/ExeBuilder.sln -o publish/SolutionDoctor-ExeBuilder.md
+      - name: Pubblica l'interfaccia
+        run: dotnet publish SolutionDoctor/src/SolutionDoctor.App/SolutionDoctor.App.csproj -c Release -o publish/SolutionDoctor-App
+
+      - name: Prova della CLI su ExeBuilder (con cronologia git)
+        run: publish/SolutionDoctor-Cli/solutiondoctor.exe analyze ExeBuilder/ExeBuilder.sln -o publish/SolutionDoctor-ExeBuilder.md
+
+      # Un errore nel XAML (risorsa mancante, binding sbagliato nel template) si vede solo avviando la finestra:
+      # l'app parte con ExeBuilder come argomento, analizza da sola e il titolo della finestra deve diventare
+      # "SolutionDoctor — ExeBuilder" (compare solo a risultato mostrato).
+      - name: Prova di avvio dell'interfaccia
+        shell: pwsh
+        run: |
+          $process = Start-Process -FilePath 'publish/SolutionDoctor-App/SolutionDoctor.App.exe' -ArgumentList '"ExeBuilder/ExeBuilder.sln"' -PassThru
+          $title = ''
+          $deadline = (Get-Date).AddSeconds(90)
+          while ((Get-Date) -lt $deadline) {
+            Start-Sleep -Seconds 2
+            if ($process.HasExited) {
+              Write-Error "L'interfaccia si è chiusa da sola (codice di uscita $($process.ExitCode))."
+              exit 1
+            }
+            $process.Refresh()
+            $title = $process.MainWindowTitle
+            Write-Host "Titolo della finestra: '$title'"
+            if ($title -like '*ExeBuilder*') { break }
+          }
+          Stop-Process -Id $process.Id -Force
+          if ($title -notlike '*ExeBuilder*') {
+            Write-Error "La finestra non ha mostrato il risultato entro 90 secondi (ultimo titolo: '$title')."
+            exit 1
+          }
+          Write-Host "Interfaccia avviata e analisi completata."
 
       - name: Artifact
         uses: actions/upload-artifact@v4

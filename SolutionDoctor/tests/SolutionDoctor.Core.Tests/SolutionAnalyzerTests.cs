@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using SolutionDoctor.Core.Analysis;
 using SolutionDoctor.Core.Git;
 using SolutionDoctor.Core.Model;
@@ -119,6 +120,101 @@ namespace SolutionDoctor.Core.Tests
         public void VersioneDelloStrumento_NonVuota()
         {
             Assert.Matches(@"^\d+\.\d+\.\d+", SolutionAnalyzer.ToolVersion);
+        }
+
+        /// <summary>Avanzamento sincrono, per verificare l'ordine dei messaggi (Progress&lt;T&gt; li posterebbe sul thread pool).</summary>
+        private sealed class SyncProgress : IProgress<string>
+        {
+            private readonly Action<string> _onReport;
+
+            public SyncProgress(Action<string> onReport)
+            {
+                _onReport = onReport;
+            }
+
+            public void Report(string value)
+            {
+                _onReport(value);
+            }
+        }
+
+        [Fact]
+        public void Avanzamento_RiportaLeFasiNellOrdine()
+        {
+            using (var dir = new TempDirectory())
+            {
+                LegacySolution.Create(dir);
+                var messages = new List<string>();
+
+                new SolutionAnalyzer().Analyze(
+                    dir.Path,
+                    new AnalysisOptions { ChurnProvider = new FakeChurn(new Dictionary<string, int>()) },
+                    new SyncProgress(messages.Add),
+                    CancellationToken.None);
+
+                Assert.Equal(
+                    new[]
+                    {
+                        "Lettura di solution e progetti…",
+                        "Analisi del progetto App (1 di 2)…",
+                        "Analisi del progetto Lib (2 di 2)…",
+                        "Lettura della cronologia git…",
+                        "Calcolo delle priorità…"
+                    },
+                    messages);
+            }
+        }
+
+        [Fact]
+        public void TokenGiaAnnullato_SollevaOperationCanceledException()
+        {
+            using (var dir = new TempDirectory())
+            {
+                LegacySolution.Create(dir);
+                var cts = new CancellationTokenSource();
+                cts.Cancel();
+
+                Assert.Throws<OperationCanceledException>(() =>
+                    new SolutionAnalyzer().Analyze(dir.Path, new AnalysisOptions { UseGit = false }, null, cts.Token));
+            }
+        }
+
+        [Fact]
+        public void AnnullamentoDuranteLAnalisi_InterrompeSenzaRisultatoParziale()
+        {
+            using (var dir = new TempDirectory())
+            {
+                LegacySolution.Create(dir);
+                var cts = new CancellationTokenSource();
+                var progress = new SyncProgress(message =>
+                {
+                    if (message.StartsWith("Analisi del progetto App", StringComparison.Ordinal))
+                    {
+                        cts.Cancel(); // l'utente preme Annulla mentre si analizza il primo progetto
+                    }
+                });
+
+                Assert.Throws<OperationCanceledException>(() =>
+                    new SolutionAnalyzer().Analyze(dir.Path, new AnalysisOptions { UseGit = false }, progress, cts.Token));
+            }
+        }
+
+        [Fact]
+        public void SenzaAvanzamentoNeAnnullamento_ComportamentoInvariato()
+        {
+            using (var dir = new TempDirectory())
+            {
+                LegacySolution.Create(dir);
+                var options = new AnalysisOptions { UseGit = false, Now = new DateTime(2026, 10, 8) };
+
+                var plain = new SolutionAnalyzer().Analyze(dir.Path, options);
+                var full = new SolutionAnalyzer().Analyze(dir.Path, options, null, CancellationToken.None);
+
+                Assert.Equal(plain.Findings.Count, full.Findings.Count);
+                Assert.Equal(
+                    SolutionDoctor.Core.Reporting.MarkdownReportWriter.Write(plain),
+                    SolutionDoctor.Core.Reporting.MarkdownReportWriter.Write(full));
+            }
         }
     }
 }

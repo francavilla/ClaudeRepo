@@ -11,7 +11,7 @@ SolutionDoctor deve analizzare solution WinForms **legacy**: spesso non compilan
 ## Decisione
 - I file di progetto si leggono come XML (`ProjectReader`), senza caricare MSBuild.
 - I sorgenti si analizzano con **solo l'albero sintattico** di Roslyn (`CSharpSyntaxTree.ParseText`), senza compilazione.
-- Il Core è `netstandard2.0`: lo usano la CLI (.NET 8) e, in seguito, la UI WPF (.NET Framework 4.8).
+- Il Core è `netstandard2.0`: lo usano la CLI e la UI WPF (entrambe .NET 8, vedi ADR 0002).
 
 ## Conseguenze
 - Funziona su qualsiasi solution, anche non compilabile, ed è veloce e deterministico.

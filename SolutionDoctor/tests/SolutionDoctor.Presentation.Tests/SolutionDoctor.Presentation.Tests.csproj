@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SolutionDoctor.Core\SolutionDoctor.Core.csproj" />
+    <ProjectReference Include="..\..\src\SolutionDoctor.Presentation\SolutionDoctor.Presentation.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Cartelle temporanee e solution di esempio condivise con i test del Core. -->
+    <Compile Include="..\SolutionDoctor.Core.Tests\TempDirectory.cs" Link="Shared\TempDirectory.cs" />
+    <Compile Include="..\SolutionDoctor.Core.Tests\Samples.cs" Link="Shared\Samples.cs" />
+    <Compile Include="..\SolutionDoctor.Core.Tests\LegacySolution.cs" Link="Shared\LegacySolution.cs" />
+  </ItemGroup>
+
+</Project>

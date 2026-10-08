@@ -38,14 +38,17 @@ Più modifiche nella stessa richiesta = un solo incremento di versione.
 ## CI
 - `.github/workflows/ci-exebuilder.yml` compila ExeBuilder su Windows (XAML compreso) ed esegue i test
   a ogni push su `Progetti_Claude`/`main` e a ogni PR verso `main`; l'app compilata è un artifact del run (14 giorni).
-- `.github/workflows/ci-solutiondoctor.yml` fa lo stesso per SolutionDoctor (test, pubblicazione della CLI, prova su ExeBuilder).
+- `.github/workflows/ci-solutiondoctor.yml` fa lo stesso per SolutionDoctor: compila tutto (app WPF compresa), esegue i test,
+  pubblica CLI e app, prova la CLI su ExeBuilder e prova l'avvio dell'interfaccia.
 - Dopo ogni push controllare l'esito della CI e correggere subito eventuali errori.
 
 ## Applicazioni
 - `ExeBuilder/` — WPF .NET Framework 4.8 che compila in Release progetti e solution .NET/.NET Framework.
   La logica sta in `ExeBuilder.Core` (testata in `tests/ExeBuilder.Core.Tests`); la UI in `src/ExeBuilder` (MVVM, tema in `Themes/Theme.xaml`).
-- `SolutionDoctor/` — CLI .NET 8 che analizza solution WinForms legacy e produce un report Markdown di priorità di refactoring.
-  Logica in `SolutionDoctor.Core` (netstandard2.0, testata in `tests/SolutionDoctor.Core.Tests`); la UI WPF è prevista come passo successivo.
+- `SolutionDoctor/` — CLI e interfaccia WPF (.NET 8) che analizzano solution WinForms legacy e producono un report di priorità di refactoring.
+  Logica in `SolutionDoctor.Core` (netstandard2.0); logica della UI in `SolutionDoctor.Presentation` (netstandard2.0, senza WPF);
+  test in `tests/SolutionDoctor.Core.Tests` e `tests/SolutionDoctor.Presentation.Tests` (anche contratto XAML ↔ ViewModel).
+  `SolutionDoctor.App` (WPF, `net8.0-windows`) si compila solo su Windows: in locale su Linux testare i due progetti di test, non la `.sln`.
 
 - `DesktopAppTemplate/` — modello di solution con architettura a slice, interfaccia WPF o Windows Forms (net462, scelta con `--ui wpf|winforms`).
   Logica in `Core`/`Features`/`Infrastructure` (netstandard2.0, testata in `tests/DesktopAppTemplate.Tests`); versione in `DesktopAppTemplate/Directory.Build.props`;

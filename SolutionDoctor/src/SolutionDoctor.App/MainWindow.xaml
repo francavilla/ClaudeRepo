@@ -1,0 +1,433 @@
+<Window x:Class="SolutionDoctor.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{Binding WindowTitle}" Icon="Assets/SolutionDoctor.ico" Width="1280" Height="880" MinWidth="940" MinHeight="660"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource WindowBrush}"
+        Foreground="{StaticResource TextBrush}"
+        FontFamily="Segoe UI" FontSize="13"
+        TextOptions.TextFormattingMode="Display"
+        UseLayoutRounding="True"
+        AllowDrop="True" PreviewDrop="OnFileDrop" PreviewDragOver="OnFileDragOver">
+
+    <DockPanel>
+        <!-- ============================================================ Intestazione -->
+        <Border DockPanel.Dock="Top" Background="{StaticResource HeaderBrush}" Padding="24,12">
+            <DockPanel>
+                <Border DockPanel.Dock="Left" Width="46" Height="46" CornerRadius="12" Background="#33FFFFFF">
+                    <TextBlock Style="{StaticResource Icon}" Text="&#xE9D9;" FontSize="22" Foreground="White" HorizontalAlignment="Center" />
+                </Border>
+                <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="SolutionDoctor" FontSize="22" FontWeight="SemiBold" Foreground="White" />
+                        <Border Background="#33FFFFFF" CornerRadius="9" Padding="8,1" Margin="10,0,0,0" VerticalAlignment="Center"
+                                ToolTip="Versione dell'applicazione">
+                            <TextBlock Text="{Binding AppVersion, StringFormat='v{0}'}" FontSize="11" FontWeight="SemiBold" Foreground="White" />
+                        </Border>
+                    </StackPanel>
+                    <TextBlock Text="Analizza una solution WinForms legacy e pianifica da dove cominciare il refactoring" Foreground="#CCFFFFFF" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Avanzamento durante l'analisi -->
+        <Grid DockPanel.Dock="Top" Height="3">
+            <ProgressBar Style="{StaticResource ThinProgress}" IsIndeterminate="True"
+                         Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" />
+        </Grid>
+
+        <!-- ============================================================ Barra di stato -->
+        <Border DockPanel.Dock="Bottom" Background="{StaticResource CardBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="20,7">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Left" Style="{StaticResource Icon}" Text="&#xE946;" FontSize="12" Foreground="{StaticResource MutedBrush}" Margin="0,0,8,0" />
+                <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis" />
+            </DockPanel>
+        </Border>
+
+        <!-- ============================================================ Contenuto -->
+        <Grid Margin="20,14,20,14">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- ======================================== 1. Cosa analizzare -->
+            <Border Grid.Row="0" Style="{StaticResource Card}">
+                <StackPanel>
+                    <DockPanel Margin="0,0,0,10">
+                        <Border Style="{StaticResource StepBadge}">
+                            <TextBlock Text="1" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Style="{StaticResource CardTitle}" Text="Cosa analizzare" />
+                    </DockPanel>
+
+                    <StackPanel IsEnabled="{Binding IsIdle}">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Command="{Binding BrowseFolderCommand}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE8B7;" />
+                                    <TextBlock Text="Cartella..." Margin="8,0,0,0" />
+                                </StackPanel>
+                            </Button>
+                            <Button DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Command="{Binding BrowseFileCommand}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE8E5;" />
+                                    <TextBlock Text="File..." Margin="8,0,0,0" />
+                                </StackPanel>
+                            </Button>
+                            <TextBox Style="{StaticResource InputBox}"
+                                     Text="{Binding InputPath, UpdateSourceTrigger=PropertyChanged, Delay=400}"
+                                     ToolTip="Percorso di un file .sln o .csproj, oppure di una cartella" />
+                        </DockPanel>
+                        <TextBlock Style="{StaticResource Hint}" Margin="2,6,0,0"
+                                   Text="Trascina qui un file .sln o .csproj, oppure una cartella; si analizzano i progetti C# e il loro codice." />
+                    </StackPanel>
+
+                    <!-- Errore del percorso -->
+                    <Border Style="{StaticResource Banner}"
+                            Background="{StaticResource ErrorSoftBrush}" BorderBrush="{StaticResource ErrorBorderBrush}"
+                            Visibility="{Binding HasInputError, Converter={StaticResource BoolToVisibility}}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Icon}" Text="&#xE783;" Foreground="{StaticResource ErrorBrush}" Margin="0,0,8,0" />
+                            <TextBlock Text="{Binding InputError}" Foreground="{StaticResource ErrorBrush}" TextWrapping="Wrap" />
+                        </DockPanel>
+                    </Border>
+
+                    <!-- Opzioni e avvio -->
+                    <Grid Margin="0,14,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" IsEnabled="{Binding IsIdle}">
+                            <CheckBox IsChecked="{Binding UseGit}" VerticalAlignment="Center"
+                                      Content="Ordina per priorità usando la cronologia git"
+                                      ToolTip="Le classi modificate più spesso vengono prima: è lì che il refactoring rende di più" />
+                            <TextBlock Text="negli ultimi" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="12,0,6,0" />
+                            <ComboBox Width="96" VerticalAlignment="Center"
+                                      ItemsSource="{Binding GitMonthsChoices}" SelectedItem="{Binding GitMonths}"
+                                      ItemStringFormat="{}{0} mesi" IsEnabled="{Binding UseGit}" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <Button Style="{StaticResource DangerButton}" Margin="0,0,8,0" Command="{Binding CancelCommand}" Content="Annulla"
+                                    Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" />
+                            <Button Style="{StaticResource PrimaryButton}" Command="{Binding AnalyzeCommand}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE768;" />
+                                    <TextBlock Text="Analizza" Margin="8,0,0,0" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Errore dell'analisi -->
+                    <Border Style="{StaticResource Banner}"
+                            Background="{StaticResource ErrorSoftBrush}" BorderBrush="{StaticResource ErrorBorderBrush}"
+                            Visibility="{Binding HasAnalysisError, Converter={StaticResource BoolToVisibility}}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Icon}" Text="&#xE783;" Foreground="{StaticResource ErrorBrush}" Margin="0,0,8,0" />
+                            <TextBlock Text="{Binding AnalysisError}" Foreground="{StaticResource ErrorBrush}" TextWrapping="Wrap" />
+                        </DockPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- ======================================== Presentazione (prima analisi) -->
+            <Border Grid.Row="1" Style="{StaticResource Card}" Padding="24,20" VerticalAlignment="Top"
+                    Visibility="{Binding ShowEmptyState, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel MaxWidth="780" HorizontalAlignment="Left">
+                    <TextBlock Style="{StaticResource CardTitle}" FontSize="18" Text="Da dove comincio a rifattorizzare?" />
+                    <TextBlock Style="{StaticResource Hint}" FontSize="13" Margin="0,6,0,16"
+                               Text="SolutionDoctor legge i file di progetto e i sorgenti C# senza modificarli, e ti restituisce un piano ordinato per priorità." />
+
+                    <DockPanel Margin="0,0,0,10">
+                        <TextBlock DockPanel.Dock="Left" Style="{StaticResource Icon}" Text="&#xE7BA;" FontSize="16" Foreground="{StaticResource AccentBrush}" Margin="0,0,12,0" VerticalAlignment="Top" />
+                        <TextBlock TextWrapping="Wrap"
+                                   Text="Individua gli smell tipici di WinForms: accesso ai dati negli event handler, SQL costruito per concatenazione, Application.DoEvents(), stato statico, form da migliaia di righe." />
+                    </DockPanel>
+                    <DockPanel Margin="0,0,0,10">
+                        <TextBlock DockPanel.Dock="Left" Style="{StaticResource Icon}" Text="&#xE9D9;" FontSize="16" Foreground="{StaticResource AccentBrush}" Margin="0,0,12,0" VerticalAlignment="Top" />
+                        <TextBlock TextWrapping="Wrap"
+                                   Text="Ordina le classi per priorità, pesando i problemi per quanto spesso il codice cambia nella cronologia git: si comincia da dove il refactoring rende di più." />
+                    </DockPanel>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Left" Style="{StaticResource Icon}" Text="&#xE8EF;" FontSize="16" Foreground="{StaticResource AccentBrush}" Margin="0,0,12,0" VerticalAlignment="Top" />
+                        <TextBlock TextWrapping="Wrap"
+                                   Text="Propone l'ordine di migrazione dei progetti (dalle dipendenze verso gli eseguibili), segnala packages.config, framework fuori supporto e riferimenti circolari." />
+                    </DockPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- ======================================== Attesa (prima analisi) -->
+            <Border Grid.Row="1" Style="{StaticResource Card}" Padding="24,20" VerticalAlignment="Top"
+                    Visibility="{Binding ShowBusyPlaceholder, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" FontSize="16" Text="Analisi in corso..." />
+                    <TextBlock Style="{StaticResource Hint}" FontSize="13" Margin="0,6,0,0" Text="{Binding StatusText}" />
+                </StackPanel>
+            </Border>
+
+            <!-- ======================================== Risultato -->
+            <Grid Grid.Row="1" Visibility="{Binding HasResult, Converter={StaticResource BoolToVisibility}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Riepilogo -->
+                <Border Grid.Row="0" Style="{StaticResource Card}" Margin="0">
+                    <StackPanel>
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+                                <Button Style="{StaticResource LinkButton}" Command="{Binding OpenSolutionFolderCommand}" Content="Apri cartella" />
+                                <Button Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Command="{Binding CopyReportCommand}" Content="Copia report" />
+                                <Button Style="{StaticResource PrimaryButton}" Margin="8,0,0,0" Padding="16,7" Command="{Binding SaveReportCommand}" Content="Salva report..." />
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource CardTitle}" FontSize="18" Text="{Binding SolutionName}" />
+                                <TextBlock Style="{StaticResource Hint}" Margin="0,2,0,0" Text="{Binding SolutionRoot}" />
+                                <TextBlock Style="{StaticResource Hint}" Margin="0,2,0,0" Text="{Binding ChurnNote}" />
+                            </StackPanel>
+                        </DockPanel>
+
+                        <WrapPanel>
+                            <Border Style="{StaticResource Tile}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource TileValue}" Text="{Binding ProjectCount}" />
+                                    <TextBlock Style="{StaticResource TileLabel}" Text="Progetti" />
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource Tile}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource TileValue}" Text="{Binding FormCount}" />
+                                    <TextBlock Style="{StaticResource TileLabel}" Text="Form e controlli" />
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource Tile}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource TileValue}" Foreground="{StaticResource ErrorBrush}" Text="{Binding HighCount}" />
+                                    <TextBlock Style="{StaticResource TileLabel}" Text="Gravità alta" />
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource Tile}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource TileValue}" Foreground="{StaticResource WarningBrush}" Text="{Binding MediumCount}" />
+                                    <TextBlock Style="{StaticResource TileLabel}" Text="Gravità media" />
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource Tile}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource TileValue}" Foreground="{StaticResource InfoBrush}" Text="{Binding LowCount}" />
+                                    <TextBlock Style="{StaticResource TileLabel}" Text="Gravità bassa" />
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource Tile}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource TileValue}" Foreground="{StaticResource NeutralBrush}" Text="{Binding InfoCount}" />
+                                    <TextBlock Style="{StaticResource TileLabel}" Text="Informative" />
+                                </StackPanel>
+                            </Border>
+                        </WrapPanel>
+
+                        <!-- Progetti non letti -->
+                        <Border Style="{StaticResource Banner}"
+                                Background="{StaticResource WarningSoftBrush}" BorderBrush="{StaticResource WarningBorderBrush}"
+                                Visibility="{Binding HasWarnings, Converter={StaticResource BoolToVisibility}}">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Left" Style="{StaticResource Icon}" Text="&#xE7BA;" Foreground="{StaticResource WarningBrush}" Margin="0,0,8,0" VerticalAlignment="Top" />
+                                <TextBlock Text="{Binding WarningsText}" Foreground="{StaticResource WarningBrush}" TextWrapping="Wrap" />
+                            </DockPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <!-- Barra delle sezioni -->
+                <Border Grid.Row="1" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Margin="0,14,0,10">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Style="{StaticResource TabButton}" GroupName="Sezioni" IsChecked="{Binding IsBacklogTab}" Content="Da dove cominciare" />
+                        <RadioButton Style="{StaticResource TabButton}" GroupName="Sezioni" IsChecked="{Binding IsFindingsTab}" Content="{Binding FindingsTabTitle}" />
+                        <RadioButton Style="{StaticResource TabButton}" GroupName="Sezioni" IsChecked="{Binding IsProjectsTab}" Content="{Binding ProjectsTabTitle}" />
+                        <RadioButton Style="{StaticResource TabButton}" GroupName="Sezioni" IsChecked="{Binding IsMigrationTab}" Content="Ordine di migrazione" />
+                    </StackPanel>
+                </Border>
+
+                <!-- ==================== Sezione: da dove cominciare -->
+                <Grid Grid.Row="2" Visibility="{Binding IsBacklogTab, Converter={StaticResource BoolToVisibility}}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" MinHeight="120" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Style="{StaticResource Hint}" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Text="Nessuna classe con problemi nel codice."
+                               Visibility="{Binding IsBacklogEmpty, Converter={StaticResource BoolToVisibility}}" />
+
+                    <DataGrid Grid.Row="0" Style="{StaticResource ResultGrid}"
+                              ItemsSource="{Binding Backlog}" SelectedItem="{Binding SelectedBacklogItem}"
+                              Visibility="{Binding HasBacklog, Converter={StaticResource BoolToVisibility}}"
+                              ToolTip="Doppio clic per aprire il file della classe">
+                        <DataGrid.InputBindings>
+                            <MouseBinding Gesture="LeftDoubleClick" Command="{Binding OpenBacklogFileCommand}" />
+                        </DataGrid.InputBindings>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="#" Binding="{Binding Rank}" Width="48" ElementStyle="{StaticResource CellNumber}" />
+                            <DataGridTextColumn Header="Classe" Binding="{Binding Subject}" Width="2*" ElementStyle="{StaticResource CellText}" />
+                            <DataGridTextColumn Header="Progetto" Binding="{Binding Project}" Width="*" ElementStyle="{StaticResource CellText}" />
+                            <DataGridTextColumn Header="Righe" Binding="{Binding LinesText}" SortMemberPath="Lines" Width="72" ElementStyle="{StaticResource CellNumber}" />
+                            <DataGridTextColumn Header="Handler" Binding="{Binding Handlers}" Width="80" ElementStyle="{StaticResource CellNumber}" />
+                            <DataGridTextColumn Header="Problemi" Binding="{Binding FindingCount}" Width="84" ElementStyle="{StaticResource CellNumber}" />
+                            <DataGridTextColumn Header="Commit" Binding="{Binding Churn}" Width="76" ElementStyle="{StaticResource CellNumber}" />
+                            <DataGridTextColumn Header="Priorità" Binding="{Binding PriorityText}" SortMemberPath="Priority" Width="84" ElementStyle="{StaticResource CellNumber}" />
+                            <DataGridTextColumn Header="Regole" Binding="{Binding Rules}" Width="2*" ElementStyle="{StaticResource CellMono}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- Problemi della classe selezionata -->
+                    <Border Grid.Row="1" Style="{StaticResource Card}" Margin="0,10,0,0"
+                            Visibility="{Binding HasSelectedBacklogItem, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,6">
+                                <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Command="{Binding OpenBacklogFileCommand}" Content="Apri file" />
+                                <TextBlock Style="{StaticResource CardTitle}">
+                                    <Run Text="Problemi di " /><Run Text="{Binding SelectedBacklogItem.Subject, Mode=OneWay}" />
+                                </TextBlock>
+                            </DockPanel>
+                            <ScrollViewer MaxHeight="170" VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding SelectedBacklogFindings}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <DockPanel Margin="0,3">
+                                                <Border DockPanel.Dock="Left" Style="{StaticResource SeverityPill}" Width="64" Margin="0,0,10,0">
+                                                    <TextBlock Text="{Binding SeverityLabel}" HorizontalAlignment="Center" />
+                                                </Border>
+                                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource Mono}" Margin="12,0,0,0" Text="{Binding Location}" />
+                                                <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- ==================== Sezione: problemi -->
+                <Grid Grid.Row="2" Visibility="{Binding IsFindingsTab, Converter={StaticResource BoolToVisibility}}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" MinHeight="120" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <DockPanel Grid.Row="0" Margin="0,0,0,8">
+                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource Hint}" VerticalAlignment="Center" Text="{Binding FilteredCountText}" />
+                        <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Margin="0,0,10,0" Command="{Binding ClearFiltersCommand}" Content="Azzera filtri" />
+                        <ComboBox DockPanel.Dock="Left" Width="170" Margin="0,0,8,0" VerticalAlignment="Center"
+                                  ItemsSource="{Binding SeverityFilters}" DisplayMemberPath="Label" SelectedItem="{Binding SelectedSeverityFilter}" />
+                        <ComboBox DockPanel.Dock="Left" Width="330" Margin="0,0,8,0" VerticalAlignment="Center"
+                                  ItemsSource="{Binding RuleFilters}" DisplayMemberPath="Label" SelectedItem="{Binding SelectedRuleFilter}" />
+                        <TextBox Style="{StaticResource InputBox}" Margin="0,0,10,0"
+                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged, Delay=250}"
+                                 ToolTip="Cerca nella regola, nel messaggio, nel file e nella classe" />
+                    </DockPanel>
+
+                    <TextBlock Grid.Row="1" Style="{StaticResource Hint}" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Text="Nessun problema corrisponde ai filtri."
+                               Visibility="{Binding NoFindingsMatch, Converter={StaticResource BoolToVisibility}}" />
+
+                    <DataGrid Grid.Row="1" Style="{StaticResource ResultGrid}"
+                              ItemsSource="{Binding Findings}" SelectedItem="{Binding SelectedFinding}"
+                              ToolTip="Doppio clic per aprire il file">
+                        <DataGrid.InputBindings>
+                            <MouseBinding Gesture="LeftDoubleClick" Command="{Binding OpenFindingCommand}" />
+                        </DataGrid.InputBindings>
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="Gravità" Width="100" SortMemberPath="Severity">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource SeverityPill}" Margin="10,0">
+                                            <TextBlock Text="{Binding SeverityLabel}" />
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Regola" Binding="{Binding RuleId}" Width="76" ElementStyle="{StaticResource CellText}" />
+                            <DataGridTextColumn Header="Messaggio" Binding="{Binding Message}" Width="3*" ElementStyle="{StaticResource CellText}" />
+                            <DataGridTextColumn Header="Posizione" Binding="{Binding Location}" Width="2*" ElementStyle="{StaticResource CellMono}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- Dettaglio del problema selezionato -->
+                    <Border Grid.Row="2" Style="{StaticResource Card}" Margin="0,10,0,0"
+                            Visibility="{Binding HasSelectedFinding, Converter={StaticResource BoolToVisibility}}">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Right" Margin="16,0,0,0" VerticalAlignment="Top">
+                                <Button Style="{StaticResource SecondaryButton}" Command="{Binding OpenFindingCommand}" Content="Apri file" />
+                                <Button Style="{StaticResource SecondaryButton}" Margin="0,6,0,0" Command="{Binding RevealFindingCommand}" Content="Mostra nella cartella" />
+                                <Button Style="{StaticResource LinkButton}" Margin="0,6,0,0" Command="{Binding CopyFindingPathCommand}" Content="Copia percorso" />
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource CardTitle}" TextTrimming="None" TextWrapping="Wrap">
+                                    <Run Text="{Binding SelectedFinding.RuleId, Mode=OneWay}" /><Run Text=" — " /><Run Text="{Binding SelectedFinding.RuleTitle, Mode=OneWay}" />
+                                </TextBlock>
+                                <TextBlock Margin="0,4,0,0" TextWrapping="Wrap" Text="{Binding SelectedFinding.Message}" />
+                                <TextBlock Style="{StaticResource Mono}" Margin="0,6,0,0" Text="{Binding SelectedFinding.Location}" />
+                                <TextBlock Margin="0,8,0,0" TextWrapping="Wrap">
+                                    <Run FontWeight="SemiBold" Text="Come intervenire: " /><Run Text="{Binding SelectedFinding.Advice, Mode=OneWay}" />
+                                </TextBlock>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                </Grid>
+
+                <!-- ==================== Sezione: progetti -->
+                <Grid Grid.Row="2" Visibility="{Binding IsProjectsTab, Converter={StaticResource BoolToVisibility}}">
+                    <DataGrid Style="{StaticResource ResultGrid}" ItemsSource="{Binding Projects}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Progetto" Binding="{Binding Name}" Width="2*" ElementStyle="{StaticResource CellText}" />
+                            <DataGridTextColumn Header="Framework" Binding="{Binding Frameworks}" Width="*" ElementStyle="{StaticResource CellText}" />
+                            <DataGridTextColumn Header="Formato" Binding="{Binding Format}" Width="96" ElementStyle="{StaticResource CellText}" />
+                            <DataGridTextColumn Header="Pacchetti" Binding="{Binding PackagesText}" Width="160" ElementStyle="{StaticResource CellText}" />
+                            <DataGridTextColumn Header="Tipo" Binding="{Binding OutputType}" Width="90" ElementStyle="{StaticResource CellText}" />
+                            <DataGridTextColumn Header="WinForms" Binding="{Binding WinFormsText}" Width="90" ElementStyle="{StaticResource CellText}" />
+                            <DataGridTextColumn Header="Problemi" Binding="{Binding IssueCount}" Width="84" ElementStyle="{StaticResource CellNumber}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+
+                <!-- ==================== Sezione: ordine di migrazione -->
+                <Grid Grid.Row="2" Visibility="{Binding IsMigrationTab, Converter={StaticResource BoolToVisibility}}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Margin="0,0,0,8">
+                        <TextBlock Style="{StaticResource Hint}" FontSize="13"
+                                   Text="Dalle foglie verso gli eseguibili: un progetto si migra dopo i progetti che referenzia." />
+                        <Border Style="{StaticResource Banner}" Margin="0,8,0,0"
+                                Background="{StaticResource WarningSoftBrush}" BorderBrush="{StaticResource WarningBorderBrush}"
+                                Visibility="{Binding HasCycleWarning, Converter={StaticResource BoolToVisibility}}">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Left" Style="{StaticResource Icon}" Text="&#xE7BA;" Foreground="{StaticResource WarningBrush}" Margin="0,0,8,0" VerticalAlignment="Top" />
+                                <TextBlock Text="{Binding CycleWarning}" Foreground="{StaticResource WarningBrush}" TextWrapping="Wrap" />
+                            </DockPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <DataGrid Grid.Row="1" Style="{StaticResource ResultGrid}" ItemsSource="{Binding MigrationSteps}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="#" Binding="{Binding Position}" Width="48" ElementStyle="{StaticResource CellNumber}" />
+                            <DataGridTextColumn Header="Progetto" Binding="{Binding Name}" Width="2*" ElementStyle="{StaticResource CellText}" />
+                            <DataGridTextColumn Header="Framework" Binding="{Binding Frameworks}" Width="*" ElementStyle="{StaticResource CellText}" />
+                            <DataGridTextColumn Header="Dipendenze" Binding="{Binding DependsOn}" Width="2*" ElementStyle="{StaticResource CellText}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Grid>
+        </Grid>
+    </DockPanel>
+</Window>

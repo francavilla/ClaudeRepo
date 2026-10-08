@@ -4,6 +4,30 @@ Tutte le modifiche rilevanti di SolutionDoctor sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.1.0] - 2026-10-08
+
+### Aggiunto
+- Interfaccia grafica WPF (`SolutionDoctor.App`, .NET 8, solo Windows): scelta di file `.sln`/`.csproj` o cartella
+  (pulsanti, trascinamento, argomento da riga di comando che avvia subito l'analisi), opzioni sulla cronologia git,
+  analisi annullabile con avanzamento e riepilogo a riquadri (progetti, form, problemi per gravità).
+- Quattro sezioni del risultato: **Da dove cominciare** (backlog ordinabile con i problemi della classe selezionata),
+  **Problemi** (filtri per gravità e regola, ricerca, dettaglio con «come intervenire», apri file / mostra nella cartella /
+  copia percorso), **Progetti**, **Ordine di migrazione** (con avviso sui riferimenti circolari).
+- Salvataggio e copia del report Markdown dalla finestra; ultimo percorso e opzioni ricordati in `%APPDATA%\SolutionDoctor\settings.txt`.
+- Libreria `SolutionDoctor.Presentation` (netstandard2.0, senza WPF): ViewModel, comandi, righe da mostrare e servizi
+  astratti, compilabile e testabile anche su Linux.
+- Core: `SolutionAnalyzer.Analyze(path, options, progress, cancellationToken)` con avanzamento e annullamento
+  (l'overload precedente resta invariato).
+- Test di contratto XAML ↔ ViewModel: binding, risorse (anche l'ordine di definizione), gestori di evento, `x:Static`,
+  voci della solution; poiché il XAML si compila solo su Windows, rilevano in anticipo gli errori che altrimenti
+  emergerebbero a runtime.
+- Script `tools/make_icon.py` (Python + Pillow) e icona dell'applicazione.
+
+### Modificato
+- La CI compila anche l'app WPF (XAML compreso), ne pubblica l'artifact e ne prova l'avvio (la finestra deve comparire
+  e completare l'analisi di ExeBuilder passata come argomento).
+- ADR 0002: la UI è WPF su `net8.0-windows` (non .NET Framework 4.8) con i ViewModel in una libreria separata.
+
 ## [1.0.0] - 2026-10-08
 
 ### Aggiunto

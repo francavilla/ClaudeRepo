@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Interfaccia grafica WPF per .NET 8 (solo Windows). La logica sta in SolutionDoctor.Presentation (ViewModel) e
+    SolutionDoctor.Core; qui ci sono soltanto XAML, tema e il collante con il sistema (finestre di dialogo, appunti).
+    Si compila solo su Windows: la CI lo fa a ogni push.
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>SolutionDoctor.App</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Icona del file .exe. Si rigenera con tools/make_icon.py. -->
+    <ApplicationIcon>Assets\SolutionDoctor.ico</ApplicationIcon>
+    <AssemblyTitle>SolutionDoctor - analisi di solution WinForms per pianificare il refactoring</AssemblyTitle>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Icona della finestra (barra del titolo, barra delle applicazioni, Alt+Tab). -->
+    <Resource Include="Assets\SolutionDoctor.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SolutionDoctor.Core\SolutionDoctor.Core.csproj" />
+    <ProjectReference Include="..\SolutionDoctor.Presentation\SolutionDoctor.Presentation.csproj" />
+  </ItemGroup>
+
+</Project>
