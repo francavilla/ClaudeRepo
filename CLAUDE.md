@@ -24,6 +24,11 @@ Più modifiche nella stessa richiesta = un solo incremento di versione.
 - Il workflow `.github/workflows/release-exebuilder.yml` verifica la versione, esegue i test, compila su Windows
   e crea la release GitHub con lo zip e le note prese dal `CHANGELOG.md`.
 
+## CI
+- `.github/workflows/ci-exebuilder.yml` compila ExeBuilder su Windows (XAML compreso) ed esegue i test
+  a ogni push su `Progetti_Claude`/`main` e a ogni PR verso `main`; l'app compilata è un artifact del run (14 giorni).
+- Dopo ogni push controllare l'esito della CI e correggere subito eventuali errori.
+
 ## Applicazioni
 - `ExeBuilder/` — WPF .NET Framework 4.8 che compila in Release progetti e solution .NET/.NET Framework.
   La logica sta in `ExeBuilder.Core` (testata in `tests/ExeBuilder.Core.Tests`); la UI in `src/ExeBuilder` (MVVM, tema in `Themes/Theme.xaml`).
