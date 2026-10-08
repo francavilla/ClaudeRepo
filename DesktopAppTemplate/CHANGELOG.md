@@ -4,6 +4,11 @@ Tutte le modifiche rilevanti di DesktopAppTemplate sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [3.0.1] - 2026-10-08
+
+### Corretto
+- Il progetto `Data.EntityFramework` non compilava: mancava il riferimento diretto al driver `System.Data.SQLite.Core`.
+
 ## [3.0.0] - 2026-10-08
 
 ### Aggiunto

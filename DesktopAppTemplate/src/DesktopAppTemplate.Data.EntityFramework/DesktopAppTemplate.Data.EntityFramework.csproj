@@ -10,6 +10,8 @@
   <ItemGroup>
     <PackageReference Include="EntityFramework" Version="6.4.4" />
     <PackageReference Include="System.Data.SQLite.EF6" Version="1.0.118" />
+    <!-- Il driver ADO.NET di SQLite (SQLiteConnection, SQLiteFactory): serve in compilazione. -->
+    <PackageReference Include="System.Data.SQLite.Core" Version="1.0.118" />
   </ItemGroup>
 
   <ItemGroup>
