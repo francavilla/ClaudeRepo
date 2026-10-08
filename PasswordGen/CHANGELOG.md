@@ -7,6 +7,9 @@ Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Bui
 ## [1.1.0] - 2026-10-08
 
 ### Modificato
+- **APK più piccola:** in Release solo le architetture ARM a 64 e 32 bit (niente x86/x64 degli emulatori).
+- Sostituiti i metodi obsoleti `DisplayAlert` e `DisplayActionSheet` con `DisplayAlertAsync` e `DisplayActionSheetAsync`.
+- Aprire il selettore di file non fa più scattare il blocco dell'app Android.
 - **Release separate per Windows e Android:** due workflow (`Release PasswordGen Desktop` e `Release PasswordGen Android`), due release con tag
   `passwordgen-desktop-vX.Y.Z` e `passwordgen-android-vX.Y.Z`, titoli e file distinti (`PasswordGen-Desktop-v….zip`, `PasswordGen-Android-v….apk`).
   Si può pubblicare una sola delle due. Le release già esistenti (`passwordgen-vX.Y.Z`, zip e APK insieme) restano com'erano.
@@ -17,6 +20,8 @@ Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Bui
 - **Esporta / importa** lo storico in un file cifrato con frase segreta, utile anche per cambiare telefono.
 - **App Windows:** card «Sincronizzazione e backup» (Imposta, Sincronizza ora, Disattiva, Esporta, Importa); sincronizza da sola all'avvio e dopo ogni cambio
   registrato. La frase segreta si salva cifrata con DPAPI.
+- **App Android:** stessa card «Sincronizzazione e backup»; il file si sceglie o si crea con il selettore di documenti di Android (anche in Google Drive),
+  l'accesso resta valido dopo la chiusura dell'app. La frase segreta si salva cifrata con la chiave del Keystore.
 - **Avviso per attivare il blocco** (Windows Hello / impronta o PIN), che si può chiudere con «Non ora».
 - `PasswordGen.Core`: `PassphraseProtector`, `ExchangeFile`, `SyncEngine`, `FileSyncStorage`, `SyncPassphraseStore`, `PasswordHistory.Merge` (con test).
 

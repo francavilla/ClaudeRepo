@@ -68,7 +68,7 @@ public sealed class AppLockController
     public void Backgrounded()
     {
         // Mentre è aperta la schermata del PIN (o dell'impronta) l'app esce dal primo piano: non conta come uscita.
-        if (!_security.IsAuthenticating && !_authenticating)
+        if (!_security.IsAuthenticating && !_authenticating && !ExternalActivity.IsActive)
         {
             _state.Backgrounded(DateTime.UtcNow);
         }
@@ -76,7 +76,7 @@ public sealed class AppLockController
 
     public void Resumed()
     {
-        if (_security.IsAuthenticating || _authenticating)
+        if (_security.IsAuthenticating || _authenticating || ExternalActivity.IsActive)
         {
             return;
         }

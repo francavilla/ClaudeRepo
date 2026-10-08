@@ -12,7 +12,7 @@ public sealed class DialogService : IDialogService
     public async Task<bool> ConfirmAsync(string message, string title)
     {
         var page = CurrentPage;
-        return page != null && await page.DisplayAlert(title, message, "Sì", "No");
+        return page != null && await page.DisplayAlertAsync(title, message, "Sì", "No");
     }
 
     public async Task<int> ChooseAsync(string title, IReadOnlyList<string> options)
@@ -23,7 +23,7 @@ public sealed class DialogService : IDialogService
             return -1;
         }
 
-        var choice = await page.DisplayActionSheet(title, Cancel, null, options.ToArray());
+        var choice = await page.DisplayActionSheetAsync(title, Cancel, null, options.ToArray());
         if (choice == null || choice == Cancel)
         {
             return -1;
@@ -51,5 +51,18 @@ public sealed class DialogService : IDialogService
         var setup = new CredentialSetupPage(kind);
         await MainThread.InvokeOnMainThreadAsync(() => page.Navigation.PushModalAsync(setup, true));
         return await setup.Result;
+    }
+
+    public async Task<string> AskPassphraseAsync(string title, string message, bool confirm)
+    {
+        var page = CurrentPage;
+        if (page == null)
+        {
+            return null;
+        }
+
+        var dialog = new PassphrasePage(title, message, confirm);
+        await MainThread.InvokeOnMainThreadAsync(() => page.Navigation.PushModalAsync(dialog, true));
+        return await dialog.Result;
     }
 }

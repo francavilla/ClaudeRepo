@@ -19,6 +19,22 @@
         <ScrollView Grid.Row="1">
             <VerticalStackLayout Padding="14" Spacing="12">
 
+                <!-- Suggerimento: attiva il blocco -->
+                <Border BackgroundColor="#FEF3C7" Stroke="#FDE68A" StrokeThickness="1" Padding="14" IsVisible="{Binding ShowLockHint}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Proteggi PasswordGen con impronta, volto o PIN: chi prende il telefono non potrà vedere lo storico delle password."
+                               TextColor="#0F172A" />
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                            <Button Text="Attiva il blocco" Command="{Binding EnableLockFromHintCommand}" Style="{StaticResource PrimaryButton}" />
+                            <Button Grid.Column="1" Text="Non ora" Command="{Binding DismissLockHintCommand}"
+                                    BackgroundColor="White" TextColor="{StaticResource Accent}" BorderColor="#CBD5E1" BorderWidth="1" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
                 <!-- Promemoria -->
                 <Border BackgroundColor="{Binding ReminderBackground}" Stroke="#E2E8F0" StrokeThickness="1" Padding="14">
                     <Border.StrokeShape>
@@ -184,6 +200,30 @@
                         <Slider Minimum="14" Maximum="90" Value="{Binding ValidityDays, Mode=TwoWay}" />
                         <Label Style="{StaticResource MutedText}"
                                Text="Una notifica al giorno (verso le 9) quando mancano al massimo 5 giorni o la password è scaduta. Premi «Ho cambiato la password» dopo ogni cambio." />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Sincronizzazione e backup -->
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Sincronizzazione e backup" Style="{StaticResource CardTitle}" />
+                        <Label Text="{Binding SyncSummary}" Style="{StaticResource MutedText}" />
+                        <Label Style="{StaticResource MutedText}"
+                               Text="Per vedere lo storico anche sul PC scegli un file in una cartella sincronizzata (per esempio Google Drive): l'app lo tiene aggiornato, cifrato con una frase segreta che solo tu conosci. Storico, data dell'ultimo cambio e durata della password si uniscono senza perdere nulla." />
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                            <Button Text="Imposta..." Command="{Binding SetupSyncCommand}" IsEnabled="{Binding CanUseSync}"
+                                    BackgroundColor="White" TextColor="{StaticResource Accent}" BorderColor="#CBD5E1" BorderWidth="1" FontSize="12" />
+                            <Button Grid.Column="1" Text="Sincronizza ora" Command="{Binding SyncNowCommand}" IsEnabled="{Binding CanSyncNow}"
+                                    BackgroundColor="White" TextColor="{StaticResource Accent}" BorderColor="#CBD5E1" BorderWidth="1" FontSize="12" />
+                        </Grid>
+                        <Button Text="Disattiva la sincronizzazione" Command="{Binding StopSyncCommand}" IsEnabled="{Binding CanSyncNow}" IsVisible="{Binding SyncActive}"
+                                BackgroundColor="White" TextColor="#DC2626" BorderColor="#FECACA" BorderWidth="1" FontSize="12" />
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                            <Button Text="Esporta..." Command="{Binding ExportCommand}" IsEnabled="{Binding CanUseSync}"
+                                    BackgroundColor="White" TextColor="{StaticResource Accent}" BorderColor="#CBD5E1" BorderWidth="1" FontSize="12" />
+                            <Button Grid.Column="1" Text="Importa..." Command="{Binding ImportCommand}" IsEnabled="{Binding CanUseSync}"
+                                    BackgroundColor="White" TextColor="{StaticResource Accent}" BorderColor="#CBD5E1" BorderWidth="1" FontSize="12" />
+                        </Grid>
                     </VerticalStackLayout>
                 </Border>
 

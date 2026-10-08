@@ -13,4 +13,7 @@ public interface IDialogService
 
     /// <summary>Chiede due volte un nuovo PIN o una nuova password; restituisce il testo scelto, o null se l'utente annulla.</summary>
     Task<string> AskNewSecretAsync(CredentialKind kind);
+
+    /// <summary>Chiede la frase segreta del file di scambio (due volte se <paramref name="confirm"/>); null se l'utente annulla.</summary>
+    Task<string> AskPassphraseAsync(string title, string message, bool confirm);
 }

@@ -14,7 +14,17 @@ public sealed class WordFileService : IWordFileService
 
     public async Task<PickedWordFile> PickAsync()
     {
-        var picked = await FilePicker.Default.PickAsync(new PickOptions { PickerTitle = "Scegli il file delle parole" });
+        FileResult picked;
+        ExternalActivity.IsActive = true;   // il selettore di file porta l'app in secondo piano: non deve far scattare il blocco
+        try
+        {
+            picked = await FilePicker.Default.PickAsync(new PickOptions { PickerTitle = "Scegli il file delle parole" });
+        }
+        finally
+        {
+            ExternalActivity.IsActive = false;
+        }
+
         if (picked == null)
         {
             return null;

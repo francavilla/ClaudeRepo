@@ -8,6 +8,8 @@ using PasswordGen.Core.Reminder;
 using PasswordGen.Core.Security;
 using PasswordGen.Core.Policy;
 using PasswordGen.Core.Settings;
+using PasswordGen.Core.Sync;
+using System.Security.Cryptography;
 using PasswordGen.Mobile.Services;
 
 namespace PasswordGen.Mobile.ViewModels;
@@ -26,6 +28,10 @@ public class MainViewModel : ObservableObject
     private readonly IWordFileService _wordFiles;
     private readonly ISecurityService _security;
     private readonly AppLockController _lock;
+    private readonly SyncPassphraseStore _syncPassphrases;
+    private readonly IDocumentService _documents;
+    private bool _syncBusy;
+    private string _syncStatus = string.Empty;
 
     private bool _loading = true;
     private GenerationMode _mode;
@@ -55,6 +61,7 @@ public class MainViewModel : ObservableObject
     private string _lastChangeText = string.Empty;
     private Color _reminderBackground = Color.FromArgb("#EFF6FF");
 
+    /// <param name="syncPassphrases">Frase segreta della sincronizzazione (cifrata col Keystore); nulla se la chiave non è disponibile.</param>
     /// <param name="historyStore">Archivio cifrato dello storico; nullo se la chiave non è disponibile (storico non utilizzabile).</param>
     public MainViewModel(
         PasswordGenerator generator,
@@ -66,8 +73,12 @@ public class MainViewModel : ObservableObject
         IReminderScheduler scheduler,
         IWordFileService wordFiles,
         ISecurityService security,
-        AppLockController appLock)
+        AppLockController appLock,
+        SyncPassphraseStore syncPassphrases,
+        IDocumentService documents)
     {
+        _syncPassphrases = syncPassphrases;
+        _documents = documents;
         _generator = generator;
         _store = store;
         _clipboard = clipboard;
@@ -343,6 +354,340 @@ public class MainViewModel : ObservableObject
             : "Impossibile accedere agli appunti: riprova.";
     }
 
+    // ---------------------------------------------------------------- Sincronizzazione e backup
+
+    private const string SyncFileName = "PasswordGen-sync.pgx";
+
+    /// <summary>La sincronizzazione ha bisogno dello storico e della chiave del Keystore.</summary>
+    public bool SyncAvailable => _syncPassphrases != null && HistoryAvailable;
+
+    public bool SyncActive => SyncAvailable && !string.IsNullOrEmpty(_settings.SyncPath);
+
+    public bool SyncNotActive => !SyncActive;
+
+    public bool CanUseSync => SyncAvailable && !_syncBusy;
+
+    public bool CanSyncNow => SyncActive && !_syncBusy;
+
+    public string SyncSummary
+    {
+        get
+        {
+            if (!SyncAvailable)
+            {
+                return "Non disponibile: servono lo storico e la chiave del Keystore.";
+            }
+
+            if (!SyncActive)
+            {
+                return "Sincronizzazione non attiva.";
+            }
+
+            var last = ExchangeData.ParseTime(_settings.LastSyncUtcText);
+            return "Attiva con il file «" + _documents.DisplayName(_settings.SyncPath) + "». "
+                + (last.HasValue ? "Ultima sincronizzazione: " + last.Value.ToLocalTime().ToString("g", CultureInfo.CurrentCulture) + "." : "Non ancora sincronizzato.");
+        }
+    }
+
+    public ICommand SetupSyncCommand => new Command(() => RunSafe(SetupSyncAsync));
+
+    public ICommand SyncNowCommand => new Command(() => RunSafe(SyncNowAsync));
+
+    public ICommand StopSyncCommand => new Command(() => RunSafe(StopSyncAsync));
+
+    public ICommand ExportCommand => new Command(() => RunSafe(ExportAsync));
+
+    public ICommand ImportCommand => new Command(() => RunSafe(ImportAsync));
+
+    private void RefreshSyncState()
+    {
+        OnPropertyChanged(nameof(SyncAvailable));
+        OnPropertyChanged(nameof(SyncActive));
+        OnPropertyChanged(nameof(SyncNotActive));
+        OnPropertyChanged(nameof(CanUseSync));
+        OnPropertyChanged(nameof(CanSyncNow));
+        OnPropertyChanged(nameof(SyncSummary));
+    }
+
+    private void SetSyncBusy(bool busy)
+    {
+        _syncBusy = busy;
+        OnPropertyChanged(nameof(CanUseSync));
+        OnPropertyChanged(nameof(CanSyncNow));
+    }
+
+    private async Task SetupSyncAsync()
+    {
+        if (!_historyEnabled)
+        {
+            StatusMessage = "Per sincronizzare attiva prima lo storico delle password.";
+            return;
+        }
+
+        var choice = await _dialogs.ChooseAsync("File di sincronizzazione",
+            new[] { "Scegli un file esistente (per esempio quello creato dal PC)", "Crea un nuovo file (per esempio in Google Drive)" });
+        if (choice < 0)
+        {
+            return;
+        }
+
+        var address = choice == 0 ? await _documents.PickExistingAsync() : await _documents.CreateAsync(SyncFileName);
+        if (string.IsNullOrEmpty(address))
+        {
+            return;
+        }
+
+        var existing = await Task.Run(() =>
+        {
+            try
+            {
+                var bytes = _documents.Open(address).Read();
+                return bytes != null && bytes.Length > 0;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        });
+
+        var passphrase = await _dialogs.AskPassphraseAsync("Sincronizzazione",
+            existing
+                ? "Il file contiene già dati. Inserisci la frase segreta con cui è stato creato."
+                : "Scegli una frase segreta per cifrare il file. Ti servirà anche sull'altro dispositivo e non si può recuperare.",
+            !existing);
+        if (passphrase == null)
+        {
+            return;
+        }
+
+        if (await RunSyncAsync(address, passphrase))
+        {
+            _settings.SyncPath = address;
+            _syncPassphrases.Save(passphrase);
+            SaveSettings();
+            RefreshSyncState();
+        }
+    }
+
+    private async Task SyncNowAsync()
+    {
+        var passphrase = _syncPassphrases.Load()
+            ?? await _dialogs.AskPassphraseAsync("Sincronizzazione", "Inserisci la frase segreta del file di sincronizzazione.", false);
+        if (passphrase == null)
+        {
+            return;
+        }
+
+        if (await RunSyncAsync(_settings.SyncPath, passphrase))
+        {
+            try
+            {
+                _syncPassphrases.Save(passphrase);
+            }
+            catch (Exception)
+            {
+                // La frase verrà richiesta di nuovo la prossima volta.
+            }
+        }
+    }
+
+    /// <summary>Sincronizza in silenzio (all'avvio e dopo un cambio): niente finestre, solo un messaggio nella barra di stato.</summary>
+    public async Task AutoSyncAsync()
+    {
+        if (!SyncActive || _syncBusy || !_historyEnabled)
+        {
+            return;
+        }
+
+        var passphrase = _syncPassphrases.Load();
+        if (passphrase != null)
+        {
+            await RunSyncAsync(_settings.SyncPath, passphrase);
+        }
+    }
+
+    private async Task<bool> RunSyncAsync(string address, string passphrase)
+    {
+        SetSyncBusy(true);
+        try
+        {
+            SaveSettings();   // porta nelle impostazioni i valori correnti (per esempio la durata della password)
+            var result = await SyncEngine.RunAsync(_documents.Open(address), passphrase, _history, _settings, DateTime.UtcNow);
+            if (!result.Succeeded)
+            {
+                StatusMessage = result.Message;
+                return false;
+            }
+
+            _validityDays = _settings.ValidityDays;
+            OnPropertyChanged(nameof(ValidityDays));
+            SaveHistory();
+            RefreshHistory();
+            RefreshReminder();
+            SaveSettings();
+            StatusMessage = result.EntriesAdded > 0
+                ? "Sincronizzato: " + result.EntriesAdded + (result.EntriesAdded == 1 ? " voce nuova" : " voci nuove") + " dall'altro dispositivo."
+                : "Sincronizzato: tutto era già aggiornato.";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Sincronizzazione non riuscita: " + ex.Message;
+            return false;
+        }
+        finally
+        {
+            SetSyncBusy(false);
+            RefreshSyncState();
+        }
+    }
+
+    private async Task StopSyncAsync()
+    {
+        if (!await _dialogs.ConfirmAsync("Disattivare la sincronizzazione? Il file resta dov'è e i dati su questo telefono non cambiano.", "Sincronizzazione"))
+        {
+            return;
+        }
+
+        _settings.SyncPath = null;
+        _settings.LastSyncUtcText = null;
+        try
+        {
+            _syncPassphrases.Delete();
+        }
+        catch (Exception)
+        {
+            // Il file della frase sarà sovrascritto alla prossima attivazione.
+        }
+
+        SaveSettings();
+        RefreshSyncState();
+        StatusMessage = "Sincronizzazione disattivata.";
+    }
+
+    private async Task ExportAsync()
+    {
+        if (!SyncAvailable)
+        {
+            StatusMessage = "L'esportazione non è disponibile: lo storico non è utilizzabile.";
+            return;
+        }
+
+        var passphrase = await _dialogs.AskPassphraseAsync("Esporta lo storico",
+            "Scegli la frase segreta che cifra il file: servirà per importarlo. Non si può recuperare.", true);
+        if (passphrase == null)
+        {
+            return;
+        }
+
+        var address = await _documents.CreateAsync("PasswordGen-backup.pgx");
+        if (string.IsNullOrEmpty(address))
+        {
+            return;
+        }
+
+        SetSyncBusy(true);
+        try
+        {
+            SaveSettings();
+            var history = _history.Clone();
+            var settings = _settings.Clone();
+            var storage = _documents.Open(address);
+            await Task.Run(() => storage.Write(ExchangeFile.Export(history, settings, DateTime.UtcNow, passphrase)));
+            StatusMessage = "Esportati " + history.Entries.Count + " cambi password in «" + _documents.DisplayName(address) + "».";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Esportazione non riuscita: " + ex.Message;
+        }
+        finally
+        {
+            SetSyncBusy(false);
+        }
+    }
+
+    private async Task ImportAsync()
+    {
+        if (!_historyEnabled)
+        {
+            StatusMessage = "Per importare attiva prima lo storico delle password.";
+            return;
+        }
+
+        var address = await _documents.PickExistingAsync();
+        if (string.IsNullOrEmpty(address))
+        {
+            return;
+        }
+
+        var passphrase = await _dialogs.AskPassphraseAsync("Importa lo storico", "Inserisci la frase segreta del file.", false);
+        if (passphrase == null)
+        {
+            return;
+        }
+
+        SetSyncBusy(true);
+        try
+        {
+            var storage = _documents.Open(address);
+            var data = await Task.Run(() =>
+            {
+                var bytes = storage.Read();
+                if (bytes == null || bytes.Length == 0)
+                {
+                    throw new InvalidDataException("Il file è vuoto.");
+                }
+
+                return ExchangeFile.Decrypt(bytes, passphrase);
+            });
+
+            var summary = ExchangeFile.Merge(data, _history, _settings, true);
+            _validityDays = _settings.ValidityDays;
+            OnPropertyChanged(nameof(ValidityDays));
+            SaveHistory();
+            RefreshHistory();
+            RefreshReminder();
+            SaveSettings();
+            StatusMessage = "Importate " + summary.EntriesAdded + (summary.EntriesAdded == 1 ? " voce nuova" : " voci nuove") + " nello storico.";
+        }
+        catch (CryptographicException)
+        {
+            StatusMessage = "La frase segreta non è quella del file (o il file è stato alterato).";
+        }
+        catch (InvalidDataException ex)
+        {
+            StatusMessage = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Importazione non riuscita: " + ex.Message;
+        }
+        finally
+        {
+            SetSyncBusy(false);
+        }
+    }
+
+    // ---------------------------------------------------------------- Suggerimento per il blocco
+
+    /// <summary>Invita ad attivare il blocco finché non è attivo o l'utente chiude l'avviso.</summary>
+    public bool ShowLockHint => LockAvailable && !_lockEnabled && !_settings.LockHintDismissed;
+
+    public ICommand DismissLockHintCommand => new Command(DismissLockHint);
+
+    public ICommand EnableLockFromHintCommand => new Command(() =>
+    {
+        DismissLockHint();
+        LockEnabled = true;
+    });
+
+    private void DismissLockHint()
+    {
+        _settings.LockHintDismissed = true;
+        OnPropertyChanged(nameof(ShowLockHint));
+        SaveSettings();
+    }
+
     // ---------------------------------------------------------------- Blocco dell'app
 
     private static readonly int[] GraceSeconds = { 0, 30, 60, 300 };
@@ -568,6 +913,7 @@ public class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(CanSetCredential));
         OnPropertyChanged(nameof(HasCredential));
         OnPropertyChanged(nameof(CredentialText));
+        OnPropertyChanged(nameof(ShowLockHint));
     }
 
     // ---------------------------------------------------------------- Parole della passphrase
@@ -899,6 +1245,7 @@ public class MainViewModel : ObservableObject
         RefreshReminder();
         SaveSettings();
         StatusMessage = message + " " + ReminderMessage;
+        _ = AutoSyncAsync();
     }
 
     private async Task ClearHistoryAsync()

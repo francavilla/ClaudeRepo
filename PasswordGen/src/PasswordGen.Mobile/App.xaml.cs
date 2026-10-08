@@ -4,6 +4,7 @@ using PasswordGen.Core.History;
 using PasswordGen.Core.Randomness;
 using PasswordGen.Core.Security;
 using PasswordGen.Core.Settings;
+using PasswordGen.Core.Sync;
 using PasswordGen.Mobile.Services;
 using PasswordGen.Mobile.ViewModels;
 
@@ -48,7 +49,9 @@ public partial class App : Application
 
         var viewModel = new MainViewModel(
             generator, words, settings, history, new SecretClipboard(TimeSpan.FromSeconds(30)),
-            new DialogService(), new AndroidReminderScheduler(), new WordFileService(), security, appLock);
+            new DialogService(), new AndroidReminderScheduler(), new WordFileService(), security, appLock,
+            key == null ? null : new SyncPassphraseStore(Path.Combine(FileSystem.AppDataDirectory, "sync.key"), new AesHmacProtector(key)),
+            new AndroidDocumentService());
         viewModel.RestoreReminder();
 
         tabs = new TabbedPage();
@@ -63,6 +66,7 @@ public partial class App : Application
             {
                 started = true;
                 appLock.Start();
+                _ = viewModel.AutoSyncAsync();
             }
         };
 

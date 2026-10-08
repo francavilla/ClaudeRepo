@@ -14,5 +14,6 @@ public class MainActivity : MauiAppCompatActivity
     {
         base.OnActivityResult(requestCode, resultCode, data);
         AndroidSecurityService.OnActivityResult(requestCode, resultCode);
+        AndroidDocumentService.OnActivityResult(requestCode, resultCode, data);
     }
 }
