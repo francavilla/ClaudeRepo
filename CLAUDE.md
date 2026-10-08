@@ -7,7 +7,8 @@
 Ogni modifica a un'applicazione del repository deve aggiornare il suo numero di versione:
 
 1. Aggiornare `<Version>` nel `Directory.Build.props` dell'applicazione
-   (per ExeBuilder: `ExeBuilder/Directory.Build.props`), seguendo il Semantic Versioning:
+   (per ExeBuilder: `ExeBuilder/Directory.Build.props`; per SolutionDoctor: `SolutionDoctor/Directory.Build.props`),
+   seguendo il Semantic Versioning:
    - **PATCH** (1.1.0 → 1.1.1): correzione di bug senza nuove funzioni;
    - **MINOR** (1.1.0 → 1.2.0): nuove funzioni compatibili;
    - **MAJOR** (1.1.0 → 2.0.0): cambiamenti incompatibili (formato, comportamento, requisiti).
@@ -27,11 +28,14 @@ Più modifiche nella stessa richiesta = un solo incremento di versione.
 ## CI
 - `.github/workflows/ci-exebuilder.yml` compila ExeBuilder su Windows (XAML compreso) ed esegue i test
   a ogni push su `Progetti_Claude`/`main` e a ogni PR verso `main`; l'app compilata è un artifact del run (14 giorni).
+- `.github/workflows/ci-solutiondoctor.yml` fa lo stesso per SolutionDoctor (test, pubblicazione della CLI, prova su ExeBuilder).
 - Dopo ogni push controllare l'esito della CI e correggere subito eventuali errori.
 
 ## Applicazioni
 - `ExeBuilder/` — WPF .NET Framework 4.8 che compila in Release progetti e solution .NET/.NET Framework.
   La logica sta in `ExeBuilder.Core` (testata in `tests/ExeBuilder.Core.Tests`); la UI in `src/ExeBuilder` (MVVM, tema in `Themes/Theme.xaml`).
+- `SolutionDoctor/` — CLI .NET 8 che analizza solution WinForms legacy e produce un report Markdown di priorità di refactoring.
+  Logica in `SolutionDoctor.Core` (netstandard2.0, testata in `tests/SolutionDoctor.Core.Tests`); la UI WPF è prevista come passo successivo.
 
 ## Stile del codice
 - C# 7.3 (`LangVersion` in `Directory.Build.props`), commenti e messaggi in italiano.
