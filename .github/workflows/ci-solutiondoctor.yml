@@ -1,0 +1,62 @@
+# Integrazione continua di SolutionDoctor: a ogni push o PR compila su Windows, esegue i test,
+# prova la CLI pubblicata sulla solution ExeBuilder e rende scaricabile l'applicazione come artifact del run.
+name: CI SolutionDoctor
+
+on:
+  push:
+    branches: [ Progetti_Claude, main ]
+    paths:
+      - 'SolutionDoctor/**'
+      - '.github/workflows/ci-solutiondoctor.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'SolutionDoctor/**'
+      - '.github/workflows/ci-solutiondoctor.yml'
+  workflow_dispatch:
+
+# Un nuovo push sullo stesso branch annulla il run precedente ancora in corso.
+concurrency:
+  group: ci-solutiondoctor-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      DOTNET_NOLOGO: '1'
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # la cronologia git serve all'analisi della frequenza di modifica
+
+      - name: Versione
+        id: version
+        shell: pwsh
+        run: |
+          [xml]$props = Get-Content 'SolutionDoctor/Directory.Build.props'
+          $version = ($props.Project.PropertyGroup | Where-Object { $_.Version }).Version
+          "version=$version" >> $env:GITHUB_OUTPUT
+          Write-Host "SolutionDoctor $version"
+
+      - name: Test
+        run: dotnet test SolutionDoctor/SolutionDoctor.sln -c Release
+
+      - name: Pubblica la CLI
+        run: dotnet publish SolutionDoctor/src/SolutionDoctor.Cli/SolutionDoctor.Cli.csproj -c Release -o publish/SolutionDoctor
+
+      - name: Prova su ExeBuilder (con cronologia git)
+        run: publish/SolutionDoctor/solutiondoctor.exe analyze ExeBuilder/ExeBuilder.sln -o publish/SolutionDoctor-ExeBuilder.md
+
+      - name: Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SolutionDoctor-${{ steps.version.outputs.version }}-${{ github.run_number }}
+          path: publish
+          retention-days: 14
