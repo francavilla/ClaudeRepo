@@ -15,6 +15,7 @@ namespace PasswordGen.ViewModels
     public class MainViewModel : ObservableObject
     {
         private readonly PasswordGenerator _generator;
+        private readonly WordList _builtinWords;
         private readonly SettingsStore _store;
         private readonly ISecretClipboard _clipboard;
         private readonly IStartupRegistration _startup;
@@ -37,6 +38,11 @@ namespace PasswordGen.ViewModels
         private bool _requireSpecial;
         private bool _avoidAmbiguous;
         private string _previousPassword = string.Empty;
+        private WordSourceMode _wordSource;
+        private string _customWordsPath;
+        private WordFileResult _customWords;
+        private string _wordSummary = string.Empty;
+        private string _wordWarning = string.Empty;
         private bool _historyEnabled;
         private bool _isChoosing;
         private int _choiceIndex;
@@ -51,6 +57,7 @@ namespace PasswordGen.ViewModels
 
         public MainViewModel(
             PasswordGenerator generator,
+            WordList builtinWords,
             SettingsStore store,
             ISecretClipboard clipboard,
             IStartupRegistration startup,
@@ -59,6 +66,7 @@ namespace PasswordGen.ViewModels
             Func<DateTime> today)
         {
             _generator = generator;
+            _builtinWords = builtinWords;
             _store = store;
             _clipboard = clipboard;
             _startup = startup;
@@ -78,6 +86,13 @@ namespace PasswordGen.ViewModels
             _requireDigit = _settings.RequireDigit;
             _requireSpecial = _settings.RequireSpecial;
             _avoidAmbiguous = _settings.AvoidAmbiguous;
+            _wordSource = _settings.WordSource;
+            _customWordsPath = _settings.CustomWordsPath;
+            if (!string.IsNullOrEmpty(_customWordsPath))
+            {
+                _customWords = CustomWordList.Load(_customWordsPath);
+            }
+
             _historyEnabled = _settings.HistoryEnabled;
             _history = _historyEnabled ? historyStore.Load() : new PasswordHistory();
             _reminderEnabled = _settings.ReminderEnabled;
@@ -98,6 +113,8 @@ namespace PasswordGen.ViewModels
             GenerateCommand = new RelayCommand(Generate);
             MarkChangedCommand = new RelayCommand(MarkChanged);
             ConfirmChangeCommand = new RelayCommand(ConfirmChange);
+            LoadWordFileCommand = new RelayCommand(LoadWordFile);
+            ResetWordsCommand = new RelayCommand(ResetWords, () => _customWords != null || _wordSource != WordSourceMode.Builtin);
             CancelChangeCommand = new RelayCommand(() => IsChoosing = false);
             ClearHistoryCommand = new RelayCommand(ClearHistory, () => _history.Entries.Count > 0);
 
@@ -106,6 +123,7 @@ namespace PasswordGen.ViewModels
             _loading = false;
             RefreshReminder();
             RefreshHistory();
+            ApplyWordSource();
             Generate();
         }
 
@@ -128,6 +146,10 @@ namespace PasswordGen.ViewModels
         public ICommand MarkChangedCommand { get; private set; }
 
         public ICommand ConfirmChangeCommand { get; private set; }
+
+        public ICommand LoadWordFileCommand { get; private set; }
+
+        public ICommand ResetWordsCommand { get; private set; }
 
         public ICommand CancelChangeCommand { get; private set; }
 
@@ -196,6 +218,148 @@ namespace PasswordGen.ViewModels
         {
             get { return _suggestionCount; }
             set { SetOption(ref _suggestionCount, value); }
+        }
+
+        // ------------------------------------------------------------ Parole della passphrase
+
+        public bool IsBuiltinWords
+        {
+            get { return _wordSource == WordSourceMode.Builtin; }
+            set { if (value) { SetWordSource(WordSourceMode.Builtin); } }
+        }
+
+        public bool IsCombinedWords
+        {
+            get { return _wordSource == WordSourceMode.Combined; }
+            set { if (value) { SetWordSource(WordSourceMode.Combined); } }
+        }
+
+        public bool IsCustomOnlyWords
+        {
+            get { return _wordSource == WordSourceMode.CustomOnly; }
+            set { if (value) { SetWordSource(WordSourceMode.CustomOnly); } }
+        }
+
+        /// <summary>True se è stato caricato un file leggibile con almeno una parola valida.</summary>
+        public bool HasCustomWords
+        {
+            get { return _customWords != null && _customWords.Error == null && _customWords.Words.Count > 0; }
+        }
+
+        /// <summary>Lista in uso e quanto vale ogni parola in bit.</summary>
+        public string WordSummary
+        {
+            get { return _wordSummary; }
+            private set { SetProperty(ref _wordSummary, value); }
+        }
+
+        public string CustomFileSummary
+        {
+            get
+            {
+                return _customWords == null
+                    ? "Nessun file caricato."
+                    : _customWords.FileName + ": " + _customWords.Summary;
+            }
+        }
+
+        public string WordWarning
+        {
+            get { return _wordWarning; }
+            private set
+            {
+                if (SetProperty(ref _wordWarning, value))
+                {
+                    OnPropertyChanged(nameof(HasWordWarning));
+                }
+            }
+        }
+
+        public bool HasWordWarning
+        {
+            get { return _wordWarning.Length > 0; }
+        }
+
+        private void SetWordSource(WordSourceMode mode)
+        {
+            if (_wordSource == mode)
+            {
+                return;
+            }
+
+            _wordSource = mode;
+            ApplyWordSource();
+            Generate();
+        }
+
+        private void LoadWordFile()
+        {
+            var path = _dialogs.PickFile("Scegli il file delle parole", "File di testo (*.txt)|*.txt|Tutti i file (*.*)|*.*");
+            if (path == null)
+            {
+                return;
+            }
+
+            var result = CustomWordList.Load(path);
+            if (result.Error != null || result.Words.Count == 0)
+            {
+                StatusMessage = result.Error ?? "Il file non contiene parole valide (una per riga, 4-9 lettere): " + result.Summary;
+                return;
+            }
+
+            _customWords = result;
+            _customWordsPath = path;
+            if (_wordSource == WordSourceMode.Builtin)
+            {
+                _wordSource = WordSourceMode.Combined;
+            }
+
+            ApplyWordSource();
+            Generate();
+            SaveSettings();
+            StatusMessage = "Caricate " + result.Words.Count + " parole da " + result.FileName + ".";
+        }
+
+        private void ResetWords()
+        {
+            _customWords = null;
+            _customWordsPath = null;
+            _wordSource = WordSourceMode.Builtin;
+            ApplyWordSource();
+            Generate();
+            SaveSettings();
+            StatusMessage = "Ripristinata la lista di parole integrata.";
+        }
+
+        /// <summary>Sceglie la lista di parole in base alla modalità e al file, e aggiorna riepilogo e avvisi.</summary>
+        private void ApplyWordSource()
+        {
+            var selection = WordSelection.Select(_builtinWords, _customWords, _wordSource);
+            _generator.SetWords(selection.List);
+
+            string origin;
+            switch (selection.Effective)
+            {
+                case WordSourceMode.Combined:
+                    origin = "Lista integrata + " + _customWords.FileName;
+                    break;
+                case WordSourceMode.CustomOnly:
+                    origin = "Solo " + _customWords.FileName;
+                    break;
+                default:
+                    origin = "Lista integrata";
+                    break;
+            }
+
+            WordSummary = origin + ": " + selection.List.Count + " parole, "
+                + selection.BitsPerWord.ToString("0.0", CultureInfo.CurrentCulture) + " bit per parola";
+            WordWarning = selection.Warning;
+
+            OnPropertyChanged(nameof(IsBuiltinWords));
+            OnPropertyChanged(nameof(IsCombinedWords));
+            OnPropertyChanged(nameof(IsCustomOnlyWords));
+            OnPropertyChanged(nameof(HasCustomWords));
+            OnPropertyChanged(nameof(CustomFileSummary));
         }
 
         // ------------------------------------------------------------ Policy
@@ -654,6 +818,8 @@ namespace PasswordGen.ViewModels
             _settings.RequireSpecial = _requireSpecial;
             _settings.AvoidAmbiguous = _avoidAmbiguous;
             _settings.HistoryEnabled = _historyEnabled;
+            _settings.WordSource = _wordSource;
+            _settings.CustomWordsPath = _customWordsPath;
             _settings.ReminderEnabled = _reminderEnabled;
             _settings.ValidityDays = _validityDays;
 

@@ -41,6 +41,12 @@ namespace PasswordGen.Core.Settings
         /// <summary>Conserva le password scelte in uno storico cifrato (history.dat).</summary>
         [DataMember] public bool HistoryEnabled { get; set; }
 
+        /// <summary>Sorgente delle parole per le passphrase.</summary>
+        [DataMember] public WordSourceMode WordSource { get; set; }
+
+        /// <summary>Percorso del file di parole dell'utente (nullo se non caricato).</summary>
+        [DataMember] public string CustomWordsPath { get; set; }
+
         [DataMember] public bool ReminderEnabled { get; set; }
         [DataMember] public int ValidityDays { get; set; }
         [DataMember] public int WarnDays { get; set; }
@@ -89,6 +95,8 @@ namespace PasswordGen.Core.Settings
             AvoidAmbiguous = policy.AvoidAmbiguous;
 
             HistoryEnabled = true;
+            WordSource = WordSourceMode.Builtin;
+            CustomWordsPath = null;
             ReminderEnabled = true;
             ValidityDays = 30;
             WarnDays = 5;
@@ -105,6 +113,11 @@ namespace PasswordGen.Core.Settings
             SuggestionCount = Clamp(SuggestionCount, MinSuggestions, MaxSuggestions);
             ValidityDays = Clamp(ValidityDays, 7, 365);
             WarnDays = Clamp(WarnDays, 0, 30);
+            if (!Enum.IsDefined(typeof(WordSourceMode), WordSource))
+            {
+                WordSource = WordSourceMode.Builtin;
+            }
+
             if (!Enum.IsDefined(typeof(GenerationMode), Mode))
             {
                 Mode = GenerationMode.Passphrase;

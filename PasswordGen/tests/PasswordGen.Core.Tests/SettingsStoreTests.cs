@@ -33,6 +33,9 @@ namespace PasswordGen.Core.Tests
             Assert.Equal(6, settings.SuggestionCount);
             Assert.Equal(10, settings.MinLength);
             Assert.True(settings.HistoryEnabled);
+            Assert.Equal(GenerationMode.Passphrase, settings.Mode);
+            Assert.Equal(WordSourceMode.Builtin, settings.WordSource);
+            Assert.Null(settings.CustomWordsPath);
             Assert.True(settings.ReminderEnabled);
             Assert.Equal(30, settings.ValidityDays);
             Assert.Null(settings.LastChangeDate);
@@ -51,6 +54,8 @@ namespace PasswordGen.Core.Tests
                 MinLength = 12,
                 RequireSpecial = false,
                 HistoryEnabled = false,
+                WordSource = WordSourceMode.Combined,
+                CustomWordsPath = @"C:\dati\parole.txt",
                 ValidityDays = 60,
                 LastChangeDate = new DateTime(2026, 10, 8)
             };
@@ -65,6 +70,8 @@ namespace PasswordGen.Core.Tests
             Assert.Equal(12, loaded.MinLength);
             Assert.False(loaded.RequireSpecial);
             Assert.False(loaded.HistoryEnabled);
+            Assert.Equal(WordSourceMode.Combined, loaded.WordSource);
+            Assert.Equal(@"C:\dati\parole.txt", loaded.CustomWordsPath);
             Assert.True(loaded.RequireUpper);
             Assert.Equal(60, loaded.ValidityDays);
             Assert.Equal(new DateTime(2026, 10, 8), loaded.LastChangeDate);

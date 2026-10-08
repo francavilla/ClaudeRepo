@@ -42,8 +42,9 @@ namespace PasswordGen
             // Composition root: dipendenze create a mano, l'applicazione è piccola e non serve un container DI.
             _random = new SecureRandom();
             _clipboard = new SecretClipboard(ClipboardLifetime);
-            var generator = new PasswordGenerator(_random, WordList.LoadItalian());
-            var viewModel = new MainViewModel(generator, store, _clipboard, new StartupRegistration(),
+            var builtinWords = WordList.LoadItalian();
+            var generator = new PasswordGenerator(_random, builtinWords);
+            var viewModel = new MainViewModel(generator, builtinWords, store, _clipboard, new StartupRegistration(),
                 new HistoryStore(HistoryStore.DefaultPath, new DpapiProtector()), new DialogService(), () => DateTime.Today);
 
             var window = new MainWindow { DataContext = viewModel };

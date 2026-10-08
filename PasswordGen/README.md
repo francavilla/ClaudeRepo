@@ -45,6 +45,22 @@ Per segreti da conservare a lungo (cifratura di file, password manager) usare al
 La lista delle parole è in `src/PasswordGen.Core/Words/it.txt` (minuscole, senza accenti, 4-9 lettere, una per riga): si può
 ampliare, il numero di bit si adegua da solo.
 
+## Lista di parole personale
+
+Nella card *Parole della passphrase* (visibile con il tipo «Parole italiane») si può caricare un file di testo con le parole da usare:
+una parola per riga, `#` per i commenti. L'app le porta in minuscolo, toglie gli accenti e scarta duplicati, parole con
+caratteri diversi da a-z e parole più corte di 4 o più lunghe di 9 lettere, indicando quante ne ha scartate.
+
+| Modalità | Requisito | Quando |
+|---|---|---|
+| Solo la lista integrata | - | Predefinita (1074 parole, ~10,1 bit per parola) |
+| Aggiungi il mio file alla lista integrata | almeno 1 parola valida | Pochi termini in più, senza perdere sicurezza |
+| Solo il mio file | almeno **300** parole valide | Altra lingua o vocabolario tutto tuo |
+
+L'entropia mostrata tiene conto della lista in uso: con 400 parole ogni parola vale ~8,6 bit invece di ~10,1, quindi servono
+più parole per la stessa sicurezza (sotto le 1000 parole compare un avviso). Evita nomi di familiari, date e soprannomi:
+sono facili da indovinare per chi ti conosce. Se il file manca o non è valido, l'app usa la lista integrata e lo segnala.
+
 ## Storico delle password
 
 Facoltativo (attivo di default, si disattiva nella card *Storico delle password*). Conserva le **ultime 12** password usate,

@@ -26,11 +26,17 @@ namespace PasswordGen.Core.Generation
         private const int MaxAttempts = 500;
 
         private readonly IRandomSource _random;
-        private readonly WordList _words;
+        private WordList _words;
 
         public PasswordGenerator(IRandomSource random, WordList words)
         {
             _random = random;
+            _words = words;
+        }
+
+        /// <summary>Cambia la lista delle parole usata dalle passphrase (per esempio dopo aver caricato un file).</summary>
+        public void SetWords(WordList words)
+        {
             _words = words;
         }
 
