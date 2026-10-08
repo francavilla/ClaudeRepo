@@ -4,7 +4,7 @@
              xmlns:vm="clr-namespace:PasswordGen.Mobile.ViewModels"
              x:Class="PasswordGen.Mobile.MainPage"
              x:DataType="vm:MainViewModel"
-             Title="PasswordGen"
+             Title="Genera"
              BackgroundColor="#F1F5F9">
 
     <Grid RowDefinitions="Auto,*,Auto">
@@ -18,6 +18,19 @@
 
         <ScrollView Grid.Row="1">
             <VerticalStackLayout Padding="14" Spacing="12">
+
+                <!-- Promemoria -->
+                <Border BackgroundColor="{Binding ReminderBackground}" Stroke="#E2E8F0" StrokeThickness="1" Padding="14">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="{Binding ReminderMessage}" FontAttributes="Bold" TextColor="#0F172A" />
+                        <Label Text="{Binding LastChangeText}" Style="{StaticResource MutedText}" />
+                        <Button Text="Ho cambiato la password" Command="{Binding MarkChangedCommand}"
+                                BackgroundColor="White" TextColor="{StaticResource Accent}" BorderColor="#CBD5E1" BorderWidth="1" />
+                    </VerticalStackLayout>
+                </Border>
 
                 <!-- Proposte -->
                 <Button Text="Genera nuove proposte" Style="{StaticResource PrimaryButton}" Command="{Binding GenerateCommand}" />
@@ -101,6 +114,21 @@
                             <Label Text="Evita caratteri ambigui (0 O 1 l I)" VerticalOptions="Center" />
                             <Switch Grid.Column="1" IsToggled="{Binding AvoidAmbiguous, Mode=TwoWay}" />
                         </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Impostazioni del promemoria -->
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Promemoria cambio password" Style="{StaticResource CardTitle}" />
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="Avvisami prima della scadenza" VerticalOptions="Center" />
+                            <Switch Grid.Column="1" IsToggled="{Binding ReminderEnabled, Mode=TwoWay}" />
+                        </Grid>
+                        <Label Text="{Binding ValidityDays, StringFormat='La password dura {0:0} giorni'}" />
+                        <Slider Minimum="14" Maximum="90" Value="{Binding ValidityDays, Mode=TwoWay}" />
+                        <Label Style="{StaticResource MutedText}"
+                               Text="Una notifica al giorno (verso le 9) quando mancano al massimo 5 giorni o la password è scaduta. Premi «Ho cambiato la password» dopo ogni cambio." />
                     </VerticalStackLayout>
                 </Border>
 

@@ -80,15 +80,19 @@ Non contiene mai password: quelle dello storico stanno nel file cifrato `history
 
 ## App Android (in sviluppo)
 
-Nella cartella `src/PasswordGen.Mobile` c'è l'app Android (.NET MAUI), che riusa lo stesso Core. **Prima tappa**: generazione delle
-tre tipologie di password, policy, numero di proposte, password attuale facoltativa e copia sicura negli appunti. Seguiranno storico
-cifrato (Keystore di Android), promemoria con notifiche e file di parole personale.
+Nella cartella `src/PasswordGen.Mobile` c'è l'app Android (.NET MAUI), che riusa lo stesso Core.
+- **Tappa 1**: generazione delle tre tipologie di password, policy, numero di proposte, password attuale facoltativa e copia sicura
+  negli appunti (segnalata come sensibile, cancellata dopo 30 secondi).
+- **Tappa 2**: scheda *Storico* (ultime 12 password, cifrate con una chiave del Keystore di Android) e promemoria con notifica
+  giornaliera quando la password sta per scadere.
+- **Prossima tappa**: file di parole personale.
 
 - L'APK è allegata a ogni release (`PasswordGen-vX.Y.Z.apk`); le build di prova si scaricano anche dall'artifact del workflow *CI PasswordGen Android*. Per installarlo sul telefono servono le «origini sconosciute».
 - Senza un keystore fisso l'APK è firmato con una chiave di debug diversa a ogni build: per **aggiornare** l'app senza disinstallarla
   (e perdere le impostazioni) servirà una chiave fissa, da fornire come secret del repository.
 - Non c'è nella `PasswordGen.sln` perché richiede il workload Android: si compila con `dotnet publish` (vedi il workflow).
-- Permessi Android: nessuno (l'app non usa la rete); il backup di Android è disattivato.
+- Permessi Android: notifiche (promemoria) e riavvio del telefono (per ripianificare il promemoria); nessun accesso alla rete.
+  Il backup di Android è disattivato: impostazioni e storico non lasciano il telefono.
 
 ## Struttura
 

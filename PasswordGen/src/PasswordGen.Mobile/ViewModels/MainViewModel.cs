@@ -1,6 +1,9 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Windows.Input;
 using PasswordGen.Core.Generation;
+using PasswordGen.Core.History;
+using PasswordGen.Core.Reminder;
 using PasswordGen.Core.Policy;
 using PasswordGen.Core.Settings;
 using PasswordGen.Mobile.Services;
@@ -13,6 +16,10 @@ public class MainViewModel : ObservableObject
     private readonly SettingsStore _store;
     private readonly SecretClipboard _clipboard;
     private readonly AppSettings _settings;
+    private readonly HistoryStore _historyStore;
+    private readonly PasswordHistory _history;
+    private readonly IDialogService _dialogs;
+    private readonly IReminderScheduler _scheduler;
 
     private bool _loading = true;
     private GenerationMode _mode;
@@ -28,12 +35,28 @@ public class MainViewModel : ObservableObject
     private bool _avoidAmbiguous;
     private string _previousPassword = string.Empty;
     private string _statusMessage = string.Empty;
+    private bool _historyEnabled;
+    private bool _reminderEnabled;
+    private int _validityDays;
+    private string _reminderMessage = string.Empty;
+    private string _lastChangeText = string.Empty;
+    private Color _reminderBackground = Color.FromArgb("#EFF6FF");
 
-    public MainViewModel(PasswordGenerator generator, SettingsStore store, SecretClipboard clipboard)
+    /// <param name="historyStore">Archivio cifrato dello storico; nullo se la chiave non è disponibile (storico non utilizzabile).</param>
+    public MainViewModel(
+        PasswordGenerator generator,
+        SettingsStore store,
+        HistoryStore historyStore,
+        SecretClipboard clipboard,
+        IDialogService dialogs,
+        IReminderScheduler scheduler)
     {
         _generator = generator;
         _store = store;
         _clipboard = clipboard;
+        _historyStore = historyStore;
+        _dialogs = dialogs;
+        _scheduler = scheduler;
 
         _settings = store.Load();
         _mode = _settings.Mode;
@@ -47,12 +70,27 @@ public class MainViewModel : ObservableObject
         _requireDigit = _settings.RequireDigit;
         _requireSpecial = _settings.RequireSpecial;
         _avoidAmbiguous = _settings.AvoidAmbiguous;
+        _reminderEnabled = _settings.ReminderEnabled;
+        _validityDays = _settings.ValidityDays;
+
+        HistoryAvailable = historyStore != null;
+        _historyEnabled = HistoryAvailable && _settings.HistoryEnabled;
+        _history = _historyEnabled ? historyStore.Load() : new PasswordHistory();
 
         Suggestions = new ObservableCollection<SuggestionItem>();
+        HistoryEntries = new ObservableCollection<HistoryEntryItem>();
         GenerateCommand = new Command(Generate);
+        MarkChangedCommand = new Command(() => RunSafe(MarkChangedAsync));
+        ClearHistoryCommand = new Command(() => RunSafe(ClearHistoryAsync));
 
         _loading = false;
+        RefreshReminder();
+        RefreshHistory();
         Generate();
+        if (!HistoryAvailable)
+        {
+            StatusMessage = "Lo storico non è disponibile: il Keystore di Android non ha dato la chiave di cifratura.";
+        }
     }
 
     public string Title => "PasswordGen " + AppInfo.Current.VersionString;
@@ -62,6 +100,10 @@ public class MainViewModel : ObservableObject
     public ObservableCollection<SuggestionItem> Suggestions { get; }
 
     public ICommand GenerateCommand { get; }
+
+    public ICommand MarkChangedCommand { get; }
+
+    public ICommand ClearHistoryCommand { get; }
 
     public string StatusMessage
     {
@@ -220,6 +262,7 @@ public class MainViewModel : ObservableObject
             SyllableCount = _syllableCount,
             RandomLength = _randomLength,
             PreviousPassword = _previousPassword,
+            PreviousPasswords = _historyEnabled ? _history.Passwords() : null,
             Policy = new PasswordPolicy
             {
                 MinLength = _minLength,
@@ -264,6 +307,289 @@ public class MainViewModel : ObservableObject
             : "Impossibile accedere agli appunti: riprova.";
     }
 
+    // ---------------------------------------------------------------- Promemoria
+
+    public bool ReminderEnabled
+    {
+        get => _reminderEnabled;
+        set
+        {
+            if (SetProperty(ref _reminderEnabled, value))
+            {
+                RefreshReminder();
+                SaveSettings();
+                RunSafe(() => ApplyReminderAsync(value));
+            }
+        }
+    }
+
+    /// <summary>Per quanti giorni è valida la password (14-90).</summary>
+    public double ValidityDays
+    {
+        get => _validityDays;
+        set
+        {
+            if (SetProperty(ref _validityDays, (int)Math.Round(value)))
+            {
+                RefreshReminder();
+                SaveSettings();
+            }
+        }
+    }
+
+    public string ReminderMessage
+    {
+        get => _reminderMessage;
+        private set => SetProperty(ref _reminderMessage, value);
+    }
+
+    public string LastChangeText
+    {
+        get => _lastChangeText;
+        private set => SetProperty(ref _lastChangeText, value);
+    }
+
+    public Color ReminderBackground
+    {
+        get => _reminderBackground;
+        private set => SetProperty(ref _reminderBackground, value);
+    }
+
+    private void RefreshReminder()
+    {
+        var last = _settings.LastChangeDate;
+        var state = ChangeReminder.Evaluate(_reminderEnabled, last, _validityDays, _settings.WarnDays, DateTime.Today);
+
+        ReminderMessage = state.Message;
+        ReminderBackground = Color.FromArgb(state.Status switch
+        {
+            ReminderStatus.Expired => "#FEE2E2",
+            ReminderStatus.DueSoon => "#FEF3C7",
+            ReminderStatus.Ok => "#DCFCE7",
+            _ => "#DBEAFE",
+        });
+        LastChangeText = last.HasValue
+            ? "Ultimo cambio: " + last.Value.ToString("d", CultureInfo.CurrentCulture)
+            : "Nessun cambio registrato";
+    }
+
+    private async Task ApplyReminderAsync(bool enabled)
+    {
+        if (enabled && !await _scheduler.EnsureNotificationPermissionAsync())
+        {
+            StatusMessage = "Notifiche non consentite: il promemoria resta visibile qui, ma per riceverlo attivale dalle impostazioni di Android.";
+        }
+
+        _scheduler.Apply(enabled);
+    }
+
+    /// <summary>Riattiva il controllo giornaliero all'avvio (sopravvive solo finché Android non lo cancella).</summary>
+    public void RestoreReminder()
+    {
+        if (_reminderEnabled)
+        {
+            _scheduler.Apply(true);
+        }
+    }
+
+    // ---------------------------------------------------------------- Cambio password e storico
+
+    public bool HistoryAvailable { get; }
+
+    public bool HistoryEnabled
+    {
+        get => _historyEnabled;
+        set
+        {
+            if (value == _historyEnabled)
+            {
+                return;
+            }
+
+            if (!HistoryAvailable)
+            {
+                OnPropertyChanged();
+                return;
+            }
+
+            if (!value && _history.Entries.Count > 0)
+            {
+                // Lo storico esistente verrebbe cancellato: serve conferma. Intanto l'interruttore torna com'era.
+                OnPropertyChanged();
+                RunSafe(DisableHistoryAsync);
+                return;
+            }
+
+            _historyEnabled = value;
+            OnPropertyChanged();
+            SaveSettings();
+            RefreshHistory();
+        }
+    }
+
+    public ObservableCollection<HistoryEntryItem> HistoryEntries { get; }
+
+    public bool HasHistory => _history.Entries.Count > 0;
+
+    public string HistoryHeader => _history.Entries.Count > 0 ? "Storico (" + _history.Entries.Count + ")" : "Storico";
+
+    private async Task DisableHistoryAsync()
+    {
+        if (!await _dialogs.ConfirmAsync("Disattivando lo storico, le password conservate vengono cancellate. Continuare?", "Storico"))
+        {
+            return;
+        }
+
+        _historyEnabled = false;
+        ClearHistoryEntries();
+        OnPropertyChanged(nameof(HistoryEnabled));
+        SaveSettings();
+    }
+
+    /// <summary>Chiede quale proposta è stata usata come nuova password e la registra nello storico.</summary>
+    private async Task MarkChangedAsync()
+    {
+        SuggestionItem chosen = null;
+        if (_historyEnabled && Suggestions.Count > 0)
+        {
+            var options = new List<string> { "Nessuna: registra solo la data" };
+            for (var i = 0; i < Suggestions.Count; i++)
+            {
+                options.Add((i + 1) + " - " + Suggestions[i].Text);
+            }
+
+            var index = await _dialogs.ChooseAsync("Quale proposta hai usato come nuova password?", options);
+            if (index < 0)
+            {
+                return;
+            }
+
+            if (index > 0)
+            {
+                chosen = Suggestions[index - 1];
+            }
+        }
+
+        var today = DateTime.Today;
+        _settings.LastChangeDate = today;
+
+        string message;
+        if (_historyEnabled)
+        {
+            var entry = _history.Add(chosen?.Text, chosen?.Mode ?? _mode, today);
+            SaveHistory();
+            RefreshHistory();
+            message = chosen == null
+                ? "Cambio registrato (#" + entry.Number + ", solo data)."
+                : "Cambio registrato nello storico come #" + entry.Number + ".";
+        }
+        else
+        {
+            message = "Cambio password registrato.";
+        }
+
+        RefreshReminder();
+        SaveSettings();
+        StatusMessage = message + " " + ReminderMessage;
+    }
+
+    private async Task ClearHistoryAsync()
+    {
+        if (!await _dialogs.ConfirmAsync("Cancellare tutto lo storico delle password?", "Storico"))
+        {
+            return;
+        }
+
+        ClearHistoryEntries();
+        StatusMessage = "Storico cancellato.";
+    }
+
+    private void ClearHistoryEntries()
+    {
+        _history.Clear();
+        SaveHistory();
+        RefreshHistory();
+    }
+
+    private void RefreshHistory()
+    {
+        HistoryEntries.Clear();
+        foreach (var entry in _history.Entries)
+        {
+            HistoryEntries.Add(new HistoryEntryItem(entry, CopyHistoryEntry, item => RunSafe(() => DeleteHistoryEntryAsync(item))));
+        }
+
+        OnPropertyChanged(nameof(HasHistory));
+        OnPropertyChanged(nameof(HistoryHeader));
+    }
+
+    private void CopyHistoryEntry(HistoryEntryItem entry)
+    {
+        StatusMessage = _clipboard.Copy(entry.Password)
+            ? "Password " + entry.Title + " copiata: verrà cancellata dagli appunti tra " + (int)_clipboard.ClearAfter.TotalSeconds + " secondi."
+            : "Impossibile accedere agli appunti: riprova.";
+    }
+
+    private async Task DeleteHistoryEntryAsync(HistoryEntryItem entry)
+    {
+        if (!await _dialogs.ConfirmAsync("Eliminare dallo storico la voce " + entry.Title + " del " + entry.DateText + "?", "Storico"))
+        {
+            return;
+        }
+
+        _history.Remove(entry.Number);
+        SaveHistory();
+        RefreshHistory();
+        StatusMessage = "Voce " + entry.Title + " eliminata.";
+    }
+
+    private void SaveHistory()
+    {
+        if (_historyStore == null)
+        {
+            return;
+        }
+
+        try
+        {
+            if (_history.Entries.Count == 0)
+            {
+                _historyStore.Delete();
+            }
+            else
+            {
+                _historyStore.Save(_history);
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Impossibile salvare lo storico: " + ex.Message;
+        }
+    }
+
+    /// <summary>Da chiamare quando l'app va in secondo piano: toglie dalla memoria e dallo schermo i dati riservati.</summary>
+    public void ClearSensitive()
+    {
+        PreviousPassword = string.Empty;
+        foreach (var entry in HistoryEntries)
+        {
+            entry.IsRevealed = false;
+        }
+    }
+
+    /// <summary>Esegue un'operazione asincrona dal comando di un pulsante, mostrando gli errori invece di far chiudere l'app.</summary>
+    private async void RunSafe(Func<Task> operation)
+    {
+        try
+        {
+            await operation();
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Errore: " + ex.Message;
+        }
+    }
+
     // ---------------------------------------------------------------- Salvataggio
 
     /// <summary>Salva le preferenze (mai le password) nella cartella privata dell'app.</summary>
@@ -280,6 +606,9 @@ public class MainViewModel : ObservableObject
         _settings.RequireDigit = _requireDigit;
         _settings.RequireSpecial = _requireSpecial;
         _settings.AvoidAmbiguous = _avoidAmbiguous;
+        _settings.HistoryEnabled = _historyEnabled;
+        _settings.ReminderEnabled = _reminderEnabled;
+        _settings.ValidityDays = _validityDays;
 
         try
         {

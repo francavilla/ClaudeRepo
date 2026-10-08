@@ -4,6 +4,25 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.5.0] - 2026-10-08
+
+### Aggiunto
+- **App Android, tappa 2**: storico delle password e promemoria con notifiche.
+  - Scheda *Storico*: con «Ho cambiato la password» l'app chiede quale proposta è stata usata e la registra con numero
+    progressivo, data e tipo (ultime 12). Password mascherate, con mostra/nascondi, copia (con cancellazione automatica degli appunti)
+    ed elimina; interruttore per disattivare lo storico e pulsante per cancellarlo (con conferma). Le nuove proposte evitano le varianti
+    di quelle passate.
+  - Lo storico è cifrato (AES-256 + HMAC) con una chiave generata sul telefono e custodita nel Keystore di Android (`SecureStorage`):
+    la chiave non sta mai nei file dell'app.
+  - Promemoria: banner con i giorni alla scadenza e **notifica giornaliera** (verso le 9) quando mancano al massimo 5 giorni o la
+    password è scaduta. Si riattiva da sola dopo il riavvio del telefono.
+  - Password attuale e password dello storico vengono nascoste quando l'app va in secondo piano.
+- `PasswordGen.Core`: `AesHmacProtector`, cifratura portabile (AES-256-CBC + HMAC-SHA256) con test, usata dall'app Android.
+
+### Modificato
+- L'app Android richiede ora due permessi: notifiche (Android 13+, richiesto all'attivazione del promemoria) e riavvio del telefono
+  (per ripianificare il promemoria). Nessun accesso alla rete.
+
 ## [1.4.0] - 2026-10-08
 
 ### Aggiunto

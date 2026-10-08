@@ -2,9 +2,9 @@ using PasswordGen.Mobile.ViewModels;
 
 namespace PasswordGen.Mobile;
 
-public partial class MainPage : ContentPage
+public partial class HistoryPage : ContentPage
 {
-    public MainPage(MainViewModel viewModel)
+    public HistoryPage(MainViewModel viewModel)
     {
         InitializeComponent();
         BindingContext = viewModel;
