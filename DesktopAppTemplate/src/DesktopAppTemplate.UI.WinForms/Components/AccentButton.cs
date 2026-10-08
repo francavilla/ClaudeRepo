@@ -5,7 +5,7 @@ using System.Windows.Forms;
 namespace DesktopAppTemplate.UI.WinForms.Components
 {
     /// <summary>Pulsante piatto con il colore d'accento.</summary>
-    internal sealed class AccentButton : Button
+    public sealed class AccentButton : Button
     {
         public AccentButton()
         {

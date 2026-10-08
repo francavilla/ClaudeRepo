@@ -4,7 +4,7 @@ using System.Windows.Forms;
 namespace DesktopAppTemplate.UI.WinForms.Components
 {
     /// <summary>Pannello bianco con bordo sottile, equivalente della "card" del tema WPF.</summary>
-    internal sealed class CardPanel : Panel
+    public sealed class CardPanel : Panel
     {
         public CardPanel()
         {

@@ -5,16 +5,14 @@ using System.Windows.Forms;
 namespace DesktopAppTemplate.UI.WinForms.Components
 {
     /// <summary>Voce del menu laterale: icona (Segoe MDL2) + testo, con stato di hover e selezione.</summary>
-    internal sealed class NavButton : Control
+    public sealed class NavButton : Control
     {
         private bool _hover;
         private bool _selected;
         private readonly Font _iconFont = Palette.Icons(13f);
 
-        public NavButton(string glyph, string caption)
+        public NavButton()
         {
-            Glyph = glyph;
-            Text = caption;
             Font = Palette.Ui(10.5f);
             Height = 44;
             Cursor = Cursors.Hand;
@@ -23,7 +21,8 @@ namespace DesktopAppTemplate.UI.WinForms.Components
             SetStyle(ControlStyles.Selectable, false);
         }
 
-        public string Glyph { get; }
+        /// <summary>Glifo del font Segoe MDL2 Assets mostrato a sinistra del testo.</summary>
+        public string Glyph { get; set; }
 
         public bool Selected
         {

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Drawing;
 using System.Windows.Forms;
 using DesktopAppTemplate.Core.Mvvm;
 using DesktopAppTemplate.Features.About;
@@ -12,30 +11,35 @@ using DesktopAppTemplate.UI.WinForms.Views;
 
 namespace DesktopAppTemplate.UI.WinForms
 {
-    /// <summary>Finestra principale: menu laterale scuro e area contenuto a card, come nella versione WPF.</summary>
-    internal sealed class MainForm : Form
+    /// <summary>
+    /// Finestra principale. La cornice (menu laterale scuro e area contenuto) è nel designer;
+    /// le voci del menu e le pagine, che dipendono dai view model registrati, si creano qui.
+    /// </summary>
+    public partial class MainForm : Form
     {
-        private readonly MainViewModel _viewModel;
-        private readonly Panel _content;
+        private MainViewModel _viewModel;
         private readonly Dictionary<PageViewModel, Control> _views = new Dictionary<PageViewModel, Control>();
         private readonly Dictionary<PageViewModel, NavButton> _navButtons = new Dictionary<PageViewModel, NavButton>();
 
+        /// <summary>Costruttore per il designer; a runtime usare <see cref="MainForm(MainViewModel)"/>.</summary>
+        public MainForm()
+        {
+            InitializeComponent();
+        }
+
         public MainForm(MainViewModel viewModel)
+            : this()
+        {
+            Bind(viewModel);
+        }
+
+        private void Bind(MainViewModel viewModel)
         {
             _viewModel = viewModel;
 
-            AutoScaleDimensions = new SizeF(96F, 96F);
-            AutoScaleMode = AutoScaleMode.Dpi;
-            Font = Palette.Ui(9.5f);
             Text = viewModel.AppName;
-            BackColor = Palette.Background;
-            ClientSize = new Size(1100, 720);
-            MinimumSize = new Size(900, 620);
-            StartPosition = FormStartPosition.CenterScreen;
-
-            _content = new Panel { Dock = DockStyle.Fill, BackColor = Palette.Background };
-
-            var sidebar = new Panel { Dock = DockStyle.Left, Width = 240, BackColor = Palette.Sidebar };
+            brandNameLabel.Text = viewModel.AppName;
+            versionLabel.Text = viewModel.VersionText;
 
             // Le voci si aggiungono dall'ultima alla prima: con Dock=Top l'ultima aggiunta sta in alto.
             for (var i = viewModel.Pages.Count - 1; i >= 0; i--)
@@ -45,58 +49,27 @@ namespace DesktopAppTemplate.UI.WinForms
                 var view = CreateView(page);
                 view.Dock = DockStyle.Fill;
                 view.Visible = false;
-                _content.Controls.Add(view);
+                contentPanel.Controls.Add(view);
                 _views[page] = view;
 
-                var button = new NavButton(page.Icon, page.Title) { Dock = DockStyle.Top };
+                var button = new NavButton { Glyph = page.Icon, Text = page.Title, Dock = DockStyle.Top };
                 var target = page;
                 button.Click += (s, e) => viewModel.NavigateCommand.Execute(target);
-                sidebar.Controls.Add(button);
+                navPanel.Controls.Add(button);
                 _navButtons[page] = button;
 
                 page.PropertyChanged += OnPagePropertyChanged;
             }
 
-            var spacer = new Panel { Dock = DockStyle.Top, Height = 8, BackColor = Palette.Sidebar };
-            var brand = new Panel { Dock = DockStyle.Top, Height = 84, BackColor = Palette.Sidebar };
-            brand.Controls.Add(new Label
-            {
-                Text = viewModel.AppName,
-                Dock = DockStyle.Fill,
-                ForeColor = Color.White,
-                Font = Palette.Ui(13f, FontStyle.Bold),
-                TextAlign = ContentAlignment.BottomLeft,
-                Padding = new Padding(24, 0, 0, 2)
-            });
-            brand.Controls.Add(new Label
-            {
-                Text = "Applicazione desktop",
-                Dock = DockStyle.Bottom,
-                Height = 24,
-                ForeColor = ColorTranslator.FromHtml("#9CA3AF"),
-                Font = Palette.Ui(8.5f),
-                Padding = new Padding(24, 0, 0, 0)
-            });
-            var version = new Label
-            {
-                Text = viewModel.VersionText,
-                Dock = DockStyle.Bottom,
-                Height = 40,
-                ForeColor = ColorTranslator.FromHtml("#6B7280"),
-                Font = Palette.Ui(8.5f),
-                TextAlign = ContentAlignment.MiddleLeft,
-                Padding = new Padding(24, 0, 0, 0)
-            };
-
-            sidebar.Controls.Add(spacer);
-            sidebar.Controls.Add(brand);
-            sidebar.Controls.Add(version);
-
-            // Il controllo "Fill" si aggiunge per primo.
-            Controls.Add(_content);
-            Controls.Add(sidebar);
-
             viewModel.PropertyChanged += OnViewModelPropertyChanged;
+            Disposed += (s, e) => Unbind();
+        }
+
+        private void Unbind()
+        {
+            _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+            foreach (var page in _views.Keys)
+                page.PropertyChanged -= OnPagePropertyChanged;
         }
 
         /// <summary>Pagina (view model) -> view. Una riga per ogni nuova pagina.</summary>
