@@ -4,6 +4,14 @@ Tutte le modifiche rilevanti di DesktopAppTemplate sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [4.2.1] - 2026-10-08
+
+### Modificato
+- `DalGateway` non è più un file di soli `TODO`: richiama `DalPlaceholder`, una classe segnaposto con i cinque metodi di DAL nella forma dei wrapper ADO.NET,
+  e converte i parametri in `DbParameter` del database in uso (`CreateParameters`). Per collegare DAL basta sostituire `DalPlaceholder.` con la libreria
+  (istruzioni e mappa dei segnaposto in `DalPlaceholder.cs` e nel README).
+- `DalGateway` riceve `IDbConnectionFactory` (per scegliere il tipo di parametro); test sulla conversione dei parametri e sul messaggio di segnaposto.
+
 ## [4.2.0] - 2026-10-08
 
 ### Aggiunto

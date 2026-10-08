@@ -276,6 +276,37 @@ namespace DesktopAppTemplate.Tests
             Assert.IsType<DalTransactionRunner>(provider.GetRequiredService<ITransactionRunner>());
         }
 
+        [Fact]
+        public void Il_gateway_converte_i_parametri_nel_tipo_del_database_in_uso()
+        {
+            var parameters = new List<KeyValuePair<string, object>>
+            {
+                new KeyValuePair<string, object>("@Id", "abc"),
+                new KeyValuePair<string, object>("@Exception", null)
+            };
+
+            var sqlite = new DalGateway(new DbConnectionFactory(DatabaseProvider.Sqlite, "Data Source=x.db")).CreateParameters(parameters);
+            var sqlServer = new DalGateway(new DbConnectionFactory(DatabaseProvider.SqlServer, "Server=.;Database=D;Integrated Security=True")).CreateParameters(parameters);
+
+            Assert.All(sqlite, p => Assert.IsType<Microsoft.Data.Sqlite.SqliteParameter>(p));
+            Assert.All(sqlServer, p => Assert.IsType<System.Data.SqlClient.SqlParameter>(p));
+            Assert.Equal(new[] { "@Id", "@Exception" }, sqlServer.Select(p => p.ParameterName));
+            Assert.Equal("abc", sqlite[0].Value);
+            Assert.Equal(DBNull.Value, sqlite[1].Value);
+            Assert.Empty(new DalGateway(new DbConnectionFactory(DatabaseProvider.Sqlite, "Data Source=x.db")).CreateParameters(null));
+        }
+
+        [Fact]
+        public void Il_gateway_predefinito_segnala_il_segnaposto_da_sostituire_con_le_istruzioni()
+        {
+            var gateway = new DalGateway(new DbConnectionFactory(DatabaseProvider.Sqlite, "Data Source=x.db"));
+
+            var ex = Assert.Throws<InvalidOperationException>(() => gateway.BeginTransaction());
+
+            Assert.Contains("DalPlaceholder", ex.Message);
+            Assert.Contains("DalGateway.cs", ex.Message);
+        }
+
         private sealed class FakeGatewayForDi : IDalGateway
         {
             public IDataReader ExecuteReader(string sql, IReadOnlyList<KeyValuePair<string, object>> parameters) => throw new NotSupportedException();
