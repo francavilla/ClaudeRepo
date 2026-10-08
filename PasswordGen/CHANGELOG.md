@@ -23,6 +23,7 @@ Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Bui
 - **App Android:** stessa card «Sincronizzazione e backup»; il file si sceglie o si crea con il selettore di documenti di Android (anche in Google Drive),
   l'accesso resta valido dopo la chiusura dell'app. La frase segreta si salva cifrata con la chiave del Keystore.
 - **Avviso per attivare il blocco** (Windows Hello / impronta o PIN), che si può chiudere con «Non ora».
+- Test del ViewModel dell'app Windows (`PasswordGen.App.Tests`): cambio password e storico, avviso del blocco, sincronizzazione, esportazione e importazione.
 - `PasswordGen.Core`: `PassphraseProtector`, `ExchangeFile`, `SyncEngine`, `FileSyncStorage`, `SyncPassphraseStore`, `PasswordHistory.Merge` (con test).
 
 ## [1.0.0] - 2026-10-08
