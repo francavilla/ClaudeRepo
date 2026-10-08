@@ -4,6 +4,12 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.9.1] - 2026-10-08
+
+### Corretto
+- La build Android (netstandard2.0) della 1.9.0 non compilava: `Rfc2898DeriveBytes` con SHA-256 non esiste in quel target. L'hash del PIN/password
+  usa ora un PBKDF2-HMAC-SHA256 implementato con `HMACSHA256` (stesso algoritmo e stesso risultato su tutte le piattaforme).
+
 ## [1.9.0] - 2026-10-08
 
 ### Aggiunto
