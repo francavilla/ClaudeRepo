@@ -75,6 +75,7 @@ docs/adr/               decisioni architetturali
 
 ## Requisiti
 
+- **Versione e novità**: vedere [CHANGELOG.md](CHANGELOG.md); il numero si cambia in `<Version>` di `Directory.Build.props` ed è mostrato nel titolo della finestra.
 - **Per compilare ExeBuilder**: Visual Studio 2019 16.8+ o 2022 (carico di lavoro *Sviluppo desktop .NET*).
 - **Per eseguirlo**: Windows 10/11 con .NET Framework 4.8.
 - **Per compilare i progetti selezionati**: il .NET SDK e/o Visual Studio/Build Tools richiesti dal progetto;

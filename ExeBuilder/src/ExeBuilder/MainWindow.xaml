@@ -4,7 +4,7 @@
         xmlns:vm="clr-namespace:ExeBuilder.ViewModels"
         xmlns:conv="clr-namespace:ExeBuilder.Converters"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
-        Title="ExeBuilder" Width="1200" Height="920" MinWidth="940" MinHeight="680"
+        Title="{Binding WindowTitle}" Width="1200" Height="920" MinWidth="940" MinHeight="680"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource WindowBrush}"
         Foreground="{StaticResource TextBrush}"
@@ -25,7 +25,13 @@
                     <TextBlock Text="{Binding ToolchainSummary}" FontSize="12" Foreground="#DDFFFFFF" TextWrapping="Wrap" TextAlignment="Right" Margin="0,2,0,0" />
                 </StackPanel>
                 <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
-                    <TextBlock Text="ExeBuilder" FontSize="22" FontWeight="SemiBold" Foreground="White" />
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="ExeBuilder" FontSize="22" FontWeight="SemiBold" Foreground="White" />
+                        <Border Background="#33FFFFFF" CornerRadius="9" Padding="8,1" Margin="10,0,0,0" VerticalAlignment="Center"
+                                ToolTip="Versione dell'applicazione">
+                            <TextBlock Text="{Binding AppVersion, StringFormat='v{0}'}" FontSize="11" FontWeight="SemiBold" Foreground="White" />
+                        </Border>
+                    </StackPanel>
                     <TextBlock Text="Crea l'eseguibile Release di progetti e solution .NET e .NET Framework" Foreground="#CCFFFFFF" />
                 </StackPanel>
             </DockPanel>

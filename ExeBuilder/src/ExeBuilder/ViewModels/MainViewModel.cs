@@ -73,6 +73,19 @@ namespace ExeBuilder.ViewModels
             SelectNoneCommand = new RelayCommand(() => SetSelection(false), () => !IsBusy && Projects.Any(p => p.IsSelected));
         }
 
+        // ---------------------------------------------------------------- Applicazione
+
+        /// <summary>Versione dell'applicazione (da &lt;Version&gt; in Directory.Build.props).</summary>
+        public string AppVersion
+        {
+            get { return AppInfo.Version; }
+        }
+
+        public string WindowTitle
+        {
+            get { return AppInfo.Name + " " + AppInfo.Version; }
+        }
+
         // ---------------------------------------------------------------- Comandi
 
         public ICommand BrowseInputCommand { get; private set; }
