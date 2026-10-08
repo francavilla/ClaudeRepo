@@ -4,6 +4,18 @@ Tutte le modifiche rilevanti di DesktopAppTemplate sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.3.0] - 2026-10-08
+
+### Aggiunto
+- Persistenza su file: le attività sono salvate in `tasks.json` (JSON) in `%LocalAppData%\<nome app>` e ricaricate all'avvio.
+  Cartella configurabile con la chiave `DataFolder` di `App.config`.
+- `JsonFileTaskRepository`: scrittura sicura (file temporaneo + sostituzione), accesso thread-safe, errore chiaro
+  (senza modificare il file) se il contenuto non è valido, attività di esempio solo al primo avvio.
+- Test su salvataggio, ricarica, concorrenza, file non valido e cartella dati.
+
+### Modificato
+- `AddInfrastructure` accetta la cartella dei dati; l'archivio in memoria resta per i test.
+
 ## [1.2.0] - 2026-10-08
 
 ### Aggiunto

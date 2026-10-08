@@ -7,20 +7,18 @@ using DesktopAppTemplate.Features.Tasks;
 
 namespace DesktopAppTemplate.Infrastructure
 {
-    /// <summary>Archivio in memoria (thread-safe). Sostituibile con file, SQLite, ecc. senza toccare le slice.</summary>
+    /// <summary>Archivio in memoria (thread-safe), utile nei test. L'applicazione usa <see cref="JsonFileTaskRepository"/>.</summary>
     public sealed class InMemoryTaskRepository : ITaskRepository
     {
         private readonly object _gate = new object();
         private readonly List<TaskItem> _items = new List<TaskItem>();
 
-        /// <summary>Inserisce alcune attività di esempio.</summary>
+        /// <summary>Inserisce le attività di esempio.</summary>
         public void Seed(DateTime now)
         {
             lock (_gate)
             {
-                _items.Add(new TaskItem(Guid.NewGuid(), "Provare l'interfaccia WPF e Windows Forms", now.AddMinutes(-30)));
-                _items.Add(new TaskItem(Guid.NewGuid(), "Aggiungere una nuova slice in Features", now.AddMinutes(-20)));
-                _items.Add(new TaskItem(Guid.NewGuid(), "Leggere il README", now.AddMinutes(-10), true));
+                _items.AddRange(SampleTasks.Create(now));
             }
         }
 

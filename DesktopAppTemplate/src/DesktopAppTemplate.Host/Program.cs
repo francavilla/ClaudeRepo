@@ -39,7 +39,7 @@ namespace DesktopAppTemplate.Host
             var services = new ServiceCollection();
             services.AddCore()
                     .AddFeatures()
-                    .AddInfrastructure();
+                    .AddInfrastructure(ConfigurationManager.AppSettings["DataFolder"]);
 
             // L'unica differenza tra le due versioni è questa riga: la logica è identica.
             if (ui == UiKind.WinForms)

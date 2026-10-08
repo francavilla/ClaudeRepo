@@ -16,6 +16,21 @@ Se l'app è avviata da un prompt il testo compare lì, altrimenti in una finestr
 Senza argomento vale `Ui` in `App.config` (predefinito `wpf`). Da Visual Studio: impostare gli
 *Application arguments* nelle proprietà di debug del progetto `DesktopAppTemplate.Host`.
 
+## Dati su file
+
+Le attività sono salvate in un file JSON (`tasks.json`), per impostazione predefinita in
+`%LocalAppData%\DesktopAppTemplate` (cartella dell'utente: non servono permessi di amministratore).
+Per cambiarla: chiave `DataFolder` in `App.config` (sono ammesse variabili come `%USERPROFILE%`).
+
+- Al primo avvio, se il file non esiste, parte con alcune attività di esempio (`SampleTasks`); poi vale solo il file.
+- Ogni modifica riscrive il file in modo sicuro (file temporaneo + sostituzione): un'interruzione non lo lascia a metà.
+- Se il file è danneggiato l'app mostra l'errore con il percorso e **non lo tocca**: si corregge o si elimina per ripartire da zero.
+- È pensato per una sola istanza dell'app alla volta.
+- Il formato su disco (`TaskRecord`) è separato dal modello di dominio e porta un numero di versione (`Version`).
+
+Per passare a un database basta un'altra implementazione di `ITaskRepository` registrata in
+`InfrastructureServiceCollectionExtensions`: slice e view model non cambiano.
+
 ## Icona e versione
 
 L'icona (`assets/app.ico`) è usata dall'`.exe` e dalle finestre di entrambe le interfacce; si rigenera con
@@ -29,7 +44,7 @@ e nelle proprietà dell'`.exe`.
 src/
   DesktopAppTemplate.Core            netstandard2.0  Mediator, validazione, MVVM, astrazioni (nessuna UI)
   DesktopAppTemplate.Features        netstandard2.0  Slice: richieste, handler, validatori, view model
-  DesktopAppTemplate.Infrastructure  netstandard2.0  Implementazioni concrete (orologio, archivio, info app)
+  DesktopAppTemplate.Infrastructure  netstandard2.0  Implementazioni concrete (orologio, archivio su file JSON, info app)
   DesktopAppTemplate.UI.Wpf          net462          Solo view XAML + tema
   DesktopAppTemplate.UI.WinForms     net462          Solo view Windows Forms (con designer)
   DesktopAppTemplate.Host            net462          Composition root: DI e scelta della UI
@@ -81,8 +96,8 @@ che dipendono dai view model registrati, vengono create nel codice di `MainForm`
    oltre alla riga di registrazione della pagina e alla view.
 4. **Una sola interfaccia?** Eliminare il progetto `UI.*` non necessario, il suo `ProjectReference` nell'Host e il ramo
    corrispondente in `Program.cs`.
-5. **Persistenza reale**: sostituire l'implementazione di `ITaskRepository` (o del proprio repository) nell'Infrastructure;
-   le slice non cambiano.
+5. **Persistenza**: i dati sono già su file JSON (`JsonFileTaskRepository`); per un database sostituire
+   l'implementazione del repository nell'Infrastructure, le slice non cambiano.
 6. **Versione e changelog**: `<Version>` in `Directory.Build.props` e `CHANGELOG.md`.
 
 Regole per mantenerlo scalabile: ogni dipendenza punta verso `Core`; le view non contengono logica; un caso d'uso
