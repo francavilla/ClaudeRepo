@@ -108,6 +108,38 @@ I test girano su SQLite in un file temporaneo. SQL Server **non è provato in CI
 d'ambiente `DESKTOPAPPTEMPLATE_SQLSERVER` con la connessione a un database di prova (le tabelle `Tasks` e `SchemaVersion` vengono create se mancano;
 i test eliminano solo le righe che inseriscono).
 
+## Logging
+
+Si usa l'interfaccia standard di .NET: ovunque basta chiedere un `ILogger<T>` nel costruttore e scrivere `_logger.LogInformation("...")`.
+Le destinazioni sono due, attivabili da configurazione (App.config o riga di comando), da sole o insieme:
+
+```
+DesktopAppTemplate.exe                                   # predefinito: solo file, livello Information
+DesktopAppTemplate.exe --log-targets db                  # solo database (tabella Log)
+DesktopAppTemplate.exe --log-targets file,db --log-level debug
+DesktopAppTemplate.exe --log-targets none                # nessun log
+```
+
+| Opzione (chiave App.config) | Significato | Predefinito |
+|---|---|---|
+| `--log-targets` (`LogTargets`) | `file`, `db`, `file,db`, `none` | `file` |
+| `--log-level` (`LogLevel`) | `trace`, `debug`, `information`, `warning`, `error`, `critical`, `none` | `information` |
+| `--log-folder` (`LogFolder`) | cartella dei file di log | sottocartella `logs` della cartella dei dati |
+| `--log-retention-days` (`LogRetentionDays`) | giorni di conservazione (file e righe nel database) | `30` |
+
+- **File:** uno al giorno, `app-AAAAMMGG.log`, leggibile da altri programmi mentre l'app gira; i file più vecchi della conservazione si eliminano
+  da soli. Formato: `2026-10-08 09:30:15.123 [INF] Categoria - Messaggio`, con l'eccezione completa sotto.
+- **Database:** tabella `Log` (data, livello, categoria, messaggio, eccezione, utente, computer), creata dalle migrazioni nello stesso database dei dati.
+  Passa da `IDbExecutor`, quindi funziona anche con la libreria DAL. Le righe più vecchie della conservazione si eliminano all'avvio.
+- **Il log non rompe né rallenta l'app:** chi registra un messaggio lo mette solo in coda; un thread in background lo scrive a gruppi. Se la coda
+  si riempie i messaggi nuovi si scartano; se il database non risponde, i messaggi finiscono nel file di ripiego `app-fallback-AAAAMMGG.log`.
+  Alla chiusura la coda viene svuotata.
+- **Ordine all'avvio:** il database scrive solo dopo le migrazioni (`IDeferredStart`); i messaggi dell'avvio restano in coda e non si perdono.
+- **Cosa viene registrato da solo:** avvio e arresto con la configurazione in uso, risultato delle migrazioni, ogni richiesta del mediator
+  (Debug: eseguita, con la durata; Warning: non valida; Error: fallita, con l'eccezione), errori non gestiti delle finestre (WPF e Windows Forms)
+  e le eccezioni non gestite del processo.
+- Limite: in caso di arresto anomalo del processo i messaggi ancora in coda possono andare persi (quelli già scritti restano).
+
 ## Icona e versione
 
 L'icona (`assets/app.ico`) è usata dall'`.exe` e dalle finestre di entrambe le interfacce; si rigenera con
@@ -124,6 +156,7 @@ src/
   DesktopAppTemplate.Infrastructure  netstandard2.0  Implementazioni concrete (orologio, info app, impostazioni di archiviazione)
   DesktopAppTemplate.Data            netstandard2.0  Accesso al database con ADO.NET: connessioni, dialetto, executor, migrazioni, repository
   DesktopAppTemplate.Data.Dal        netstandard2.0  Adattatore per la libreria DAL (connessione singleton, transazioni esplicite)
+  DesktopAppTemplate.Logging         netstandard2.0  Logging su file e/o database (ILogger<T>, scrittura in background)
   DesktopAppTemplate.UI.Wpf          net462          Solo view XAML + tema
   DesktopAppTemplate.UI.WinForms     net462          Solo view Windows Forms (con designer)
   DesktopAppTemplate.Host            net462          Composition root: DI e scelta della UI

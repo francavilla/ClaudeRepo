@@ -4,6 +4,24 @@ Tutte le modifiche rilevanti di DesktopAppTemplate sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [4.1.0] - 2026-10-08
+
+### Aggiunto
+- Logging applicativo con `ILogger<T>` (progetto `DesktopAppTemplate.Logging`): destinazioni file, database o entrambe, scelte con `--log-targets file|db|file,db|none`;
+  livello minimo `--log-level`, cartella `--log-folder` e conservazione `--log-retention-days` (chiavi `LogTargets`, `LogLevel`, `LogFolder`, `LogRetentionDays`).
+- Log su file: un file al giorno con eliminazione di quelli più vecchi. Log su database: tabella `Log` (script `V002_CreateLog.sql` per SQLite e SQL Server)
+  scritta tramite `IDbExecutor` (quindi anche con DAL) e ripulita dalle righe vecchie.
+- Scrittura in background con coda limitata: il log non blocca né rompe l'applicazione; se il database non risponde i messaggi vanno in un file di ripiego;
+  la coda si svuota alla chiusura. Il database inizia a scrivere solo dopo le migrazioni (`IDeferredStart`).
+- Registrazione automatica: avvio e arresto con la configurazione in uso, risultato delle migrazioni, ogni richiesta del mediator (eseguita/non valida/fallita con durata),
+  errori non gestiti delle finestre WPF e Windows Forms ed eccezioni non gestite del processo.
+- Test su impostazioni, file (livello, eccezioni, svuotamento, conservazione, errori di scrittura), database (avvio differito, ripiego, pulizia), registrazione e mediator.
+
+### Modificato
+- Le migrazioni dello schema comprendono ora due script (tasks e log).
+- `Mediator` registra le richieste nel log se è disponibile un `ILogger<Mediator>` (senza logging registrato non scrive nulla).
+- `WpfShell` e `WinFormsShell` ricevono `ILogger<T>`.
+
 ## [4.0.1] - 2026-10-08
 
 ### Corretto

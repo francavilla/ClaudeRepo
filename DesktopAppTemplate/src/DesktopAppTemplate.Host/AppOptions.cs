@@ -4,6 +4,7 @@ using DesktopAppTemplate.Core.Configuration;
 using DesktopAppTemplate.Core.Hosting;
 using DesktopAppTemplate.Features.Tasks;
 using DesktopAppTemplate.Infrastructure;
+using DesktopAppTemplate.Logging;
 
 namespace DesktopAppTemplate.Host
 {
@@ -16,6 +17,7 @@ namespace DesktopAppTemplate.Host
     {
         public static IReadOnlyList<OptionDefinition> All { get; } = UiSettings.Options
             .Concat(StorageSettings.Options)
+            .Concat(LoggingSettings.Options)
             .Concat(TaskSettings.Options)
             .ToList();
     }

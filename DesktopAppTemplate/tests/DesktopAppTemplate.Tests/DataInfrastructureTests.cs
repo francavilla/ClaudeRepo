@@ -81,18 +81,19 @@ namespace DesktopAppTemplate.Tests
                 var second = await migrator.MigrateAsync();
 
                 Assert.True(first.IsNewDatabase);
-                Assert.Equal(1, first.AppliedCount);
+                Assert.Equal(2, first.AppliedCount);
                 Assert.False(second.IsNewDatabase);
                 Assert.Equal(0, second.AppliedCount);
-                Assert.Equal(1, second.PreviousVersion);
+                Assert.Equal(2, second.PreviousVersion);
 
                 var executor = new AdoNetExecutor(database.Connections, new SqlDialect());
                 var tables = await executor.QueryAsync("SELECT name FROM sqlite_master WHERE type = 'table'", null, r => r.GetString(0));
                 Assert.Contains("Tasks", tables);
+                Assert.Contains("Log", tables);
                 Assert.Contains("SchemaVersion", tables);
 
                 var versions = await executor.QueryAsync("SELECT Version FROM SchemaVersion", null, r => r.GetInt64(0));
-                Assert.Equal(new long[] { 1 }, versions);
+                Assert.Equal(new long[] { 1, 2 }, versions);
             }
         }
 

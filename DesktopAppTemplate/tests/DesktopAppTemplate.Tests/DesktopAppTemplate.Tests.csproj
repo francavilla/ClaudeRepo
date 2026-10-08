@@ -25,6 +25,7 @@
     <ProjectReference Include="..\..\src\DesktopAppTemplate.Infrastructure\DesktopAppTemplate.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\DesktopAppTemplate.Data\DesktopAppTemplate.Data.csproj" />
     <ProjectReference Include="..\..\src\DesktopAppTemplate.Data.Dal\DesktopAppTemplate.Data.Dal.csproj" />
+    <ProjectReference Include="..\..\src\DesktopAppTemplate.Logging\DesktopAppTemplate.Logging.csproj" />
   </ItemGroup>
 
 </Project>

@@ -25,6 +25,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DesktopAppTemplate.Data", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DesktopAppTemplate.Data.Dal", "src\DesktopAppTemplate.Data.Dal\DesktopAppTemplate.Data.Dal.csproj", "{21305B3F-321B-4E27-BE0E-D41C02EDAB84}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DesktopAppTemplate.Logging", "src\DesktopAppTemplate.Logging\DesktopAppTemplate.Logging.csproj", "{73E5B00D-45A7-4B1E-B2C3-BBD8CE959442}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -67,6 +69,10 @@ Global
 		{21305B3F-321B-4E27-BE0E-D41C02EDAB84}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{21305B3F-321B-4E27-BE0E-D41C02EDAB84}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{21305B3F-321B-4E27-BE0E-D41C02EDAB84}.Release|Any CPU.Build.0 = Release|Any CPU
+		{73E5B00D-45A7-4B1E-B2C3-BBD8CE959442}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{73E5B00D-45A7-4B1E-B2C3-BBD8CE959442}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{73E5B00D-45A7-4B1E-B2C3-BBD8CE959442}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{73E5B00D-45A7-4B1E-B2C3-BBD8CE959442}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -81,5 +87,6 @@ Global
 		{7EC35A2F-C469-443C-921C-27CD956D3A42} = {A15861DD-6ACD-42C2-92D9-68C8985473EF}
 		{DE868AF3-9FC0-4E52-9EE5-9CF248970410} = {EAC70EFC-572F-43BA-8344-97769E9D1C48}
 		{21305B3F-321B-4E27-BE0E-D41C02EDAB84} = {EAC70EFC-572F-43BA-8344-97769E9D1C48}
+		{73E5B00D-45A7-4B1E-B2C3-BBD8CE959442} = {EAC70EFC-572F-43BA-8344-97769E9D1C48}
 	EndGlobalSection
 EndGlobal

@@ -14,21 +14,24 @@ namespace DesktopAppTemplate.Host
     /// </summary>
     internal static class StorageBootstrapper
     {
-        public static void Initialize(IServiceProvider provider)
+        /// <returns>Il risultato della migrazione, oppure null se l'archivio non è un database.</returns>
+        public static MigrationResult Initialize(IServiceProvider provider)
         {
             var migrator = provider.GetService<IDatabaseMigrator>();
             if (migrator == null)
-                return;
+                return null;
 
             // Siamo prima dell'avvio dell'interfaccia: nessun contesto di sincronizzazione, l'attesa sincrona è sicura.
             var result = migrator.MigrateAsync().GetAwaiter().GetResult();
             if (!result.IsNewDatabase)
-                return;
+                return result;
 
             var repository = provider.GetRequiredService<ITaskRepository>();
             var clock = provider.GetRequiredService<IClock>();
             foreach (var sample in SampleTasks.Create(clock.Now))
                 repository.AddAsync(sample, CancellationToken.None).GetAwaiter().GetResult();
+
+            return result;
         }
     }
 }

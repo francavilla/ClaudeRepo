@@ -7,9 +7,12 @@ using DesktopAppTemplate.Core.Configuration;
 using DesktopAppTemplate.Core.Hosting;
 using DesktopAppTemplate.Features;
 using DesktopAppTemplate.Infrastructure;
+using DesktopAppTemplate.Logging;
 using DesktopAppTemplate.UI.WinForms;
 using DesktopAppTemplate.UI.Wpf;
+using System.IO;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace DesktopAppTemplate.Host
 {
@@ -50,6 +53,7 @@ namespace DesktopAppTemplate.Host
                 .Build();
 
             var storage = StorageSettings.From(built.Configuration);
+            var logging = LoggingSettings.From(built.Configuration);
             var errors = commandLine.Errors.Concat(built.Errors).Concat(storage.Validate()).ToList();
             if (errors.Count > 0)
             {
@@ -64,6 +68,7 @@ namespace DesktopAppTemplate.Host
             var services = new ServiceCollection();
             services.AddMediator()
                     .AddAppContext(configuration)
+                    .AddAppLogging(logging, logging.ResolveFolder(Path.Combine(storage.ResolveFolder(info.Name), "logs")))
                     .AddFeatures()
                     .AddInfrastructure()
                     .AddStorage(storage, info.Name);
@@ -76,17 +81,34 @@ namespace DesktopAppTemplate.Host
 
             using (var provider = services.BuildServiceProvider())
             {
+                var log = provider.GetRequiredService<ILoggerFactory>().CreateLogger("DesktopAppTemplate");
+                AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
+                    log.LogCritical(e.ExceptionObject as Exception, "Eccezione non gestita (terminazione: {IsTerminating})", e.IsTerminating);
+
+                log.LogInformation("Avvio {App} v{Version}: interfaccia {Ui}, database {Storage} con accesso {DataAccess}, log {LogTargets} ({LogLevel})",
+                    info.Name, info.Version, UiSettings.From(configuration).Ui, storage.Storage, storage.DataAccess, logging.Targets, logging.Level);
+
                 try
                 {
-                    StorageBootstrapper.Initialize(provider);
+                    var migration = StorageBootstrapper.Initialize(provider);
+                    if (migration != null)
+                        log.LogInformation("Schema del database aggiornato: versione precedente {Previous}, script applicati {Applied}",
+                            migration.PreviousVersion, migration.AppliedCount);
                 }
                 catch (Exception ex)
                 {
+                    log.LogError(ex, "Impossibile preparare l'archivio dei dati");
+                    provider.StartDeferredLogSinks();   // il log su database ripiega sul file
                     ConsoleOutput.Show(info.Name, "Impossibile preparare l'archivio dei dati: " + ex.Message, isError: true);
                     return ExitStorageError;
                 }
 
-                return provider.GetRequiredService<IUiShell>().Run();
+                // Lo schema è pronto: il log su database può iniziare a scrivere (finora i messaggi erano in coda).
+                provider.StartDeferredLogSinks();
+
+                var exitCode = provider.GetRequiredService<IUiShell>().Run();
+                log.LogInformation("Arresto (codice di uscita {ExitCode})", exitCode);
+                return exitCode;
             }
         }
     }

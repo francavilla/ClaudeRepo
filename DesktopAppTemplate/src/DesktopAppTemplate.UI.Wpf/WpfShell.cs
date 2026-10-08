@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Threading;
 using DesktopAppTemplate.Core.Abstractions;
 using DesktopAppTemplate.Features.Shell;
+using Microsoft.Extensions.Logging;
 using DesktopAppTemplate.UI.Wpf.Views;
 
 namespace DesktopAppTemplate.UI.Wpf
@@ -14,11 +15,13 @@ namespace DesktopAppTemplate.UI.Wpf
 
         private readonly MainViewModel _mainViewModel;
         private readonly IDialogService _dialogs;
+        private readonly ILogger<WpfShell> _logger;
 
-        public WpfShell(MainViewModel mainViewModel, IDialogService dialogs)
+        public WpfShell(MainViewModel mainViewModel, IDialogService dialogs, ILogger<WpfShell> logger)
         {
             _mainViewModel = mainViewModel;
             _dialogs = dialogs;
+            _logger = logger;
         }
 
         public int Run()
@@ -33,6 +36,7 @@ namespace DesktopAppTemplate.UI.Wpf
 
         private void OnUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
         {
+            _logger.LogError(e.Exception, "Errore non gestito nella finestra WPF");
             _dialogs.ShowError("Errore imprevisto", e.Exception.Message);
             e.Handled = true;
         }

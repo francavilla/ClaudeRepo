@@ -4,6 +4,7 @@ using System.Threading;
 using System.Windows.Forms;
 using DesktopAppTemplate.Core.Abstractions;
 using DesktopAppTemplate.Features.Shell;
+using Microsoft.Extensions.Logging;
 
 namespace DesktopAppTemplate.UI.WinForms
 {
@@ -12,11 +13,13 @@ namespace DesktopAppTemplate.UI.WinForms
     {
         private readonly MainViewModel _mainViewModel;
         private readonly IDialogService _dialogs;
+        private readonly ILogger<WinFormsShell> _logger;
 
-        public WinFormsShell(MainViewModel mainViewModel, IDialogService dialogs)
+        public WinFormsShell(MainViewModel mainViewModel, IDialogService dialogs, ILogger<WinFormsShell> logger)
         {
             _mainViewModel = mainViewModel;
             _dialogs = dialogs;
+            _logger = logger;
         }
 
         public int Run()
@@ -51,6 +54,7 @@ namespace DesktopAppTemplate.UI.WinForms
 
         private void OnThreadException(object sender, ThreadExceptionEventArgs e)
         {
+            _logger.LogError(e.Exception, "Errore non gestito nella finestra Windows Forms");
             _dialogs.ShowError("Errore imprevisto", e.Exception.Message);
         }
     }
