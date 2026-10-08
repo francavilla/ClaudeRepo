@@ -92,6 +92,8 @@ Nella cartella `src/PasswordGen.Mobile` c'è l'app Android (.NET MAUI), che rius
   negli appunti (segnalata come sensibile, cancellata dopo 30 secondi).
 - **Tappa 2**: scheda *Storico* (ultime 12 password, cifrate con una chiave del Keystore di Android) e promemoria con notifica
   giornaliera quando la password sta per scadere.
+- **PIN o password dell'app** (versione 1.9.0): alla prima attivazione del blocco si sceglie impronta o PIN del telefono, un PIN (4-12 cifre) o una
+  password dell'app; dopo 5 errori scatta un'attesa crescente (30 secondi, 1, 2, 4 minuti... fino a un'ora). Si conserva solo un hash.
 - **Blocco dell'app**: impronta, volto o PIN all'avvio e dopo un po' in secondo piano; blocca anche screenshot e anteprima delle app recenti.
 - **Tappa 3**: file di parole personale (card *Parole della passphrase*): carichi un file di testo, che viene copiato nella
   memoria privata dell'app, con le stesse modalità e gli stessi limiti dell'app Windows (almeno 300 parole per «solo il mio file»).

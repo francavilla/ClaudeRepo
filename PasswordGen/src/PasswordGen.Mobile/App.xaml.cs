@@ -31,10 +31,20 @@ public partial class App : Application
 
         var security = new AndroidSecurityService();
         var saved = settings.Load();
-        var lockState = new AppLockState(TimeSpan.FromSeconds(saved.LockGraceSeconds)) { Enabled = saved.LockEnabled && security.IsAvailable };
+
+        // PIN o password dell'app: hash in un file cifrato con la stessa chiave del Keystore; senza chiave restano impronta e PIN del telefono.
+        var credentials = key == null
+            ? null
+            : new LockCredentialManager(new LockCredentialStore(Path.Combine(FileSystem.AppDataDirectory, "lock.dat"), new AesHmacProtector(key)));
+
+        // Se il blocco schermo è stato tolto e non c'è un PIN o una password dell'app, non si potrebbe sbloccare: il blocco resta spento.
+        var lockState = new AppLockState(TimeSpan.FromSeconds(saved.LockGraceSeconds))
+        {
+            Enabled = saved.LockEnabled && (security.IsAvailable || (credentials != null && credentials.HasCredential)),
+        };
 
         TabbedPage tabs = null;
-        var appLock = new AppLockController(lockState, security, () => tabs);
+        var appLock = new AppLockController(lockState, security, credentials, () => tabs);
 
         var viewModel = new MainViewModel(
             generator, words, settings, history, new SecretClipboard(TimeSpan.FromSeconds(30)),

@@ -95,7 +95,7 @@ public class MainViewModel : ObservableObject
         _validityDays = _settings.ValidityDays;
         _wordSource = _settings.WordSource;
         _lockGraceSeconds = _settings.LockGraceSeconds;
-        _lockEnabled = _settings.LockEnabled && security.IsAvailable;
+        _lockEnabled = _settings.LockEnabled && (security.IsAvailable || appLock.HasCredential);
         _customWordsPath = _settings.CustomWordsPath;
         if (!string.IsNullOrEmpty(_customWordsPath))
         {
@@ -349,17 +349,43 @@ public class MainViewModel : ObservableObject
 
     public string[] LockGraceNames { get; } = { "Subito", "Dopo 30 secondi", "Dopo 1 minuto", "Dopo 5 minuti" };
 
-    /// <summary>True se il telefono ha un blocco schermo e Android 9 o successivo.</summary>
-    public bool LockAvailable => _security.IsAvailable;
+    /// <summary>True se si può usare il blocco: il telefono ha un blocco schermo (Android 9 o successivo) oppure si può impostare un PIN o una password dell'app.</summary>
+    public bool LockAvailable => _security.IsAvailable || _lock.CredentialsSupported;
+
+    public string LockHint => LockAvailable
+        ? "L'app chiede impronta o volto, il PIN o la password scelti qui, oppure il PIN del telefono, all'apertura e dopo il tempo scelto in secondo piano. Gli screenshot e l'anteprima tra le app recenti vengono bloccati."
+        : "Per usare il blocco imposta prima un PIN, una sequenza o un'impronta nelle impostazioni di sicurezza di Android (serve Android 9 o successivo).";
 
     /// <summary>Il pulsante «Blocca adesso» ha senso solo con il blocco attivo.</summary>
     public bool CanLockNow => _lockEnabled;
 
     public ICommand LockNowCommand => new Command(() => _lock.LockNow());
 
-    public string LockHint => LockAvailable
-        ? "L'app chiede impronta, volto o PIN del telefono all'apertura e dopo il tempo scelto in secondo piano. Gli screenshot e l'anteprima tra le app recenti vengono bloccati."
-        : "Per usare il blocco imposta prima un PIN, una sequenza o un'impronta nelle impostazioni di sicurezza di Android (serve Android 9 o successivo).";
+    /// <summary>Come si sblocca oltre all'impronta: PIN o password dell'app, se impostati.</summary>
+    public string CredentialText
+    {
+        get
+        {
+            if (!_lock.HasCredential)
+            {
+                return _lock.CredentialsSupported
+                    ? "Nessun PIN o password dell'app: si sblocca con l'impronta o il PIN del telefono."
+                    : "Si sblocca con l'impronta o il PIN del telefono.";
+            }
+
+            return _lock.CredentialKind == CredentialKind.Pin
+                ? "PIN dell'app impostato (si può sbloccare anche con impronta o PIN del telefono)."
+                : "Password dell'app impostata (si può sbloccare anche con impronta o PIN del telefono).";
+        }
+    }
+
+    public bool HasCredential => _lock.HasCredential;
+
+    public bool CanSetCredential => _lockEnabled && _lock.CredentialsSupported;
+
+    public ICommand SetCredentialCommand => new Command(() => RunSafe(SetCredentialAsync));
+
+    public ICommand RemoveCredentialCommand => new Command(() => RunSafe(RemoveCredentialAsync));
 
     public bool LockEnabled
     {
@@ -371,7 +397,7 @@ public class MainViewModel : ObservableObject
                 return;
             }
 
-            // L'interruttore resta com'era finché l'autenticazione non è andata a buon fine.
+            // L'interruttore resta com'era finché non è andato tutto a buon fine.
             OnPropertyChanged();
             RunSafe(() => ChangeLockAsync(value));
         }
@@ -400,29 +426,148 @@ public class MainViewModel : ObservableObject
 
     private async Task ChangeLockAsync(bool enable)
     {
-        if (enable && !_security.IsAvailable)
+        if (!enable)
+        {
+            // Chi trova il telefono sbloccato non può togliere il blocco: serve confermare l'identità.
+            if (!await _lock.ConfirmIdentityAsync())
+            {
+                StatusMessage = "Identità non confermata: il blocco è rimasto com'era.";
+                return;
+            }
+
+            _lockEnabled = false;
+            _lock.SetEnabled(false);
+            _lock.ClearCredential();
+            RefreshLockProperties();
+            SaveSettings();
+            StatusMessage = "Blocco dell'app disattivato (il PIN o la password dell'app sono stati rimossi).";
+            return;
+        }
+
+        var phone = _security.IsAvailable;
+        var options = new List<string>();
+        var kinds = new List<CredentialKind?>();
+        if (phone)
+        {
+            options.Add("Impronta o PIN del telefono");
+            kinds.Add(null);
+        }
+
+        if (_lock.CredentialsSupported)
+        {
+            options.Add("PIN dell'app (4-12 cifre)");
+            kinds.Add(CredentialKind.Pin);
+            options.Add("Password dell'app");
+            kinds.Add(CredentialKind.Password);
+        }
+
+        if (options.Count == 0)
         {
             StatusMessage = LockHint;
             return;
         }
 
-        // Attivare o disattivare il blocco richiede di autenticarsi: chi trova il telefono sbloccato non può toglierlo.
-        var subtitle = enable ? "Conferma per attivare il blocco" : "Conferma per disattivare il blocco";
-        var outcome = await _security.AuthenticateAsync("PasswordGen", subtitle);
-        if (!outcome.Success)
+        var index = await _dialogs.ChooseAsync("Come vuoi sbloccare PasswordGen?", options);
+        if (index < 0)
         {
-            StatusMessage = "Autenticazione non riuscita (" + outcome.Reason + "): il blocco è rimasto com'era.";
             return;
         }
 
-        _lockEnabled = enable;
-        _lock.SetEnabled(enable);
-        OnPropertyChanged(nameof(LockEnabled));
+        // Con il blocco schermo del telefono si verifica subito che impronta e PIN funzionino, prima di attivare il blocco.
+        if (phone)
+        {
+            var outcome = await _security.AuthenticateAsync("PasswordGen", "Conferma per attivare il blocco");
+            if (!outcome.Success)
+            {
+                StatusMessage = "Autenticazione non riuscita (" + outcome.Reason + "): il blocco è rimasto com'era.";
+                return;
+            }
+        }
+
+        var kind = kinds[index];
+        if (kind.HasValue)
+        {
+            var secret = await _dialogs.AskNewSecretAsync(kind.Value);
+            if (secret == null)
+            {
+                StatusMessage = "Nessun PIN o password impostati: il blocco è rimasto com'era.";
+                return;
+            }
+
+            await _lock.SetCredentialAsync(kind.Value, secret);
+        }
+
+        _lockEnabled = true;
+        _lock.SetEnabled(true);
+        RefreshLockProperties();
         SaveSettings();
-        StatusMessage = enable
-            ? "Blocco dell'app attivato: si attiva all'apertura e " + LockGraceNames[LockGraceIndex].ToLowerInvariant() + " in secondo piano. Prova «Blocca adesso»."
-            : "Blocco dell'app disattivato.";
+        StatusMessage = "Blocco dell'app attivato: scatta all'apertura e " + LockGraceNames[LockGraceIndex].ToLowerInvariant() + " in secondo piano. Prova «Blocca adesso».";
+    }
+
+    /// <summary>Imposta o cambia il PIN o la password dell'app (con il blocco già attivo).</summary>
+    private async Task SetCredentialAsync()
+    {
+        if (!_lockEnabled || !_lock.CredentialsSupported)
+        {
+            return;
+        }
+
+        if (!await _lock.ConfirmIdentityAsync())
+        {
+            StatusMessage = "Identità non confermata: nulla è cambiato.";
+            return;
+        }
+
+        var index = await _dialogs.ChooseAsync("Che cosa vuoi impostare?", new[] { "PIN dell'app (4-12 cifre)", "Password dell'app" });
+        if (index < 0)
+        {
+            return;
+        }
+
+        var kind = index == 0 ? CredentialKind.Pin : CredentialKind.Password;
+        var secret = await _dialogs.AskNewSecretAsync(kind);
+        if (secret == null)
+        {
+            return;
+        }
+
+        await _lock.SetCredentialAsync(kind, secret);
+        RefreshLockProperties();
+        StatusMessage = kind == CredentialKind.Pin ? "PIN dell'app impostato." : "Password dell'app impostata.";
+    }
+
+    private async Task RemoveCredentialAsync()
+    {
+        if (!_lock.HasCredential)
+        {
+            return;
+        }
+
+        // Senza il blocco schermo del telefono il PIN o la password dell'app sono l'unico modo per sbloccare: non si possono togliere.
+        if (!_security.IsAvailable)
+        {
+            StatusMessage = "Il telefono non ha un blocco schermo: il PIN o la password dell'app sono l'unico modo di sbloccare e non si possono rimuovere (puoi cambiarli o disattivare il blocco).";
+            return;
+        }
+
+        if (!await _lock.ConfirmIdentityAsync())
+        {
+            StatusMessage = "Identità non confermata: nulla è cambiato.";
+            return;
+        }
+
+        _lock.ClearCredential();
+        RefreshLockProperties();
+        StatusMessage = "PIN o password dell'app rimossi: si sblocca con l'impronta o il PIN del telefono.";
+    }
+
+    private void RefreshLockProperties()
+    {
+        OnPropertyChanged(nameof(LockEnabled));
         OnPropertyChanged(nameof(CanLockNow));
+        OnPropertyChanged(nameof(CanSetCredential));
+        OnPropertyChanged(nameof(HasCredential));
+        OnPropertyChanged(nameof(CredentialText));
     }
 
     // ---------------------------------------------------------------- Parole della passphrase

@@ -4,15 +4,26 @@
              x:Class="PasswordGen.Mobile.LockPage"
              BackgroundColor="{StaticResource Header}">
 
-    <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="18" Padding="32">
-        <Label Text="🔒" FontSize="64" HorizontalOptions="Center" />
-        <Label Text="PasswordGen è bloccata" TextColor="White" FontSize="22" FontAttributes="Bold" HorizontalOptions="Center" />
-        <Label Text="Scegli come sbloccare: impronta o volto, oppure il PIN, la sequenza o la password del telefono."
-               TextColor="#CCFFFFFF" HorizontalTextAlignment="Center" />
-        <Label x:Name="MessageLabel" TextColor="#FCA5A5" FontSize="12" HorizontalTextAlignment="Center" IsVisible="False" />
-        <Button Text="Sblocca con impronta" Clicked="OnUnlockClicked" BackgroundColor="White" TextColor="{StaticResource Header}"
-                FontAttributes="Bold" CornerRadius="10" WidthRequest="240" />
-        <Button Text="Usa PIN o password" Clicked="OnCredentialClicked" BackgroundColor="Transparent" TextColor="White"
-                BorderColor="#99FFFFFF" BorderWidth="1" CornerRadius="10" WidthRequest="240" />
-    </VerticalStackLayout>
+    <ScrollView>
+        <VerticalStackLayout VerticalOptions="Center" Spacing="14" Padding="32">
+            <Label Text="🔒" FontSize="64" HorizontalOptions="Center" />
+            <Label x:Name="TitleLabel" Text="PasswordGen è bloccata" TextColor="White" FontSize="22" FontAttributes="Bold"
+                   HorizontalOptions="Center" />
+            <Label x:Name="HintLabel" TextColor="#CCFFFFFF" HorizontalTextAlignment="Center" />
+
+            <Entry x:Name="SecretEntry" IsPassword="True" TextColor="White" PlaceholderColor="#99FFFFFF"
+                   HorizontalTextAlignment="Center" Completed="OnSecretClicked" IsVisible="False" />
+            <Button x:Name="SecretButton" Text="Sblocca" Clicked="OnSecretClicked" BackgroundColor="White"
+                    TextColor="{StaticResource Header}" FontAttributes="Bold" CornerRadius="10" IsVisible="False" />
+
+            <Label x:Name="MessageLabel" TextColor="#FCA5A5" FontSize="13" HorizontalTextAlignment="Center" IsVisible="False" />
+
+            <Button x:Name="BiometricButton" Text="Sblocca con impronta" Clicked="OnBiometricClicked" BackgroundColor="Transparent"
+                    TextColor="White" BorderColor="#99FFFFFF" BorderWidth="1" CornerRadius="10" IsVisible="False" />
+            <Button x:Name="PhonePinButton" Text="Usa il PIN del telefono" Clicked="OnPhonePinClicked" BackgroundColor="Transparent"
+                    TextColor="White" BorderColor="#99FFFFFF" BorderWidth="1" CornerRadius="10" IsVisible="False" />
+            <Button x:Name="CancelButton" Text="Annulla" Clicked="OnCancelClicked" BackgroundColor="Transparent"
+                    TextColor="#CCFFFFFF" IsVisible="False" />
+        </VerticalStackLayout>
+    </ScrollView>
 </ContentPage>

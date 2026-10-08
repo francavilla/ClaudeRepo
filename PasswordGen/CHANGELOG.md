@@ -4,6 +4,21 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.9.0] - 2026-10-08
+
+### Aggiunto
+- **App Android: PIN o password dell'app.** Alla prima attivazione del blocco si sceglie come sbloccare: impronta o PIN del telefono,
+  PIN dell'app (4-12 cifre) oppure password dell'app (6-64 caratteri), da ripetere due volte. Poi si può sbloccare in tre modi:
+  impronta o volto, PIN/password dell'app, PIN del telefono.
+  - Il PIN o la password non sono salvati: resta solo un hash (PBKDF2-SHA256, sale casuale, 150.000 iterazioni) in un file cifrato con la
+    chiave del Keystore.
+  - **Attesa crescente**: dopo 5 errori consecutivi l'app aspetta 30 secondi, poi 1, 2, 4 minuti... fino a un'ora. L'attesa e il conteggio
+    sopravvivono alla chiusura dell'app e non si azzerano riaprendola; sulla schermata di blocco il conto alla rovescia scende ogni secondo.
+  - Pulsanti «Imposta o cambia PIN/password» e «Rimuovi PIN/password» nella card del blocco; disattivare il blocco, cambiare o togliere
+    il PIN chiede di confermare l'identità.
+  - Il blocco si può attivare anche su telefoni senza blocco schermo, purché si scelga un PIN o una password dell'app.
+- `PasswordGen.Core`: `LockCredential`, `LockCredentialStore` e `LockCredentialManager` (con test): hash, regole, attesa crescente, archivio cifrato.
+
 ## [1.8.1] - 2026-10-08
 
 ### Corretto

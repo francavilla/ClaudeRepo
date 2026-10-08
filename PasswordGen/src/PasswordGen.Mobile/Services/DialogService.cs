@@ -1,3 +1,6 @@
+using Microsoft.Maui.ApplicationModel;
+using PasswordGen.Core.Security;
+
 namespace PasswordGen.Mobile.Services;
 
 public sealed class DialogService : IDialogService
@@ -35,5 +38,18 @@ public sealed class DialogService : IDialogService
         }
 
         return -1;
+    }
+
+    public async Task<string> AskNewSecretAsync(CredentialKind kind)
+    {
+        var page = CurrentPage;
+        if (page == null)
+        {
+            return null;
+        }
+
+        var setup = new CredentialSetupPage(kind);
+        await MainThread.InvokeOnMainThreadAsync(() => page.Navigation.PushModalAsync(setup, true));
+        return await setup.Result;
     }
 }
