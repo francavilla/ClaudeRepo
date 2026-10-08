@@ -4,6 +4,11 @@ Tutte le modifiche rilevanti di DesktopAppTemplate sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [4.2.2] - 2026-10-08
+
+### Corretto
+- Il test sull'elenco dei nomi delle opzioni di archiviazione non conteneva `--no-migrate` (aggiunta nella 4.2.0) e falliva. Nessuna modifica al codice dell'applicazione.
+
 ## [4.2.1] - 2026-10-08
 
 ### Modificato
