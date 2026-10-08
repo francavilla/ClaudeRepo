@@ -63,7 +63,7 @@ public sealed class SecretClipboard
                 await Task.Delay(ClearAfter, token);
                 MainThread.BeginInvokeOnMainThread(ClearIfStillOurs);
             }
-            catch (OperationCanceledException)
+            catch (System.OperationCanceledException)
             {
                 // Una nuova copia ha sostituito questa.
             }
