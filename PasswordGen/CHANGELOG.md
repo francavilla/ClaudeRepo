@@ -4,6 +4,13 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.3.2] - 2026-10-08
+
+### Modificato
+- **Android:** le chiamate alla finestra di impronta/volto (`BiometricPrompt`, disponibile da Android 9) sono ora dichiarate come tali nel codice: spariscono gli avvisi
+  del compilatore (CA1416) dalla build. Il comportamento non cambia: sotto Android 9 l'app propone direttamente il PIN.
+- **Workflow di GitHub:** `checkout`, `setup-dotnet` e `setup-java` passano alla versione 5, che usa Node.js 24 (spariscono gli avvisi «Node.js 20 is deprecated»).
+
 ## [1.3.1] - 2026-10-08
 
 ### Corretto
