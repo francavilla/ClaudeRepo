@@ -251,17 +251,59 @@ namespace DesktopAppTemplate.Tests
         }
 
         [Fact]
-        public async Task Il_gateway_predefinito_segnala_che_DAL_non_e_collegata()
+        public async Task La_DAL_simulata_incorporata_funziona_end_to_end_comprese_le_transazioni_esplicite()
         {
             var services = new ServiceCollection();
             services.AddDatabase(DatabaseProvider.Sqlite, _database.Connections.ConnectionString);
             services.AddDalAdapter();
             services.AddAdoNetData();
 
-            var repository = services.BuildServiceProvider().GetRequiredService<ITaskRepository>();
+            using (var provider = services.BuildServiceProvider())
+            {
+                var repository = provider.GetRequiredService<ITaskRepository>();
+                var runner = provider.GetRequiredService<ITransactionRunner>();
 
-            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => repository.GetAllAsync(None));
-            Assert.Contains("DalGateway", ex.Message);
+                await runner.RunAsync(ct => repository.AddAsync(NewTask("confermata"), ct));
+                await Assert.ThrowsAsync<InvalidOperationException>(() => runner.RunAsync(async ct =>
+                {
+                    await repository.AddAsync(NewTask("annullata"), ct);
+                    throw new InvalidOperationException("errore del lavoro");
+                }));
+                await repository.AddAsync(NewTask("senza transazione"), None);   // confermata subito, come in DAL
+
+                var titles = (await repository.GetAllAsync(None)).Select(t => t.Title).OrderBy(t => t).ToList();
+                Assert.Equal(new[] { "confermata", "senza transazione" }, titles);
+
+                // La stessa cosa si vede da una connessione indipendente: quello che è confermato è davvero nel database.
+                var independent = await new AdoNetExecutor(_database.Connections, new SqlDialect())
+                    .QueryAsync("SELECT Title FROM Tasks ORDER BY Title", null, r => r.GetString(0));
+                Assert.Equal(titles, independent);
+            }
+        }
+
+        [Fact]
+        public void La_DAL_simulata_segnala_con_chiarezza_gli_usi_scorretti_delle_transazioni()
+        {
+            using (var gateway = new DalGateway(_database.Connections))
+            {
+                Assert.Contains("BeginTransaction", Assert.Throws<InvalidOperationException>(() => gateway.Commit()).Message);
+                Assert.Contains("BeginTransaction", Assert.Throws<InvalidOperationException>(() => gateway.Rollback()).Message);
+
+                gateway.BeginTransaction();
+                Assert.Contains("già aperta", Assert.Throws<InvalidOperationException>(() => gateway.BeginTransaction()).Message);
+                gateway.Rollback();
+            }
+        }
+
+        [Fact]
+        public void Dopo_Dispose_la_DAL_simulata_non_si_puo_piu_usare()
+        {
+            var gateway = new DalGateway(_database.Connections);
+            gateway.BeginTransaction();
+            gateway.Rollback();
+            gateway.Dispose();
+
+            Assert.Throws<ObjectDisposedException>(() => gateway.ExecuteNonQuery("DELETE FROM Tasks", new List<KeyValuePair<string, object>>()));
         }
 
         [Fact]
@@ -294,17 +336,6 @@ namespace DesktopAppTemplate.Tests
             Assert.Equal("abc", sqlite[0].Value);
             Assert.Equal(DBNull.Value, sqlite[1].Value);
             Assert.Empty(new DalGateway(new DbConnectionFactory(DatabaseProvider.Sqlite, "Data Source=x.db")).CreateParameters(null));
-        }
-
-        [Fact]
-        public void Il_gateway_predefinito_segnala_il_segnaposto_da_sostituire_con_le_istruzioni()
-        {
-            var gateway = new DalGateway(new DbConnectionFactory(DatabaseProvider.Sqlite, "Data Source=x.db"));
-
-            var ex = Assert.Throws<InvalidOperationException>(() => gateway.BeginTransaction());
-
-            Assert.Contains("DalPlaceholder", ex.Message);
-            Assert.Contains("DalGateway.cs", ex.Message);
         }
 
         private sealed class FakeGatewayForDi : IDalGateway

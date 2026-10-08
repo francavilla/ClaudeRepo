@@ -4,6 +4,16 @@ Tutte le modifiche rilevanti di DesktopAppTemplate sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.1.0] - 2026-10-08
+
+### Aggiunto
+- `--data-access dal` ora funziona subito: `DalGateway` usa una DAL simulata con nomi fittizi (`DalPlaceholder`) che si comporta come la libreria descritta
+  (connessione singleton protetta da blocco, metodi nella forma dei wrapper ADO.NET, transazioni esplicite con errori chiari se usate male, chiusura alla fine).
+- Test end-to-end con la DAL simulata (transazione confermata, annullata, comando senza transazione, lettura da una connessione indipendente) e sugli usi scorretti.
+
+### Modificato
+- `DalGateway` implementa `IDisposable` (chiude la connessione della DAL simulata). Per collegare la DAL vera si sostituiscono le chiamate `_dal.` (istruzioni nel README e in `DalPlaceholder.cs`).
+
 ## [1.0.0] - 2026-10-08
 
 Prima versione stabile del modello: corrisponde esattamente allo stato della 4.2.2, l'ultima della fase di sviluppo su `Progetti_Claude`

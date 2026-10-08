@@ -87,14 +87,14 @@ repository ADO.NET  →  DalExecutor  →  IDalGateway  →  DalGateway  →  li
                        serializza        5 chiamate     UNICO FILE DA COMPLETARE
 ```
 
-- **Segnaposto al posto dei metodi di DAL:** `DalGateway.cs` richiama una classe `DalPlaceholder` (file `DalPlaceholder.cs`) con i cinque metodi che servono,
-  nella forma dei wrapper ADO.NET (`ExecuteReader`, `ExecuteNonQuery`, `BeginTransaction`, `Commit`, `Rollback`). Finché non si collega DAL, `--data-access dal`
-  si ferma con un messaggio che indica cosa sostituire.
-- **Collegare DAL in 4 passi:** (1) aggiungere in `Data.Dal.csproj` il riferimento all'assembly di DAL; (2) in `DalGateway.cs` sostituire `DalPlaceholder.` con
-  la chiamata reale (es. `Dal.Instance.`); (3) se nomi o parametri di DAL sono diversi, adattare solo quelle righe (e, se DAL non usa `DbParameter`, il metodo
-  `CreateParameters`); (4) eliminare `DalPlaceholder.cs`. Serializzazione, transazioni e repository non cambiano.
-  Mappa: `ExecuteReader` → wrapper della SELECT con reader; `ExecuteNonQuery` → wrapper di INSERT/UPDATE/DELETE; `BeginTransaction`/`Commit`/`Rollback` → le chiamate
-  esplicite di DAL.
+- **DAL simulata con nomi fittizi, già funzionante:** `DalGateway.cs` richiama `DalPlaceholder` (file `DalPlaceholder.cs`), che si comporta come DAL: una sola
+  connessione per tutta l'app, protetta da blocco, metodi nella forma dei wrapper ADO.NET (`ExecuteReader`, `ExecuteNonQuery`, `BeginTransaction`, `Commit`,
+  `Rollback`) e transazioni esplicite. Quindi `--data-access dal` funziona subito, su SQLite e SQL Server, senza la libreria vera.
+- **Collegare la DAL vera in 4 passi:** (1) aggiungere in `Data.Dal.csproj` il riferimento all'assembly di DAL; (2) in `DalGateway.cs` sostituire le chiamate
+  `_dal.` con quelle reali (es. `Dal.Instance.`); (3) se nomi o parametri di DAL sono diversi, adattare solo quelle righe (e, se DAL non usa `DbParameter`, il metodo
+  `CreateParameters`); (4) eliminare `DalPlaceholder.cs` e il campo `_dal`. Serializzazione, transazioni e repository non cambiano.
+  Mappa dei nomi fittizi: `ExecuteReader` → wrapper della SELECT con reader; `ExecuteNonQuery` → wrapper di INSERT/UPDATE/DELETE; `BeginTransaction`/`Commit`/`Rollback` →
+  le chiamate esplicite di DAL.
 - **Connessione singleton:** l'adattatore non apre, chiude né elimina connessioni. `DalLock` esegue **una sola operazione per volta** (attesa asincrona,
   chiamate a DAL fuori dal thread della UI: la finestra non si blocca).
 - **Transazioni esplicite:** `ITransactionRunner.RunAsync(async ct => { ... })` apre la transazione, esegue il lavoro (i repository usati dentro ne fanno
