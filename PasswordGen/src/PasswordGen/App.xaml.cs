@@ -3,6 +3,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Threading;
 using PasswordGen.Core.Generation;
+using PasswordGen.Core.History;
 using PasswordGen.Core.Randomness;
 using PasswordGen.Core.Reminder;
 using PasswordGen.Core.Settings;
@@ -42,7 +43,8 @@ namespace PasswordGen
             _random = new SecureRandom();
             _clipboard = new SecretClipboard(ClipboardLifetime);
             var generator = new PasswordGenerator(_random, WordList.LoadItalian());
-            var viewModel = new MainViewModel(generator, store, _clipboard, new StartupRegistration(), () => DateTime.Today);
+            var viewModel = new MainViewModel(generator, store, _clipboard, new StartupRegistration(),
+                new HistoryStore(HistoryStore.DefaultPath, new DpapiProtector()), new DialogService(), () => DateTime.Today);
 
             var window = new MainWindow { DataContext = viewModel };
             MainWindow = window;

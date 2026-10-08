@@ -46,6 +46,16 @@ namespace PasswordGen.Core.Tests
             Assert.False(PasswordSimilarity.IsSufficientlyDifferent("Lampo-Cavallo47!", "LAMPO-CAVALLO47!"));
         }
 
+        [Fact]
+        public void IsSufficientlyDifferentFromAll_RejectsWhenAnyPreviousIsTooSimilar()
+        {
+            var previous = new[] { "Torre.Ruscello.Dado.Pino83=", "Lampo-Cavallo-Nebbia47!" };
+
+            Assert.False(PasswordSimilarity.IsSufficientlyDifferentFromAll(previous, "Lampo-Cavallo-Nebbia48!"));
+            Assert.True(PasswordSimilarity.IsSufficientlyDifferentFromAll(previous, "Gufo+Fragola+Mulino+Cigno29?"));
+            Assert.True(PasswordSimilarity.IsSufficientlyDifferentFromAll(null, "Qualsiasi-Cosa47!"));
+        }
+
         [Theory]
         [InlineData(null)]
         [InlineData("")]

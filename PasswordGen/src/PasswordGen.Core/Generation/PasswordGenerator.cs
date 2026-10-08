@@ -42,7 +42,8 @@ namespace PasswordGen.Core.Generation
             {
                 var candidate = Build(options, policy);
                 if (policy.IsValid(candidate.Text)
-                    && PasswordSimilarity.IsSufficientlyDifferent(options.PreviousPassword, candidate.Text))
+                    && PasswordSimilarity.IsSufficientlyDifferent(options.PreviousPassword, candidate.Text)
+                    && PasswordSimilarity.IsSufficientlyDifferentFromAll(options.PreviousPasswords, candidate.Text))
                 {
                     return candidate;
                 }

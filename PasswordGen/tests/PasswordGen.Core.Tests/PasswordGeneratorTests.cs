@@ -205,6 +205,20 @@ namespace PasswordGen.Core.Tests
         }
 
         [Fact]
+        public void Generate_AvoidsEveryPasswordInTheHistory()
+        {
+            var generator = Create();
+            var history = new[] { "Lampo-Cavallo-Nebbia47!", "Torre.Ruscello.Dado.Pino83=", "Gufo+Fragola+Mulino+Cigno29?" };
+
+            for (var i = 0; i < 100; i++)
+            {
+                var text = generator.Generate(new GenerationOptions { PreviousPasswords = history }).Text;
+
+                Assert.True(PasswordSimilarity.IsSufficientlyDifferentFromAll(history, text), text);
+            }
+        }
+
+        [Fact]
         public void GenerateMany_ReturnsDistinctSuggestions()
         {
             var generator = Create();

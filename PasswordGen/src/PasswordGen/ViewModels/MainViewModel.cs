@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Windows.Input;
 using PasswordGen.Core.Generation;
+using PasswordGen.Core.History;
 using PasswordGen.Core.Policy;
 using PasswordGen.Core.Reminder;
 using PasswordGen.Core.Settings;
@@ -19,6 +20,9 @@ namespace PasswordGen.ViewModels
         private readonly IStartupRegistration _startup;
         private readonly Func<DateTime> _today;
         private readonly AppSettings _settings;
+        private readonly HistoryStore _historyStore;
+        private readonly IDialogService _dialogs;
+        private readonly PasswordHistory _history;
 
         private bool _loading = true;
         private GenerationMode _mode;
@@ -33,6 +37,10 @@ namespace PasswordGen.ViewModels
         private bool _requireSpecial;
         private bool _avoidAmbiguous;
         private string _previousPassword = string.Empty;
+        private bool _historyEnabled;
+        private bool _isChoosing;
+        private int _choiceIndex;
+        private SuggestionViewModel _lastCopied;
         private bool _reminderEnabled;
         private int _validityDays;
         private bool _startWithWindows;
@@ -46,12 +54,16 @@ namespace PasswordGen.ViewModels
             SettingsStore store,
             ISecretClipboard clipboard,
             IStartupRegistration startup,
+            HistoryStore historyStore,
+            IDialogService dialogs,
             Func<DateTime> today)
         {
             _generator = generator;
             _store = store;
             _clipboard = clipboard;
             _startup = startup;
+            _historyStore = historyStore;
+            _dialogs = dialogs;
             _today = today;
 
             _settings = store.Load();
@@ -66,6 +78,8 @@ namespace PasswordGen.ViewModels
             _requireDigit = _settings.RequireDigit;
             _requireSpecial = _settings.RequireSpecial;
             _avoidAmbiguous = _settings.AvoidAmbiguous;
+            _historyEnabled = _settings.HistoryEnabled;
+            _history = _historyEnabled ? historyStore.Load() : new PasswordHistory();
             _reminderEnabled = _settings.ReminderEnabled;
             _validityDays = _settings.ValidityDays;
 
@@ -79,13 +93,19 @@ namespace PasswordGen.ViewModels
             }
 
             Suggestions = new ObservableCollection<SuggestionViewModel>();
+            HistoryEntries = new ObservableCollection<HistoryEntryViewModel>();
+            ChoiceItems = new ObservableCollection<string>();
             GenerateCommand = new RelayCommand(Generate);
             MarkChangedCommand = new RelayCommand(MarkChanged);
+            ConfirmChangeCommand = new RelayCommand(ConfirmChange);
+            CancelChangeCommand = new RelayCommand(() => IsChoosing = false);
+            ClearHistoryCommand = new RelayCommand(ClearHistory, () => _history.Entries.Count > 0);
 
             _clipboard.Cleared += (s, e) => StatusMessage = "Appunti svuotati.";
 
             _loading = false;
             RefreshReminder();
+            RefreshHistory();
             Generate();
         }
 
@@ -106,6 +126,12 @@ namespace PasswordGen.ViewModels
         public ICommand GenerateCommand { get; private set; }
 
         public ICommand MarkChangedCommand { get; private set; }
+
+        public ICommand ConfirmChangeCommand { get; private set; }
+
+        public ICommand CancelChangeCommand { get; private set; }
+
+        public ICommand ClearHistoryCommand { get; private set; }
 
         public string StatusMessage
         {
@@ -359,12 +385,195 @@ namespace PasswordGen.ViewModels
                 : "Nessun cambio registrato";
         }
 
+        /// <summary>
+        /// Con lo storico attivo chiede quale proposta è stata usata (preselezionata l'ultima copiata);
+        /// altrimenti registra direttamente la data.
+        /// </summary>
         private void MarkChanged()
         {
-            _settings.LastChangeDate = _today();
-            RefreshReminder();
+            if (_historyEnabled && Suggestions.Count > 0)
+            {
+                ChoiceItems.Clear();
+                ChoiceItems.Add("Nessuna: registra solo la data del cambio");
+                for (var i = 0; i < Suggestions.Count; i++)
+                {
+                    ChoiceItems.Add("Proposta " + (i + 1) + "  -  " + Suggestions[i].Text);
+                }
+
+                ChoiceIndex = _lastCopied == null ? 0 : Suggestions.IndexOf(_lastCopied) + 1;
+                IsChoosing = true;
+                return;
+            }
+
+            CompleteChange(null);
+        }
+
+        private void ConfirmChange()
+        {
+            SuggestionViewModel chosen = null;
+            if (_choiceIndex > 0 && _choiceIndex <= Suggestions.Count)
+            {
+                chosen = Suggestions[_choiceIndex - 1];
+            }
+
+            IsChoosing = false;
+            CompleteChange(chosen);
+        }
+
+        private void CompleteChange(SuggestionViewModel chosen)
+        {
+            var today = _today();
+            _settings.LastChangeDate = today;
+
+            if (_historyEnabled)
+            {
+                var entry = _history.Add(chosen == null ? null : chosen.Text, chosen == null ? _mode : chosen.Mode, today);
+                SaveHistory();
+                RefreshHistory();
+                StatusMessage = chosen == null
+                    ? "Cambio registrato (#" + entry.Number + ", solo data): " + ReminderTextAfterRefresh()
+                    : "Cambio registrato nello storico come #" + entry.Number + ": " + ReminderTextAfterRefresh();
+            }
+            else
+            {
+                StatusMessage = "Cambio password registrato: " + ReminderTextAfterRefresh();
+            }
+
             SaveSettings();
-            StatusMessage = "Cambio password registrato: " + ReminderMessage;
+        }
+
+        private string ReminderTextAfterRefresh()
+        {
+            RefreshReminder();
+            return ReminderMessage;
+        }
+
+        // ------------------------------------------------------------ Storico
+
+        /// <summary>Conserva le password scelte in un file cifrato per il tuo utente Windows. Disattivandolo, lo storico viene cancellato.</summary>
+        public bool HistoryEnabled
+        {
+            get { return _historyEnabled; }
+            set
+            {
+                if (value == _historyEnabled)
+                {
+                    return;
+                }
+
+                if (!value && _history.Entries.Count > 0
+                    && !_dialogs.Confirm("Disattivando lo storico, le password conservate vengono cancellate. Continuare?", "Storico"))
+                {
+                    OnPropertyChanged();
+                    return;
+                }
+
+                _historyEnabled = value;
+                OnPropertyChanged();
+                if (!value)
+                {
+                    ClearHistoryEntries();
+                }
+
+                SaveSettings();
+            }
+        }
+
+        public ObservableCollection<HistoryEntryViewModel> HistoryEntries { get; private set; }
+
+        public bool HasHistory
+        {
+            get { return _history.Entries.Count > 0; }
+        }
+
+        public string HistoryHeader
+        {
+            get { return _history.Entries.Count > 0 ? "Storico (" + _history.Entries.Count + ")" : "Storico"; }
+        }
+
+        /// <summary>True mentre l'app chiede quale proposta è stata usata come nuova password.</summary>
+        public bool IsChoosing
+        {
+            get { return _isChoosing; }
+            private set { SetProperty(ref _isChoosing, value); }
+        }
+
+        public ObservableCollection<string> ChoiceItems { get; private set; }
+
+        /// <summary>0 = nessuna proposta (solo data); n = proposta numero n.</summary>
+        public int ChoiceIndex
+        {
+            get { return _choiceIndex; }
+            set { SetProperty(ref _choiceIndex, value); }
+        }
+
+        private void RefreshHistory()
+        {
+            HistoryEntries.Clear();
+            foreach (var entry in _history.Entries)
+            {
+                HistoryEntries.Add(new HistoryEntryViewModel(entry, CopyHistoryEntry, DeleteHistoryEntry));
+            }
+
+            OnPropertyChanged(nameof(HasHistory));
+            OnPropertyChanged(nameof(HistoryHeader));
+        }
+
+        private void CopyHistoryEntry(HistoryEntryViewModel entry)
+        {
+            StatusMessage = _clipboard.Copy(entry.Password)
+                ? "Password #" + entry.Number + " copiata: verrà cancellata dagli appunti tra " + (int)_clipboard.ClearAfter.TotalSeconds + " secondi."
+                : "Impossibile accedere agli appunti: riprova.";
+        }
+
+        private void DeleteHistoryEntry(HistoryEntryViewModel entry)
+        {
+            if (!_dialogs.Confirm("Eliminare dallo storico la voce " + entry.Title + " del " + entry.DateText + "?", "Storico"))
+            {
+                return;
+            }
+
+            _history.Remove(entry.Number);
+            SaveHistory();
+            RefreshHistory();
+            StatusMessage = "Voce " + entry.Title + " eliminata.";
+        }
+
+        private void ClearHistory()
+        {
+            if (!_dialogs.Confirm("Cancellare tutto lo storico delle password?", "Storico"))
+            {
+                return;
+            }
+
+            ClearHistoryEntries();
+            StatusMessage = "Storico cancellato.";
+        }
+
+        private void ClearHistoryEntries()
+        {
+            _history.Clear();
+            SaveHistory();
+            RefreshHistory();
+        }
+
+        private void SaveHistory()
+        {
+            try
+            {
+                if (_history.Entries.Count == 0)
+                {
+                    _historyStore.Delete();
+                }
+                else
+                {
+                    _historyStore.Save(_history);
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = "Impossibile salvare lo storico: " + ex.Message;
+            }
         }
 
         // ------------------------------------------------------------ Generazione
@@ -378,6 +587,7 @@ namespace PasswordGen.ViewModels
                 SyllableCount = _syllableCount,
                 RandomLength = _randomLength,
                 PreviousPassword = _previousPassword,
+                PreviousPasswords = _historyEnabled ? _history.Passwords() : null,
                 Policy = new PasswordPolicy
                 {
                     MinLength = _minLength,
@@ -395,6 +605,8 @@ namespace PasswordGen.ViewModels
             try
             {
                 var items = _generator.GenerateMany(BuildOptions(), _suggestionCount);
+                IsChoosing = false;
+                _lastCopied = null;
                 Suggestions.Clear();
                 foreach (var item in items)
                 {
@@ -419,6 +631,7 @@ namespace PasswordGen.ViewModels
 
         private void Copy(SuggestionViewModel suggestion)
         {
+            _lastCopied = suggestion;
             StatusMessage = _clipboard.Copy(suggestion.Text)
                 ? "Copiata negli appunti: verrà cancellata tra " + (int)_clipboard.ClearAfter.TotalSeconds + " secondi."
                 : "Impossibile accedere agli appunti: riprova.";
@@ -440,6 +653,7 @@ namespace PasswordGen.ViewModels
             _settings.RequireDigit = _requireDigit;
             _settings.RequireSpecial = _requireSpecial;
             _settings.AvoidAmbiguous = _avoidAmbiguous;
+            _settings.HistoryEnabled = _historyEnabled;
             _settings.ReminderEnabled = _reminderEnabled;
             _settings.ValidityDays = _validityDays;
 

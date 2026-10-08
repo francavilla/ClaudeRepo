@@ -25,6 +25,25 @@ namespace PasswordGen.Core.Checks
             return EditDistance(a, b) >= minDistance && LongestCommonSubstring(a, b) <= MaxSharedRun;
         }
 
+        /// <summary>Vero se la nuova password è sufficientemente diversa da ciascuna delle precedenti.</summary>
+        public static bool IsSufficientlyDifferentFromAll(System.Collections.Generic.IEnumerable<string> previous, string candidate)
+        {
+            if (previous == null)
+            {
+                return true;
+            }
+
+            foreach (var old in previous)
+            {
+                if (!IsSufficientlyDifferent(old, candidate))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         /// <summary>Distanza di Levenshtein: numero minimo di inserimenti, cancellazioni e sostituzioni.</summary>
         public static int EditDistance(string a, string b)
         {

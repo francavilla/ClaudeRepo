@@ -27,5 +27,8 @@ namespace PasswordGen.Core.Generation
         /// Resta solo in memoria e non viene mai salvata.
         /// </summary>
         public string PreviousPassword { get; set; }
+
+        /// <summary>Altre password passate (per esempio dallo storico) da cui le proposte devono differire.</summary>
+        public System.Collections.Generic.IReadOnlyCollection<string> PreviousPasswords { get; set; }
     }
 }

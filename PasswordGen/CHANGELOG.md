@@ -4,6 +4,20 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.2.0] - 2026-10-08
+
+### Aggiunto
+- **Storico delle password** (facoltativo): premendo «Ho cambiato la password» l'app chiede quale proposta è stata usata
+  (preselezionata l'ultima copiata) e la registra con numero progressivo, data e tipo. Ultime 12 voci.
+- Scheda *Storico* con password mascherate: mostra/nascondi, copia (con cancellazione automatica degli appunti) ed elimina;
+  pulsante per cancellare tutto lo storico.
+- Le nuove proposte evitano le varianti di tutte le password dello storico, non solo dell'ultima.
+- Il pulsante «Ho cambiato la password» è sempre visibile, anche con il promemoria disattivato.
+
+### Modificato
+- Le password dello storico sono salvate in `%AppData%\PasswordGen\history.dat`, cifrato con DPAPI (utente corrente).
+  Disattivando lo storico il file viene cancellato (con conferma).
+
 ## [1.1.0] - 2026-10-08
 
 ### Aggiunto

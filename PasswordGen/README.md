@@ -3,7 +3,7 @@
 Applicazione desktop **WPF per .NET Framework 4.8** che genera password **casuali, sicure e facili da ricordare**,
 pensata per chi deve cambiare password ogni mese per policy aziendale.
 
-Tutto avviene sul computer: nessuna connessione di rete, nessun salvataggio delle password.
+Tutto avviene sul computer: nessuna connessione di rete. Le password non vengono salvate, salvo quelle che scegli tu di conservare nello **storico** (facoltativo, cifrato: vedi sotto).
 
 ## Uso
 
@@ -21,7 +21,8 @@ Tutto avviene sul computer: nessuna connessione di rete, nessun salvataggio dell
    sensibilmente diverse (molte policy vietano una semplice variante della precedente).
 5. **Copia** sulla proposta scelta: gli appunti si svuotano dopo 30 secondi o alla chiusura dell'app, e la password
    non entra nella cronologia di Windows (Win+V).
-6. Dopo il cambio, premere **Ho cambiato la password**: il banner in alto mostra i giorni alla scadenza.
+6. Dopo il cambio, premere **Ho cambiato la password**: l'app chiede **quale proposta** hai usato (è preselezionata
+   l'ultima copiata) e la registra nello **storico** con numero progressivo e data. Il banner in alto mostra i giorni alla scadenza.
    Con *Ricordamelo anche all'accesso a Windows* l'app parte con Windows (`PasswordGen.exe /promemoria`)
    e apre la finestra **solo** se la password scade entro 5 giorni o è già scaduta.
 
@@ -44,10 +45,22 @@ Per segreti da conservare a lungo (cifratura di file, password manager) usare al
 La lista delle parole è in `src/PasswordGen.Core/Words/it.txt` (minuscole, senza accenti, 4-9 lettere, una per riga): si può
 ampliare, il numero di bit si adegua da solo.
 
+## Storico delle password
+
+Facoltativo (attivo di default, si disattiva nella card *Storico delle password*). Conserva le **ultime 12** password usate,
+ciascuna con numero progressivo (#1, #2, ... mai riutilizzato), data e tipo. Nella scheda *Storico* le password sono mascherate:
+si possono mostrare, copiare (con la stessa cancellazione automatica dagli appunti) o eliminare. Le nuove proposte evitano
+le varianti di quelle dello storico.
+
+- Il file `%AppData%\PasswordGen\history.dat` è cifrato con **DPAPI** (ambito utente): si apre solo con lo stesso account Windows
+  sullo stesso computer. Non protegge da un programma malevolo che gira con il tuo account.
+- Disattivando lo storico, o con *Cancella tutto lo storico*, il file viene eliminato.
+- Se nella scelta indichi «Nessuna», viene registrata solo la data (senza password).
+
 ## Impostazioni
 
 `%AppData%\PasswordGen\settings.json`: tipo e lunghezze, regole della policy, durata della password e data dell'ultimo cambio.
-Non contiene mai password.
+Non contiene mai password: quelle dello storico stanno nel file cifrato `history.dat`.
 
 ## Struttura
 

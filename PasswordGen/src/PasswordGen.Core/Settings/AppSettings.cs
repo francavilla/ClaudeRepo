@@ -38,6 +38,9 @@ namespace PasswordGen.Core.Settings
         [DataMember] public bool RequireSpecial { get; set; }
         [DataMember] public bool AvoidAmbiguous { get; set; }
 
+        /// <summary>Conserva le password scelte in uno storico cifrato (history.dat).</summary>
+        [DataMember] public bool HistoryEnabled { get; set; }
+
         [DataMember] public bool ReminderEnabled { get; set; }
         [DataMember] public int ValidityDays { get; set; }
         [DataMember] public int WarnDays { get; set; }
@@ -85,6 +88,7 @@ namespace PasswordGen.Core.Settings
             RequireSpecial = policy.RequireSpecial;
             AvoidAmbiguous = policy.AvoidAmbiguous;
 
+            HistoryEnabled = true;
             ReminderEnabled = true;
             ValidityDays = 30;
             WarnDays = 5;

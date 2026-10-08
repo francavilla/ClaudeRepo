@@ -10,6 +10,7 @@ namespace PasswordGen.ViewModels
         public SuggestionViewModel(GeneratedPassword password, ICommand copyCommand)
         {
             Text = password.Text;
+            Mode = password.Mode;
             Level = password.Level;
             LevelText = PasswordStrength.Describe(password.Level);
             BitsText = Round(password.EntropyBits) + " bit";
@@ -17,6 +18,8 @@ namespace PasswordGen.ViewModels
         }
 
         public string Text { get; private set; }
+
+        public GenerationMode Mode { get; private set; }
 
         public StrengthLevel Level { get; private set; }
 
