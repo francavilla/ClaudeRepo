@@ -4,6 +4,14 @@ Tutte le modifiche rilevanti di DesktopAppTemplate sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [4.2.0] - 2026-10-08
+
+### Aggiunto
+- Opzione `--no-migrate` (chiave `NoMigrate`): non crea né aggiorna le tabelle all'avvio e non inserisce le attività di esempio; lo schema deve già esistere
+  (creato con gli script di `Data/Scripts`). Serve quando l'account del database non può creare tabelle (es. SQL Server con autenticazione di Windows).
+- `SchemaVerifier`: con `--no-migrate` controlla all'avvio che la tabella `Tasks` sia accessibile, con un errore chiaro e codice di uscita 3 se manca.
+- README: procedura per far creare lo schema a chi amministra il database e per registrare le versioni già applicate.
+
 ## [4.1.0] - 2026-10-08
 
 ### Aggiunto

@@ -29,6 +29,7 @@ namespace DesktopAppTemplate.Infrastructure
         public const string StorageKey = "Storage";
         public const string DataAccessKey = "DataAccess";
         public const string ConnectionStringKey = "ConnectionString";
+        public const string NoMigrateKey = "NoMigrate";
 
         public static readonly OptionDefinition DataFolderOption = new OptionDefinition(
             DataFolderKey,
@@ -48,13 +49,19 @@ namespace DesktopAppTemplate.Infrastructure
             "Stringa di connessione al database. Obbligatoria con sqlserver; con sqlite, se vuota, si usa un file nella cartella dei dati.",
             "stringa");
 
+        public static readonly OptionDefinition NoMigrateOption = new OptionDefinition(
+            NoMigrateKey,
+            "Non crea né aggiorna le tabelle all'avvio: lo schema deve già esistere (creato con gli script di Data/Scripts).",
+            isFlag: true);
+
         public StorageSettings(string dataFolder = null, StorageKind storage = StorageKind.Sqlite,
-            DataAccessKind dataAccess = DataAccessKind.Ado, string connectionString = null)
+            DataAccessKind dataAccess = DataAccessKind.Ado, string connectionString = null, bool noMigrate = false)
         {
             DataFolder = dataFolder ?? string.Empty;
             Storage = storage;
             DataAccess = dataAccess;
             ConnectionString = connectionString ?? string.Empty;
+            NoMigrate = noMigrate;
         }
 
         /// <summary>Cartella configurata (può essere vuota: vale il percorso predefinito).</summary>
@@ -67,11 +74,14 @@ namespace DesktopAppTemplate.Infrastructure
         /// <summary>Stringa di connessione configurata (può essere vuota).</summary>
         public string ConnectionString { get; }
 
+        /// <summary>Se true l'app non crea né aggiorna le tabelle all'avvio: lo schema deve già esistere.</summary>
+        public bool NoMigrate { get; }
+
         public DatabaseProvider Provider => Storage == StorageKind.SqlServer ? DatabaseProvider.SqlServer : DatabaseProvider.Sqlite;
 
         /// <summary>Opzioni da dichiarare nel catalogo dell'applicazione.</summary>
         public static IEnumerable<OptionDefinition> Options =>
-            new[] { DataFolderOption, StorageOption, DataAccessOption, ConnectionStringOption };
+            new[] { DataFolderOption, StorageOption, DataAccessOption, ConnectionStringOption, NoMigrateOption };
 
         public static StorageSettings From(IAppConfiguration configuration)
         {
@@ -79,7 +89,8 @@ namespace DesktopAppTemplate.Infrastructure
                 configuration.GetString(DataFolderKey),
                 ParseStorage(configuration.GetString(StorageKey)),
                 ParseDataAccess(configuration.GetString(DataAccessKey)),
-                configuration.GetString(ConnectionStringKey));
+                configuration.GetString(ConnectionStringKey),
+                configuration.GetBool(NoMigrateKey));
         }
 
         /// <summary>Controlli che coinvolgono più parametri insieme (restituisce i messaggi d'errore).</summary>

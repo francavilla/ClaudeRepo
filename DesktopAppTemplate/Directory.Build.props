@@ -3,7 +3,7 @@
     <LangVersion>7.3</LangVersion>
     <Company>DesktopAppTemplate</Company>
     <Product>DesktopAppTemplate</Product>
-    <Version>4.1.0</Version>
+    <Version>4.2.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

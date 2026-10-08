@@ -286,5 +286,57 @@ namespace DesktopAppTemplate.Tests
 
             Assert.Equal(Path.Combine(Environment.ExpandEnvironmentVariables("%TEMP%"), "MieiDati"), folder);
         }
+
+        // --- --no-migrate ---
+
+        [Fact]
+        public void NoMigrate_e_un_flag_disattivato_per_impostazione_predefinita()
+        {
+            Assert.False(Settings().NoMigrate);
+            Assert.True(Settings(P("NoMigrate", "true")).NoMigrate);
+            Assert.Contains("--no-migrate", StorageSettings.Options.Select(o => o.CommandLineName));
+            Assert.True(StorageSettings.NoMigrateOption.IsFlag);
+        }
+
+        [Fact]
+        public void Da_riga_di_comando_il_flag_no_migrate_si_attiva_senza_valore()
+        {
+            var commandLine = CommandLineParser.Parse(new[] { "--no-migrate" }, StorageSettings.Options);
+            var built = new ConfigurationBuilder(StorageSettings.Options)
+                .AddSource(ConfigurationBuilder.CommandLineSourceName, commandLine.Values)
+                .Build();
+
+            Assert.Empty(commandLine.Errors);
+            Assert.True(StorageSettings.From(built.Configuration).NoMigrate);
+        }
+
+        [Fact]
+        public async Task Il_controllo_dello_schema_segnala_chiaramente_le_tabelle_mancanti()
+        {
+            using (var database = new SqliteTestDatabase(migrate: false))
+            {
+                var executor = new AdoNetExecutor(database.Connections, new SqlDialect());
+
+                var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => SchemaVerifier.VerifyAsync(executor));
+
+                Assert.Contains("--no-migrate", ex.Message);
+                Assert.Contains("Tasks", ex.Message);
+                Assert.NotNull(ex.InnerException);
+            }
+        }
+
+        [Fact]
+        public async Task Il_controllo_dello_schema_passa_se_le_tabelle_esistono_e_non_modifica_nulla()
+        {
+            using (var database = new SqliteTestDatabase())
+            {
+                var executor = new AdoNetExecutor(database.Connections, new SqlDialect());
+
+                await SchemaVerifier.VerifyAsync(executor);
+
+                var rows = await executor.QueryAsync("SELECT COUNT(*) FROM Tasks", null, r => r.GetInt64(0));
+                Assert.Equal(0L, rows.Single());
+            }
+        }
     }
 }

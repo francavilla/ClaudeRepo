@@ -90,8 +90,10 @@ namespace DesktopAppTemplate.Host
 
                 try
                 {
-                    var migration = StorageBootstrapper.Initialize(provider);
-                    if (migration != null)
+                    var migration = StorageBootstrapper.Initialize(provider, migrate: !storage.NoMigrate);
+                    if (storage.NoMigrate)
+                        log.LogInformation("Migrazioni disattivate (--no-migrate): schema del database presunto già esistente");
+                    else if (migration != null)
                         log.LogInformation("Schema del database aggiornato: versione precedente {Previous}, script applicati {Applied}",
                             migration.PreviousVersion, migration.AppliedCount);
                 }

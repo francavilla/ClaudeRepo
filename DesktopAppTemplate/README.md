@@ -59,7 +59,7 @@ DesktopAppTemplate.exe --data-access dal                              # usa la l
 ```
 
 Con SQL Server preferisci l'autenticazione di Windows (`Integrated Security=True`): una password in App.config è in chiaro.
-L'account deve poter creare tabelle al primo avvio (oppure si fa eseguire lo script `Data/Scripts/SqlServer/V001_CreateTasks.sql`).
+L'account deve poter creare tabelle al primo avvio, oppure si usa `--no-migrate` (vedi sotto) con lo schema creato da chi amministra il database.
 
 ### Come è fatto
 ```
@@ -96,6 +96,23 @@ repository ADO.NET  →  DalExecutor  →  IDalGateway  →  DalGateway  →  li
   parte), conferma se riesce e annulla se solleva un'eccezione. Durante la transazione le altre operazioni attendono; una transazione richiesta dentro un'altra
   partecipa a quella esterna. Senza `RunAsync` ogni comando è confermato subito, come in DAL.
 - Schema e migrazioni usano una connessione propria alla stessa stringa di connessione, separata da quella di DAL.
+
+### Schema già esistente: `--no-migrate`
+Normalmente l'app, all'avvio, **crea e aggiorna le tabelle** da sola (vedi sotto). Con `--no-migrate` (o `NoMigrate=true` in App.config) **non tocca lo schema**:
+presume che le tabelle esistano già e non inserisce neppure le attività di esempio. Serve quando l'account con cui gira l'app **non ha il permesso di
+creare o modificare tabelle** (tipico di SQL Server aziendale con `Integrated Security=True`), perché lo schema lo gestisce chi amministra il database.
+All'avvio l'app controlla comunque che la tabella `Tasks` sia accessibile: se manca, mostra un errore chiaro ed esce con codice 3.
+
+Procedura con SQL Server:
+1. chi amministra il database esegue, **in ordine**, gli script `Data/Scripts/SqlServer/V001_CreateTasks.sql` e `V002_CreateLog.sql` (e i successivi);
+2. l'app si avvia con `--no-migrate` (o con `NoMigrate=true`): serve solo lettura e scrittura sulle tabelle.
+
+Se un giorno si vuole tornare alle migrazioni automatiche su quel database, bisogna prima registrare le versioni già applicate, altrimenti l'app
+proverebbe a ricreare le tabelle:
+```sql
+CREATE TABLE dbo.SchemaVersion (Version INT NOT NULL CONSTRAINT PK_SchemaVersion PRIMARY KEY, Script NVARCHAR(200) NOT NULL, AppliedAt NVARCHAR(40) NOT NULL);
+INSERT INTO dbo.SchemaVersion (Version, Script, AppliedAt) VALUES (1, 'V001_CreateTasks.sql', '2026-10-08T00:00:00'), (2, 'V002_CreateLog.sql', '2026-10-08T00:00:00');
+```
 
 ### Schema del database e migrazioni
 Lo schema si crea da solo all'avvio: gli script `Data/Scripts/<Database>/Vnnn_Nome.sql` (incorporati nell'assembly) non ancora applicati vengono eseguiti

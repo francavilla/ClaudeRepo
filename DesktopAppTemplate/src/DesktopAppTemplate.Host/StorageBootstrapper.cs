@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using DesktopAppTemplate.Core.Abstractions;
+using DesktopAppTemplate.Core.Data;
 using DesktopAppTemplate.Data;
 using DesktopAppTemplate.Features.Tasks;
 using DesktopAppTemplate.Infrastructure;
@@ -9,14 +10,23 @@ using Microsoft.Extensions.DependencyInjection;
 namespace DesktopAppTemplate.Host
 {
     /// <summary>
-    /// Prepara l'archivio all'avvio: con un database applica le migrazioni dello schema e, se il database è appena stato
-    /// creato, inserisce le attività di esempio. Con l'archivio su file non fa nulla (se ne occupa il repository).
+    /// Prepara l'archivio all'avvio: applica le migrazioni dello schema e, se il database è appena stato creato, inserisce le
+    /// attività di esempio. Con <c>--no-migrate</c> non modifica nulla: controlla solo che lo schema esista già.
     /// </summary>
     internal static class StorageBootstrapper
     {
-        /// <returns>Il risultato della migrazione, oppure null se l'archivio non è un database.</returns>
-        public static MigrationResult Initialize(IServiceProvider provider)
+        /// <param name="migrate">False con <c>--no-migrate</c>: nessuna migrazione né dati di esempio, solo il controllo che lo schema esista.</param>
+        /// <returns>Il risultato della migrazione, oppure null se non è stata eseguita.</returns>
+        public static MigrationResult Initialize(IServiceProvider provider, bool migrate = true)
         {
+            if (!migrate)
+            {
+                var executor = provider.GetService<IDbExecutor>();
+                if (executor != null)
+                    SchemaVerifier.VerifyAsync(executor).GetAwaiter().GetResult();
+                return null;
+            }
+
             var migrator = provider.GetService<IDatabaseMigrator>();
             if (migrator == null)
                 return null;
