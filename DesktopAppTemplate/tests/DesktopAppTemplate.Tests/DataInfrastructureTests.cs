@@ -267,7 +267,7 @@ namespace DesktopAppTemplate.Tests
         public void I_nomi_da_riga_di_comando_sono_quelli_attesi()
         {
             Assert.Equal(
-                new[] { "--data-folder", "--storage", "--data-access", "--connection-string" },
+                new[] { "--data-folder", "--storage", "--data-access", "--connection-string", "--no-migrate" },
                 StorageSettings.Options.Select(o => o.CommandLineName));
         }
 
