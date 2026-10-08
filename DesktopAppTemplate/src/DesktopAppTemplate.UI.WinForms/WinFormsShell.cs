@@ -1,3 +1,5 @@
+using System;
+using System.Drawing;
 using System.Threading;
 using System.Windows.Forms;
 using DesktopAppTemplate.Core.Abstractions;
@@ -25,12 +27,26 @@ namespace DesktopAppTemplate.UI.WinForms
 
             using (var form = new MainForm(_mainViewModel))
             {
+                form.Icon = LoadApplicationIcon();
                 // Gli errori dei comandi sono già gestiti dai view model.
                 form.Shown += async (s, e) => await _mainViewModel.InitializeAsync();
                 Application.Run(form);
             }
 
             return 0;
+        }
+
+        /// <summary>Usa l'icona dell'.exe (la stessa della finestra WPF). Se non disponibile resta quella predefinita.</summary>
+        private static Icon LoadApplicationIcon()
+        {
+            try
+            {
+                return Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
         private void OnThreadException(object sender, ThreadExceptionEventArgs e)

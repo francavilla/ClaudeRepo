@@ -23,6 +23,9 @@ namespace DesktopAppTemplate.Features.Shell
         public string AppName { get; }
         public string VersionText { get; }
 
+        /// <summary>Titolo della finestra, con il numero di versione (es. "DesktopAppTemplate v1.2.0").</summary>
+        public string WindowTitle => AppName + " " + VersionText;
+
         public IReadOnlyList<PageViewModel> Pages { get; }
 
         public AsyncRelayCommand<PageViewModel> NavigateCommand { get; }

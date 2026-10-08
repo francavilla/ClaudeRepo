@@ -16,10 +16,24 @@ namespace DesktopAppTemplate.Host
         /// <summary>
         /// Avvio: <c>DesktopAppTemplate.exe --ui wpf</c> oppure <c>--ui winforms</c>.
         /// Senza argomento vale l'impostazione "Ui" in App.config (predefinita: wpf).
+        /// <c>--help</c> e <c>--version</c> mostrano le informazioni ed escono senza aprire l'interfaccia.
         /// </summary>
         [STAThread]
         private static int Main(string[] args)
         {
+            var info = new AppInfo();
+            if (CommandLine.IsHelpRequested(args))
+            {
+                ConsoleOutput.Show(info.Name, CommandLine.GetUsage(info.Name, info.Version));
+                return 0;
+            }
+
+            if (CommandLine.IsVersionRequested(args))
+            {
+                ConsoleOutput.Show(info.Name, info.Name + " " + info.Version);
+                return 0;
+            }
+
             var ui = UiSelector.Resolve(args, ConfigurationManager.AppSettings["Ui"]);
 
             var services = new ServiceCollection();

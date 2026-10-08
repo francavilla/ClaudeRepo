@@ -4,6 +4,14 @@ Tutte le modifiche rilevanti di DesktopAppTemplate sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.2.0] - 2026-10-08
+
+### Aggiunto
+- Opzioni da riga di comando `--help` (`-h`, `/?`) e `--version` (`-v`): mostrano aiuto e versione ed escono senza aprire l'interfaccia
+  (nel prompt se disponibile, altrimenti in una finestra di messaggio).
+- Icona dell'applicazione (`assets/app.ico`, rigenerabile con `tools/make_icon.py`) per l'`.exe` e per le finestre WPF e Windows Forms.
+- Numero di versione nel titolo della finestra (es. "DesktopAppTemplate v1.2.0") in entrambe le interfacce.
+
 ## [1.1.0] - 2026-10-08
 
 ### Aggiunto

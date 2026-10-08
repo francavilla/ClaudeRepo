@@ -7,6 +7,11 @@
     <RootNamespace>DesktopAppTemplate.UI.Wpf</RootNamespace>
   </PropertyGroup>
 
+  <!-- Icona della finestra (barra del titolo, barra delle applicazioni, Alt+Tab): stesso file dell'.exe. -->
+  <ItemGroup>
+    <Resource Include="..\..\assets\app.ico" Link="Resources\app.ico" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\DesktopAppTemplate.Core\DesktopAppTemplate.Core.csproj" />
     <ProjectReference Include="..\DesktopAppTemplate.Features\DesktopAppTemplate.Features.csproj" />

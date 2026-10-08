@@ -37,7 +37,7 @@ namespace DesktopAppTemplate.UI.WinForms
         {
             _viewModel = viewModel;
 
-            Text = viewModel.AppName;
+            Text = viewModel.WindowTitle;
             brandNameLabel.Text = viewModel.AppName;
             versionLabel.Text = viewModel.VersionText;
 

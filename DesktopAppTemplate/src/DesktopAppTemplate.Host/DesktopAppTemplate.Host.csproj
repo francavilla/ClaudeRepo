@@ -7,6 +7,8 @@
     <AssemblyName>DesktopAppTemplate</AssemblyName>
     <RootNamespace>DesktopAppTemplate.Host</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Icona del .exe (Esplora risorse, collegamenti). Si rigenera con tools/make_icon.py. -->
+    <ApplicationIcon>..\..\assets\app.ico</ApplicationIcon>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <AssemblyTitle>DesktopAppTemplate</AssemblyTitle>
   </PropertyGroup>

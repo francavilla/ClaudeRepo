@@ -10,8 +10,18 @@ DesktopAppTemplate.exe --ui wpf        # interfaccia WPF
 DesktopAppTemplate.exe --ui winforms   # interfaccia Windows Forms
 ```
 
+Altre opzioni: `--help` (o `-h`, `/?`) mostra l'aiuto e `--version` (o `-v`) la versione, senza aprire l'interfaccia.
+Se l'app è avviata da un prompt il testo compare lì, altrimenti in una finestra di messaggio.
+
 Senza argomento vale `Ui` in `App.config` (predefinito `wpf`). Da Visual Studio: impostare gli
 *Application arguments* nelle proprietà di debug del progetto `DesktopAppTemplate.Host`.
+
+## Icona e versione
+
+L'icona (`assets/app.ico`) è usata dall'`.exe` e dalle finestre di entrambe le interfacce; si rigenera con
+`python tools/make_icon.py` (richiede Pillow) o si sostituisce con un'icona propria. Il numero di versione si imposta
+solo in `Directory.Build.props` (`<Version>`) e compare nel titolo della finestra, nel menu laterale, in *Informazioni*
+e nelle proprietà dell'`.exe`.
 
 ## Struttura
 
