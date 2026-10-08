@@ -4,6 +4,15 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.3.1] - 2026-10-08
+
+### Corretto
+- **Android: l'aggiornamento a volte veniva rifiutato** e bisognava disinstallare e reinstallare. Le build di prova della CI avevano come codice di versione
+  il numero del run (piccolo), le release un numero molto più grande: installare una build di prova sopra una release sembrava un «downgrade» ad Android.
+  Ora il codice è `versione*1000 + n` (999 nelle release, il numero del run nelle prove): le release sono sempre più alte delle prove della stessa versione
+  e ogni versione nuova supera tutte le precedenti. Vale per le build da questa versione in poi: **la prima volta** sopra la 1.3.0 si installa normalmente
+  (il nuovo codice è molto più alto del vecchio).
+
 ## [1.3.0] - 2026-10-08
 
 ### Aggiunto
