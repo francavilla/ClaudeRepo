@@ -4,6 +4,17 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.7.1] - 2026-10-08
+
+### Aggiunto
+- App Android, blocco dell'app: pulsante **«Blocca adesso»** (si può provare subito, senza aspettare il tempo in secondo piano).
+- Quando l'autenticazione non riesce, l'app mostra il **motivo** (messaggio del sistema Android) sulla schermata di blocco e nella barra di stato.
+- Dopo l'attivazione, la barra di stato spiega quando il blocco scatterà.
+
+### Corretto
+- La schermata di blocco all'avvio veniva mostrata una volta sola e un eventuale errore era ignorato in silenzio: ora si riprova più volte
+  finché la finestra principale è pronta.
+
 ## [1.7.0] - 2026-10-08
 
 ### Aggiunto

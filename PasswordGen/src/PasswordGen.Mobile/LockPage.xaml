@@ -9,6 +9,7 @@
         <Label Text="PasswordGen è bloccata" TextColor="White" FontSize="22" FontAttributes="Bold" HorizontalOptions="Center" />
         <Label Text="Usa l'impronta, il volto o il PIN del telefono per continuare."
                TextColor="#CCFFFFFF" HorizontalTextAlignment="Center" />
+        <Label x:Name="MessageLabel" TextColor="#FCA5A5" FontSize="12" HorizontalTextAlignment="Center" IsVisible="False" />
         <Button Text="Sblocca" Clicked="OnUnlockClicked" BackgroundColor="White" TextColor="{StaticResource Header}"
                 FontAttributes="Bold" CornerRadius="10" WidthRequest="200" />
     </VerticalStackLayout>

@@ -13,6 +13,13 @@ public partial class LockPage : ContentPage
         _controller = controller;
     }
 
+    /// <summary>Mostra il motivo per cui lo sblocco non è riuscito.</summary>
+    public void ShowMessage(string message)
+    {
+        MessageLabel.Text = message;
+        MessageLabel.IsVisible = true;
+    }
+
     private async void OnUnlockClicked(object sender, EventArgs e)
     {
         await _controller.TryUnlockAsync();

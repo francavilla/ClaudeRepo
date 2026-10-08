@@ -136,6 +136,28 @@ namespace PasswordGen.Core.Tests
         }
 
         [Fact]
+        public void Lock_WhenEnabled_LocksImmediately()
+        {
+            var state = Create();
+            state.Start();
+            state.Unlocked();
+
+            state.Lock();
+
+            Assert.True(state.IsLocked);
+        }
+
+        [Fact]
+        public void Lock_WhenDisabled_DoesNothing()
+        {
+            var state = Create(enabled: false);
+
+            state.Lock();
+
+            Assert.False(state.IsLocked);
+        }
+
+        [Fact]
         public void NegativeGrace_IsTreatedAsZero()
         {
             var state = new AppLockState(TimeSpan.FromSeconds(-5)) { Enabled = true };

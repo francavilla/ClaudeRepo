@@ -352,6 +352,11 @@ public class MainViewModel : ObservableObject
     /// <summary>True se il telefono ha un blocco schermo e Android 9 o successivo.</summary>
     public bool LockAvailable => _security.IsAvailable;
 
+    /// <summary>Il pulsante «Blocca adesso» ha senso solo con il blocco attivo.</summary>
+    public bool CanLockNow => _lockEnabled;
+
+    public ICommand LockNowCommand => new Command(() => _lock.LockNow());
+
     public string LockHint => LockAvailable
         ? "L'app chiede impronta, volto o PIN del telefono all'apertura e dopo il tempo scelto in secondo piano. Gli screenshot e l'anteprima tra le app recenti vengono bloccati."
         : "Per usare il blocco imposta prima un PIN, una sequenza o un'impronta nelle impostazioni di sicurezza di Android (serve Android 9 o successivo).";
@@ -403,9 +408,10 @@ public class MainViewModel : ObservableObject
 
         // Attivare o disattivare il blocco richiede di autenticarsi: chi trova il telefono sbloccato non può toglierlo.
         var subtitle = enable ? "Conferma per attivare il blocco" : "Conferma per disattivare il blocco";
-        if (!await _security.AuthenticateAsync("PasswordGen", subtitle))
+        var outcome = await _security.AuthenticateAsync("PasswordGen", subtitle);
+        if (!outcome.Success)
         {
-            StatusMessage = "Autenticazione non riuscita: il blocco è rimasto com'era.";
+            StatusMessage = "Autenticazione non riuscita (" + outcome.Reason + "): il blocco è rimasto com'era.";
             return;
         }
 
@@ -413,7 +419,10 @@ public class MainViewModel : ObservableObject
         _lock.SetEnabled(enable);
         OnPropertyChanged(nameof(LockEnabled));
         SaveSettings();
-        StatusMessage = enable ? "Blocco dell'app attivato." : "Blocco dell'app disattivato.";
+        StatusMessage = enable
+            ? "Blocco dell'app attivato: si attiva all'apertura e " + LockGraceNames[LockGraceIndex].ToLowerInvariant() + " in secondo piano. Prova «Blocca adesso»."
+            : "Blocco dell'app disattivato.";
+        OnPropertyChanged(nameof(CanLockNow));
     }
 
     // ---------------------------------------------------------------- Parole della passphrase

@@ -159,6 +159,8 @@
                         <Label Text="Blocca di nuovo" Style="{StaticResource MutedText}" />
                         <Picker ItemsSource="{Binding LockGraceNames}" SelectedIndex="{Binding LockGraceIndex, Mode=TwoWay}"
                                 IsEnabled="{Binding LockAvailable}" />
+                        <Button Text="Blocca adesso" Command="{Binding LockNowCommand}" IsEnabled="{Binding CanLockNow}"
+                                BackgroundColor="White" TextColor="{StaticResource Accent}" BorderColor="#CBD5E1" BorderWidth="1" />
                         <Label Text="{Binding LockHint}" Style="{StaticResource MutedText}" />
                     </VerticalStackLayout>
                 </Border>

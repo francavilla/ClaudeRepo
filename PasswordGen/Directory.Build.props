@@ -3,7 +3,7 @@
     <LangVersion>7.3</LangVersion>
     <Company>PasswordGen</Company>
     <Product>PasswordGen</Product>
-    <Version>1.7.0</Version>
+    <Version>1.7.1</Version>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net48'">

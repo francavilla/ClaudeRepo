@@ -67,6 +67,15 @@ namespace PasswordGen.Core.Security
             return IsLocked;
         }
 
+        /// <summary>Blocca subito (pulsante «Blocca adesso»); non ha effetto se il blocco è disattivato.</summary>
+        public void Lock()
+        {
+            if (_enabled)
+            {
+                IsLocked = true;
+            }
+        }
+
         /// <summary>L'utente si è autenticato.</summary>
         public void Unlocked()
         {

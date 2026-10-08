@@ -1,3 +1,4 @@
+using Microsoft.Maui.ApplicationModel;
 using PasswordGen.Core.Security;
 
 namespace PasswordGen.Mobile.Services;
@@ -49,6 +50,13 @@ public sealed class AppLockController
         _security.SetScreenCaptureBlocked(enabled);
     }
 
+    /// <summary>Blocca subito l'app (pulsante «Blocca adesso»).</summary>
+    public void LockNow()
+    {
+        _state.Lock();
+        ShowIfLocked();
+    }
+
     public async Task<bool> TryUnlockAsync()
     {
         if (_authenticating)
@@ -59,8 +67,10 @@ public sealed class AppLockController
         _authenticating = true;
         try
         {
-            if (!await _security.AuthenticateAsync("PasswordGen", "Sblocca per vedere le tue password"))
+            var outcome = await _security.AuthenticateAsync("PasswordGen", "Sblocca per vedere le tue password");
+            if (!outcome.Success)
             {
+                _page?.ShowMessage("Non sbloccata: " + outcome.Reason);
                 return false;
             }
 
@@ -84,26 +94,32 @@ public sealed class AppLockController
 
     private async Task ShowAsync()
     {
-        try
+        if (_page != null)
         {
-            if (_page != null)
-            {
-                return;
-            }
-
-            var root = _root();
-            if (root == null)
-            {
-                return;
-            }
-
-            _page = new LockPage(this);
-            await root.Navigation.PushModalAsync(_page, false);
-            _ = TryUnlockAsync();
+            return;
         }
-        catch (Exception)
+
+        // Durante l'avvio la finestra può non essere ancora pronta a ricevere una pagina modale: si riprova qualche volta.
+        for (var attempt = 0; attempt < 5; attempt++)
         {
-            _page = null;
+            try
+            {
+                var root = _root();
+                if (root != null && root.Window != null)
+                {
+                    var page = new LockPage(this);
+                    _page = page;
+                    await MainThread.InvokeOnMainThreadAsync(() => root.Navigation.PushModalAsync(page, false));
+                    _ = TryUnlockAsync();
+                    return;
+                }
+            }
+            catch (Exception)
+            {
+                _page = null;
+            }
+
+            await Task.Delay(300);
         }
     }
 

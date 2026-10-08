@@ -30,13 +30,19 @@ public sealed class AndroidSecurityService : ISecurityService
         }
     }
 
-    public Task<bool> AuthenticateAsync(string title, string subtitle)
+    public Task<AuthenticationOutcome> AuthenticateAsync(string title, string subtitle)
     {
-        var result = new TaskCompletionSource<bool>();
+        var result = new TaskCompletionSource<AuthenticationOutcome>();
         var activity = Platform.CurrentActivity;
-        if (activity == null || !OperatingSystem.IsAndroidVersionAtLeast(28))
+        if (!OperatingSystem.IsAndroidVersionAtLeast(28))
         {
-            result.TrySetResult(false);
+            result.TrySetResult(AuthenticationOutcome.Failed("serve Android 9 o successivo"));
+            return result.Task;
+        }
+
+        if (activity == null)
+        {
+            result.TrySetResult(AuthenticationOutcome.Failed("nessuna schermata attiva a cui mostrare la richiesta"));
             return result.Task;
         }
 
@@ -58,9 +64,9 @@ public sealed class AndroidSecurityService : ISecurityService
 
                 builder.Build().Authenticate(new CancellationSignal(), activity.MainExecutor, new BiometricResultCallback(result));
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                result.TrySetResult(false);
+                result.TrySetResult(AuthenticationOutcome.Failed("errore del sistema: " + ex.Message));
             }
         });
 
@@ -91,21 +97,22 @@ public sealed class AndroidSecurityService : ISecurityService
 
 internal sealed class BiometricResultCallback : BiometricPrompt.AuthenticationCallback
 {
-    private readonly TaskCompletionSource<bool> _result;
+    private readonly TaskCompletionSource<AuthenticationOutcome> _result;
 
-    public BiometricResultCallback(TaskCompletionSource<bool> result)
+    public BiometricResultCallback(TaskCompletionSource<AuthenticationOutcome> result)
     {
         _result = result;
     }
 
     public override void OnAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result)
     {
-        _result.TrySetResult(true);
+        _result.TrySetResult(AuthenticationOutcome.Ok);
     }
 
     public override void OnAuthenticationError(BiometricErrorCode errorCode, Java.Lang.ICharSequence errString)
     {
-        // Annullamento, troppi tentativi, blocco temporaneo: in ogni caso l'app resta chiusa.
-        _result.TrySetResult(false);
+        // Annullamento, troppi tentativi, blocco temporaneo: in ogni caso l'app resta chiusa. Si riporta il motivo del sistema.
+        var text = errString?.ToString();
+        _result.TrySetResult(AuthenticationOutcome.Failed(string.IsNullOrWhiteSpace(text) ? "codice " + (int)errorCode : text + " (codice " + (int)errorCode + ")"));
     }
 }
