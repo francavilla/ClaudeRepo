@@ -11,12 +11,22 @@ namespace SolutionDoctor.Core.Git
     {
         private const int TimeoutMilliseconds = 60000;
 
+        /// <summary>
+        /// Racchiude un percorso tra virgolette per la riga di comando di Windows: i '\' finali vanno raddoppiati,
+        /// altrimenti <c>"C:\cartella\"</c> verrebbe letto come virgoletta di escape e l'argomento risulterebbe malformato.
+        /// </summary>
+        internal static string Quote(string value)
+        {
+            var trailing = value.Length - value.TrimEnd('\\').Length;
+            return "\"" + value + new string('\\', trailing) + "\"";
+        }
+
         public IDictionary<string, int> TryGetChurn(string directory, int months)
         {
             var startInfo = new ProcessStartInfo("git")
             {
                 // --relative: percorsi relativi alla cartella indicata, che è anche la base dei percorsi del report.
-                Arguments = "-C \"" + directory + "\" log --relative --since=\"" + months + " months ago\" --name-only --pretty=format:",
+                Arguments = "-C " + Quote(directory) + " log --relative --since=\"" + months + " months ago\" --name-only --pretty=format:",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,

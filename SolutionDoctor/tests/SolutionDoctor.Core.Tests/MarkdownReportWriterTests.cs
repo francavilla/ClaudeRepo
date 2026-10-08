@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using SolutionDoctor.Core.Analysis;
+using SolutionDoctor.Core.Model;
 using SolutionDoctor.Core.Reporting;
 using Xunit;
 
@@ -60,14 +61,15 @@ namespace SolutionDoctor.Core.Tests
         [Fact]
         public void IlSimboloPipeNeiNomiNonRompeLeTabelle()
         {
-            using (var dir = new TempDirectory())
-            {
-                dir.Write("A|B/A|B.csproj", Samples.LibProject());
+            // Il report si costruisce a mano: su Windows '|' non è ammesso nei nomi di file.
+            var project = new ProjectInfo { Name = "A|B", Path = "/s/A|B.csproj", RelativePath = "A|B.csproj", OutputType = "Library" };
+            var report = new AnalysisReport { ToolVersion = "1.0.0", GeneratedAt = new DateTime(2026, 10, 8), Solution = new SolutionInfo { Name = "S" } };
+            report.Solution.Projects.Add(project);
+            report.MigrationOrder.Add(project);
 
-                var report = new SolutionAnalyzer().Analyze(dir.Path, new AnalysisOptions { UseGit = false });
+            var markdown = MarkdownReportWriter.Write(report);
 
-                Assert.Contains("| A\\|B |", MarkdownReportWriter.Write(report));
-            }
+            Assert.Contains("| A\\|B |", markdown);
         }
 
         [Fact]

@@ -26,10 +26,17 @@ namespace SolutionDoctor.Core.Tests
         {
             try
             {
+                // Su Windows i file degli oggetti git sono di sola lettura e bloccherebbero l'eliminazione.
+                foreach (var file in Directory.EnumerateFiles(Path, "*", SearchOption.AllDirectories))
+                {
+                    File.SetAttributes(file, FileAttributes.Normal);
+                }
+
                 Directory.Delete(Path, true);
             }
-            catch (IOException)
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
             {
+                // La pulizia è best effort: non deve far fallire un test.
             }
         }
     }

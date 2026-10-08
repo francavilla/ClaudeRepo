@@ -30,5 +30,15 @@ namespace SolutionDoctor.Core.Tests
             Assert.Empty(GitLogParser.Parse(string.Empty));
             Assert.Empty(GitLogParser.Parse(null));
         }
+
+        [Theory]
+        [InlineData(@"C:\Progetti\App", @"""C:\Progetti\App""")]
+        [InlineData(@"C:\Progetti\App\", @"""C:\Progetti\App\\""")]   // '\' finale raddoppiato
+        [InlineData(@"C:\", @"""C:\\""")]
+        [InlineData("/home/utente/app", @"""/home/utente/app""")]
+        public void PercorsoTraVirgolette_ConBackslashFinale(string path, string expected)
+        {
+            Assert.Equal(expected, GitChurnProvider.Quote(path));
+        }
     }
 }
