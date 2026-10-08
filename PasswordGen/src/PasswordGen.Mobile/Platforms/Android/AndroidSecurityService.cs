@@ -113,7 +113,9 @@ public sealed class AndroidSecurityService : ISecurityService
         var result = new TaskCompletionSource<AuthenticationOutcome>();
         var activity = Platform.CurrentActivity;
         var keyguard = Android.App.Application.Context.GetSystemService(Context.KeyguardService) as KeyguardManager;
+#pragma warning disable CA1422 // obsoleta dal livello 29, ma è l'unica schermata di sistema per il PIN del telefono che funziona da Android 7 a oggi
         var intent = keyguard?.CreateConfirmDeviceCredentialIntent(title, subtitle);
+#pragma warning restore CA1422
         if (activity == null || intent == null)
         {
             result.TrySetResult(AuthenticationOutcome.Failed("il telefono non ha un PIN, una sequenza o una password impostati"));

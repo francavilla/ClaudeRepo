@@ -15,6 +15,9 @@ public sealed class AndroidDocumentService : IDocumentService
     private const int OpenRequestCode = 4731;
     private const int CreateRequestCode = 4732;
 
+    // Valore di OpenableColumns.DisplayName (la classe è obsoleta e la sostituta non espone la costante).
+    private const string DisplayNameColumn = "_display_name";
+
     private static TaskCompletionSource<string> _pending;
     private static int _pendingCode;
 
@@ -115,7 +118,7 @@ public sealed class AndroidDocumentService : IDocumentService
         try
         {
             var uri = Android.Net.Uri.Parse(address);
-            using var cursor = Android.App.Application.Context.ContentResolver.Query(uri, new[] { OpenableColumns.DisplayName }, null, null, null);
+            using var cursor = Android.App.Application.Context.ContentResolver.Query(uri, new[] { DisplayNameColumn }, null, null, null);
             if (cursor != null && cursor.MoveToFirst())
             {
                 var name = cursor.GetString(0);

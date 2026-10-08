@@ -20,6 +20,7 @@ Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Bui
 - Windows: una finestra di dialogo dell'app (scelta di un file, PIN, conferme) non fa più scattare il blocco quando il tempo scelto è «Subito».
 
 ### Modificato
+- Build più pulita: tolti gli ultimi avvisi del compilatore Android (`OpenableColumns` obsoleta, `CreateConfirmDeviceCredentialIntent`) e dell'azione `upload-artifact` (Node.js 24).
 - Le due app hanno ora le **stesse funzioni**: restano solo le differenze della piattaforma (impronta e Google Drive diretto su Android; Windows Hello e avvio con Windows su Windows).
 - Card «Blocco dell'app» e schermata di blocco di Windows riscritte per le tre modalità di sblocco.
 
