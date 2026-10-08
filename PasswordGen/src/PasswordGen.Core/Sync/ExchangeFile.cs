@@ -91,7 +91,13 @@ namespace PasswordGen.Core.Sync
         /// <exception cref="System.Security.Cryptography.CryptographicException">Frase errata o file alterato.</exception>
         public static ExchangeData Decrypt(byte[] file, string passphrase, int iterations = PassphraseProtector.DefaultIterations)
         {
-            var plain = new PassphraseProtector(passphrase, iterations).Unprotect(file);
+            return Decrypt(file, new PassphraseProtector(passphrase, iterations));
+        }
+
+        /// <summary>Come <see cref="Decrypt(byte[], string, int)"/>, ma con un protettore da riusare per riscrivere il file (una sola derivazione).</summary>
+        public static ExchangeData Decrypt(byte[] file, PassphraseProtector protector)
+        {
+            var plain = protector.Unprotect(file);
             try
             {
                 return ExchangeData.Deserialize(plain);

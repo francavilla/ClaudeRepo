@@ -84,6 +84,18 @@ namespace PasswordGen.Core.Settings
             }
         }
 
+        /// <summary>Copia indipendente delle preferenze.</summary>
+        public AppSettings Clone()
+        {
+            using (var stream = new System.IO.MemoryStream())
+            {
+                var serializer = new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(AppSettings));
+                serializer.WriteObject(stream, this);
+                stream.Position = 0;
+                return (AppSettings)serializer.ReadObject(stream);
+            }
+        }
+
         /// <summary>Il deserializzatore non esegue il costruttore: i valori predefiniti vanno impostati qui.</summary>
         [OnDeserializing]
         private void OnDeserializing(StreamingContext context)

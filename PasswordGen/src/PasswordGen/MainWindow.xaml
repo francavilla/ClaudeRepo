@@ -81,6 +81,20 @@
             </DockPanel>
         </Border>
 
+        <!-- ============================================================ Suggerimento: attiva il blocco -->
+        <Border DockPanel.Dock="Top" Padding="24,10" Background="{StaticResource WarningSoftBrush}"
+                BorderBrush="{StaticResource WarningBorderBrush}" BorderThickness="0,0,0,1"
+                Visibility="{Binding ShowLockHint, Converter={StaticResource BoolToVisibility}}">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
+                    <Button Style="{StaticResource PrimaryButton}" Command="{Binding EnableLockFromHintCommand}" Content="Attiva il blocco" />
+                    <Button Style="{StaticResource GhostButton}" Command="{Binding DismissLockHintCommand}" Content="Non ora" Margin="8,0,0,0" />
+                </StackPanel>
+                <TextBlock VerticalAlignment="Center" TextWrapping="Wrap"
+                           Text="Proteggi PasswordGen con Windows Hello: chi usa il tuo PC non potrà vedere lo storico delle password." />
+            </DockPanel>
+        </Border>
+
         <!-- ============================================================ Quale proposta hai usato? -->
         <Border DockPanel.Dock="Top" Padding="24,10" Background="{StaticResource AccentSoftBrush}"
                 BorderBrush="{StaticResource InfoBorderBrush}" BorderThickness="0,0,0,1"
@@ -269,6 +283,23 @@
                                        Text="Quando premi «Ho cambiato la password» l'app ti chiede quale proposta hai usato e la salva in un file cifrato per il tuo utente Windows (ultime 12). Le nuove proposte evitano le varianti di quelle passate. Disattivandolo, lo storico viene cancellato." />
                             <Button Style="{StaticResource GhostButton}" Command="{Binding ClearHistoryCommand}" Content="Cancella tutto lo storico"
                                     HorizontalAlignment="Left" Margin="0,10,0,0" />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource CardTitle}" Text="Sincronizzazione e backup" />
+                            <TextBlock Style="{StaticResource Muted}" Text="{Binding SyncSummary}" TextWrapping="Wrap" />
+                            <TextBlock Style="{StaticResource Muted}" Margin="0,6,0,0"
+                                       Text="Per vedere lo storico anche sul telefono scegli un file in una cartella sincronizzata (per esempio Google Drive): l'app lo tiene aggiornato, cifrato con una frase segreta che solo tu conosci. Storico, data dell'ultimo cambio e durata della password si uniscono senza perdere nulla." />
+                            <WrapPanel Margin="0,10,0,0">
+                                <Button Style="{StaticResource GhostButton}" Command="{Binding SetupSyncCommand}" Content="Imposta..." Margin="0,0,8,6" />
+                                <Button Style="{StaticResource GhostButton}" Command="{Binding SyncNowCommand}" Content="Sincronizza ora" Margin="0,0,8,6" />
+                                <Button Style="{StaticResource GhostButton}" Command="{Binding StopSyncCommand}" Content="Disattiva" Margin="0,0,8,6" />
+                            </WrapPanel>
+                            <WrapPanel>
+                                <Button Style="{StaticResource GhostButton}" Command="{Binding ExportCommand}" Content="Esporta..." Margin="0,0,8,0" />
+                                <Button Style="{StaticResource GhostButton}" Command="{Binding ImportCommand}" Content="Importa..." />
+                            </WrapPanel>
                         </StackPanel>
                     </Border>
                 </StackPanel>

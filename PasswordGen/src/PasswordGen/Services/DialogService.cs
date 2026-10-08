@@ -15,5 +15,24 @@ namespace PasswordGen.Services
             var dialog = new OpenFileDialog { Title = title, Filter = filter, CheckFileExists = true, Multiselect = false };
             return dialog.ShowDialog() == true ? dialog.FileName : null;
         }
+
+        public string PickSaveFile(string title, string filter, string fileName, bool confirmOverwrite)
+        {
+            var dialog = new SaveFileDialog
+            {
+                Title = title,
+                Filter = filter,
+                FileName = fileName,
+                OverwritePrompt = confirmOverwrite,
+                CheckPathExists = true,
+                AddExtension = true
+            };
+            return dialog.ShowDialog() == true ? dialog.FileName : null;
+        }
+
+        public string AskPassphrase(string title, string message, bool confirm)
+        {
+            return PassphraseDialog.Ask(title, message, confirm);
+        }
     }
 }

@@ -50,6 +50,7 @@ namespace PasswordGen
             MainContent.IsEnabled = !vm.Lock.IsLocked;
 
             await vm.Lock.StartAsync();
+            await vm.AutoSyncAsync();
         }
 
         /// <summary>Se la dimensione predefinita supera l'area utile dello schermo, la finestra viene ridotta.</summary>

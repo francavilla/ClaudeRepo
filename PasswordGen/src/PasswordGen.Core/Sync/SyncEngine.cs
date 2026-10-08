@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Threading.Tasks;
 using PasswordGen.Core.History;
 using PasswordGen.Core.Settings;
 
@@ -59,7 +60,7 @@ namespace PasswordGen.Core.Sync
                 {
                     try
                     {
-                        remote = ExchangeFile.Decrypt(raw, passphrase, iterations);
+                        remote = ExchangeFile.Decrypt(raw, protector);
                     }
                     catch (CryptographicException)
                     {
@@ -98,6 +99,40 @@ namespace PasswordGen.Core.Sync
             {
                 return Fail(result, SyncStatus.Error, "Sincronizzazione non riuscita: " + ex.Message);
             }
+        }
+
+        /// <summary>
+        /// Come <see cref="Run"/>, ma la derivazione della chiave (lenta, soprattutto su telefono) avviene fuori dal thread dell'interfaccia:
+        /// si lavora su copie e, a operazione finita (di nuovo sul thread di chi chiama), le novità si riportano in <paramref name="history"/>
+        /// e <paramref name="settings"/> senza perdere ciò che nel frattempo è stato modificato.
+        /// </summary>
+        public static async Task<SyncResult> RunAsync(ISyncStorage storage, string passphrase, PasswordHistory history, AppSettings settings,
+            DateTime nowUtc, int iterations = PassphraseProtector.DefaultIterations)
+        {
+            var historyCopy = history.Clone();
+            var settingsCopy = settings.Clone();
+            var validityBefore = settings.ValidityDays;
+
+            var result = await Task.Run(() => Run(storage, passphrase, historyCopy, settingsCopy, nowUtc, iterations));
+            if (result.Succeeded)
+            {
+                history.Merge(historyCopy.Entries);
+
+                var changed = settingsCopy.LastChangeDate;
+                if (changed.HasValue && (!settings.LastChangeDate.HasValue || changed.Value > settings.LastChangeDate.Value))
+                {
+                    settings.LastChangeDate = changed;
+                }
+
+                if (settingsCopy.ValidityDays != validityBefore && settings.ValidityDays == validityBefore)
+                {
+                    settings.ValidityDays = settingsCopy.ValidityDays;
+                }
+
+                settings.LastSyncUtcText = settingsCopy.LastSyncUtcText;
+            }
+
+            return result;
         }
 
         private static SyncResult Fail(SyncResult result, SyncStatus status, string message)

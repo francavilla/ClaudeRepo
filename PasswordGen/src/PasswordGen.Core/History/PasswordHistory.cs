@@ -110,6 +110,18 @@ namespace PasswordGen.Core.History
             return added.Count(a => _entries.Contains(a));
         }
 
+        /// <summary>Copia indipendente dello storico (voci e numerazione).</summary>
+        public PasswordHistory Clone()
+        {
+            var copy = new PasswordHistory { _nextNumber = _nextNumber };
+            foreach (var e in _entries)
+            {
+                copy._entries.Add(new HistoryEntry { Number = e.Number, DateText = e.DateText, Mode = e.Mode, Password = e.Password });
+            }
+
+            return copy;
+        }
+
         public bool Remove(int number)
         {
             return _entries.RemoveAll(e => e.Number == number) > 0;

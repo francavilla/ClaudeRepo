@@ -6,10 +6,18 @@ Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Bui
 
 ## [1.1.0] - 2026-10-08
 
+### Modificato
+- **Release separate per Windows e Android:** due workflow (`Release PasswordGen Desktop` e `Release PasswordGen Android`), due release con tag
+  `passwordgen-desktop-vX.Y.Z` e `passwordgen-android-vX.Y.Z`, titoli e file distinti (`PasswordGen-Desktop-v….zip`, `PasswordGen-Android-v….apk`).
+  Si può pubblicare una sola delle due. Le release già esistenti (`passwordgen-vX.Y.Z`, zip e APK insieme) restano com'erano.
+
 ### Aggiunto
 - **Sincronizzazione tra app Windows e Android** con un file cifrato condiviso (per esempio in Google Drive): storico, data dell'ultimo cambio e durata
   della password. Il file è cifrato con una frase segreta (AES-256 + HMAC, chiave PBKDF2-SHA256); l'unione non cancella mai nulla di locale.
 - **Esporta / importa** lo storico in un file cifrato con frase segreta, utile anche per cambiare telefono.
+- **App Windows:** card «Sincronizzazione e backup» (Imposta, Sincronizza ora, Disattiva, Esporta, Importa); sincronizza da sola all'avvio e dopo ogni cambio
+  registrato. La frase segreta si salva cifrata con DPAPI.
+- **Avviso per attivare il blocco** (Windows Hello / impronta o PIN), che si può chiudere con «Non ora».
 - `PasswordGen.Core`: `PassphraseProtector`, `ExchangeFile`, `SyncEngine`, `FileSyncStorage`, `SyncPassphraseStore`, `PasswordHistory.Merge` (con test).
 
 ## [1.0.0] - 2026-10-08

@@ -25,6 +25,12 @@ namespace PasswordGen.Core.Sync
         private readonly string _passphrase;
         private readonly int _iterations;
 
+        // Ultima chiave derivata leggendo un file: scrivendo di nuovo si riutilizzano sale e chiave, così una sincronizzazione
+        // (leggi e riscrivi) costa una sola derivazione. L'IV di AES resta casuale a ogni scrittura.
+        private byte[] _cachedSalt;
+        private int _cachedIterations;
+        private byte[] _cachedKey;
+
         public PassphraseProtector(string passphrase, int iterations = DefaultIterations)
         {
             if (string.IsNullOrEmpty(passphrase))
@@ -43,19 +49,34 @@ namespace PasswordGen.Core.Sync
 
         public byte[] Protect(byte[] data)
         {
-            var salt = new byte[SaltLength];
-            using (var rng = RandomNumberGenerator.Create())
+            byte[] salt;
+            byte[] key;
+            int iterations;
+            if (_cachedKey != null)
             {
-                rng.GetBytes(salt);
+                salt = _cachedSalt;
+                key = _cachedKey;
+                iterations = _cachedIterations;
+            }
+            else
+            {
+                salt = new byte[SaltLength];
+                using (var rng = RandomNumberGenerator.Create())
+                {
+                    rng.GetBytes(salt);
+                }
+
+                iterations = _iterations;
+                key = DeriveKey(_passphrase, salt, iterations);
             }
 
-            var payload = new AesHmacProtector(DeriveKey(_passphrase, salt, _iterations)).Protect(data);
+            var payload = new AesHmacProtector(key).Protect(data);
             var result = new byte[HeaderLength + payload.Length];
             Buffer.BlockCopy(Magic, 0, result, 0, 4);
-            result[4] = (byte)(_iterations >> 24);
-            result[5] = (byte)(_iterations >> 16);
-            result[6] = (byte)(_iterations >> 8);
-            result[7] = (byte)_iterations;
+            result[4] = (byte)(iterations >> 24);
+            result[5] = (byte)(iterations >> 16);
+            result[6] = (byte)(iterations >> 8);
+            result[7] = (byte)iterations;
             Buffer.BlockCopy(salt, 0, result, 8, SaltLength);
             Buffer.BlockCopy(payload, 0, result, HeaderLength, payload.Length);
             return result;
@@ -89,7 +110,14 @@ namespace PasswordGen.Core.Sync
             var payload = new byte[data.Length - HeaderLength];
             Buffer.BlockCopy(data, HeaderLength, payload, 0, payload.Length);
 
-            return new AesHmacProtector(DeriveKey(_passphrase, salt, iterations)).Unprotect(payload);
+            var key = DeriveKey(_passphrase, salt, iterations);
+            var plain = new AesHmacProtector(key).Unprotect(payload);
+
+            // Solo dopo una decifratura riuscita (frase giusta) la chiave si riusa per scrivere.
+            _cachedSalt = salt;
+            _cachedIterations = iterations;
+            _cachedKey = key;
+            return plain;
         }
 
         /// <summary>Chiave di 64 byte: PBKDF2 una sola volta, poi due sottochiavi (cifratura e MAC) con HMAC.</summary>

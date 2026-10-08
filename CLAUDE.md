@@ -28,8 +28,11 @@ Più modifiche nella stessa richiesta = un solo incremento di versione.
 - Il workflow `.github/workflows/release-exebuilder.yml` verifica la versione, esegue i test, compila su Windows
   e crea la release GitHub con lo zip e le note prese dal `CHANGELOG.md`.
 
-- Le release di PasswordGen si creano con il workflow `Release PasswordGen` (`.github/workflows/release-passwordgen.yml`):
-  stesso funzionamento, ma il tag è `passwordgen-vX.Y.Z` per non confondersi con quelli delle altre app.
+- Le release di PasswordGen sono **due, separate** (stessa versione di `PasswordGen/Directory.Build.props`, ma tag, titolo e file propri):
+  - Windows: workflow `Release PasswordGen Desktop` (`.github/workflows/release-passwordgen-desktop.yml`), tag `passwordgen-desktop-vX.Y.Z`, zip `PasswordGen-Desktop-vX.Y.Z.zip`;
+  - Android: workflow `Release PasswordGen Android` (`.github/workflows/release-passwordgen-android.yml`), tag `passwordgen-android-vX.Y.Z`, APK `PasswordGen-Android-vX.Y.Z.apk`.
+  Stesso funzionamento delle altre release (avvio manuale su `main` o tag uguale a `<Version>`). Se non si precisa, «crea la release» vale per entrambe.
+  I tag `passwordgen-vX.Y.Z` sono quelli delle release vecchie, con zip e APK insieme.
 
 ## CI
 - `.github/workflows/ci-exebuilder.yml` compila ExeBuilder su Windows (XAML compreso) ed esegue i test

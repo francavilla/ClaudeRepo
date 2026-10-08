@@ -9,6 +9,7 @@ using PasswordGen.Core.Randomness;
 using PasswordGen.Core.Security;
 using PasswordGen.Core.Reminder;
 using PasswordGen.Core.Settings;
+using PasswordGen.Core.Sync;
 using PasswordGen.Services;
 using PasswordGen.ViewModels;
 
@@ -55,7 +56,9 @@ namespace PasswordGen
                 lockState, new WindowsHelloService(), () => window == null ? IntPtr.Zero : new WindowInteropHelper(window).Handle);
 
             var viewModel = new MainViewModel(generator, builtinWords, store, _clipboard, new StartupRegistration(),
-                new HistoryStore(HistoryStore.DefaultPath, new DpapiProtector()), new DialogService(), appLock, () => DateTime.Today);
+                new HistoryStore(HistoryStore.DefaultPath, new DpapiProtector()), new DialogService(), appLock,
+                new SyncPassphraseStore(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(SettingsStore.DefaultPath), "sync.key"), new DpapiProtector()),
+                () => DateTime.Today);
 
             window = new MainWindow { DataContext = viewModel };
             MainWindow = window;

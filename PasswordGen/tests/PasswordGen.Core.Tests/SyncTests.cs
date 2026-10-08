@@ -443,6 +443,70 @@ namespace PasswordGen.Core.Tests
             Assert.Equal(90, settings.ValidityDays);
         }
 
+
+        // ---- copie e sincronizzazione in background ----
+
+        [Fact]
+        public void Clone_StoricoEImpostazioni_SonoIndipendenti()
+        {
+            var history = HistoryWith("2026-09-01|Aaaa-1111-bbbb!");
+            var copy = history.Clone();
+            copy.Add("Nuova-2222-pw!", GenerationMode.Passphrase, new DateTime(2026, 10, 1));
+            Assert.Single(history.Entries);
+            Assert.Equal(2, copy.Entries.Count);
+            Assert.Equal(3, copy.Add("x-3333-yyyy!", GenerationMode.Passphrase, new DateTime(2026, 10, 2)).Number);
+
+            var settings = new AppSettings { ValidityDays = 45, SyncPath = "a" };
+            var settingsCopy = settings.Clone();
+            settingsCopy.ValidityDays = 60;
+            Assert.Equal(45, settings.ValidityDays);
+            Assert.Equal("a", settingsCopy.SyncPath);
+        }
+
+        [Fact]
+        public void SyncAsync_RiportaLeNovitaEConservaLeModificheNelFrattempto()
+        {
+            var storage = new MemoryStorage();
+            SyncEngine.Run(storage, Phrase, HistoryWith("2026-10-01|Cccc-2222-dddd!"), new AppSettings { ValidityDays = 90 }, Now, Fast);
+
+            var history = HistoryWith("2026-09-01|Aaaa-1111-bbbb!");
+            var settings = new AppSettings();
+
+            var result = SyncEngine.RunAsync(storage, Phrase, history, settings, Now.AddMinutes(1), Fast).GetAwaiter().GetResult();
+
+            Assert.True(result.Succeeded);
+            Assert.Equal(2, history.Entries.Count);
+            Assert.Equal(90, settings.ValidityDays);
+            Assert.Equal(ExchangeData.FormatTime(Now.AddMinutes(1)), settings.LastSyncUtcText);
+        }
+
+        [Fact]
+        public void SyncAsync_Fallita_NonToccaLoStatoLocale()
+        {
+            var storage = new MemoryStorage();
+            SyncEngine.Run(storage, Phrase, HistoryWith("2026-10-01|Cccc-2222-dddd!"), new AppSettings(), Now, Fast);
+            var history = HistoryWith("2026-09-01|Aaaa-1111-bbbb!");
+
+            var result = SyncEngine.RunAsync(storage, "frase sbagliata", history, new AppSettings(), Now, Fast).GetAwaiter().GetResult();
+
+            Assert.Equal(SyncStatus.WrongPassphrase, result.Status);
+            Assert.Single(history.Entries);
+        }
+
+        [Fact]
+        public void Sync_UnaSolaDerivazione_ILFileRiscrittoUsaLoStessoSale()
+        {
+            var storage = new MemoryStorage();
+            SyncEngine.Run(storage, Phrase, HistoryWith("2026-09-01|Aaaa-1111-bbbb!"), new AppSettings(), Now, Fast);
+            var first = storage.Data.ToArray();
+
+            SyncEngine.Run(storage, Phrase, HistoryWith("2026-10-01|Cccc-2222-dddd!"), new AppSettings(), Now.AddMinutes(1), Fast);
+
+            // Intestazione (formato, iterazioni, sale) uguale; contenuto cifrato diverso (IV casuale).
+            Assert.Equal(first.Take(24).ToArray(), storage.Data.Take(24).ToArray());
+            Assert.NotEqual(first, storage.Data);
+        }
+
         // ---- file reale e frase salvata ----
 
         [Fact]
