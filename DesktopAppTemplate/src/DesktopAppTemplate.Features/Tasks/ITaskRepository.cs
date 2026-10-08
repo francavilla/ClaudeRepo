@@ -1,17 +1,14 @@
 using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
+using DesktopAppTemplate.Core.Data;
 
 namespace DesktopAppTemplate.Features.Tasks
 {
-    /// <summary>Archivio delle attività. Definito dalla slice, implementato nell'Infrastructure (inversione delle dipendenze).</summary>
-    public interface ITaskRepository
+    /// <summary>
+    /// Archivio delle attività. Definito dalla slice, implementato fuori (file JSON, ADO.NET, Dapper, Entity Framework):
+    /// la slice conosce solo questa interfaccia (inversione delle dipendenze). Le operazioni di base vengono da
+    /// <see cref="IRepository{TEntity,TId}"/>; qui si aggiungerebbero le sole query specifiche delle attività.
+    /// </summary>
+    public interface ITaskRepository : IRepository<TaskItem, Guid>
     {
-        Task<IReadOnlyList<TaskItem>> GetAllAsync(CancellationToken cancellationToken);
-        Task<TaskItem> GetAsync(Guid id, CancellationToken cancellationToken);
-        Task AddAsync(TaskItem item, CancellationToken cancellationToken);
-        Task UpdateAsync(TaskItem item, CancellationToken cancellationToken);
-        Task RemoveAsync(Guid id, CancellationToken cancellationToken);
     }
 }

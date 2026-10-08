@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Repository con Entity Framework 6. EF6 funziona su .NET Framework (non su netstandard2.0), quindi questo progetto è net462.
+       Per SQLite usa System.Data.SQLite (il driver supportato da EF6), diverso da Microsoft.Data.Sqlite degli altri due. -->
+  <PropertyGroup>
+    <TargetFramework>net462</TargetFramework>
+    <RootNamespace>DesktopAppTemplate.Data.EntityFramework</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EntityFramework" Version="6.4.4" />
+    <PackageReference Include="System.Data.SQLite.EF6" Version="1.0.118" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DesktopAppTemplate.Data\DesktopAppTemplate.Data.csproj" />
+  </ItemGroup>
+
+</Project>

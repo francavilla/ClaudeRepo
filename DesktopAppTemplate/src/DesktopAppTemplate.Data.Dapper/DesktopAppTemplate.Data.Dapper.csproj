@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Repository con Dapper: stesso SQL e stesse tabelle della versione ADO.NET, meno codice di lettura. -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>DesktopAppTemplate.Data.Dapper</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Dapper" Version="2.1.35" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DesktopAppTemplate.Data\DesktopAppTemplate.Data.csproj" />
+  </ItemGroup>
+
+</Project>

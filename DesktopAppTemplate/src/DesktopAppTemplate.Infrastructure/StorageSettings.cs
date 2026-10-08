@@ -2,33 +2,95 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using DesktopAppTemplate.Core.Configuration;
+using DesktopAppTemplate.Core.Data;
 
 namespace DesktopAppTemplate.Infrastructure
 {
-    /// <summary>Impostazioni di archiviazione: dove si salvano i dati.</summary>
+    /// <summary>Dove si salvano i dati.</summary>
+    public enum StorageKind
+    {
+        /// <summary>File JSON (nessun database).</summary>
+        File,
+        Sqlite,
+        SqlServer
+    }
+
+    /// <summary>Con quale tecnologia si accede al database.</summary>
+    public enum DataAccessKind
+    {
+        /// <summary>ADO.NET (tramite <c>IDbExecutor</c>, punto di aggancio per librerie esistenti).</summary>
+        Ado,
+        Dapper,
+        /// <summary>Entity Framework 6.</summary>
+        EntityFramework
+    }
+
+    /// <summary>Impostazioni di archiviazione: dove e come si salvano i dati.</summary>
     public sealed class StorageSettings
     {
         public const string DataFolderKey = "DataFolder";
+        public const string StorageKey = "Storage";
+        public const string DataAccessKey = "DataAccess";
+        public const string ConnectionStringKey = "ConnectionString";
 
         public static readonly OptionDefinition DataFolderOption = new OptionDefinition(
             DataFolderKey,
-            "Cartella dei dati (file tasks.json); sono ammesse variabili come %USERPROFILE%. Se vuota: %LocalAppData%\\<nome app>.",
+            "Cartella dei dati (file JSON, database SQLite predefinito); sono ammesse variabili come %USERPROFILE%. Se vuota: %LocalAppData%\\<nome app>.",
             "cartella");
 
-        public StorageSettings(string dataFolder)
+        public static readonly OptionDefinition StorageOption = new OptionDefinition(
+            StorageKey, "Dove salvare i dati.", "file|sqlite|sqlserver", "sqlite",
+            validate: OptionValidators.OneOf("file", "sqlite", "sqlserver"));
+
+        public static readonly OptionDefinition DataAccessOption = new OptionDefinition(
+            DataAccessKey, "Tecnologia di accesso al database.", "ado|dapper|ef", "ado",
+            validate: OptionValidators.OneOf("ado", "dapper", "ef"));
+
+        public static readonly OptionDefinition ConnectionStringOption = new OptionDefinition(
+            ConnectionStringKey,
+            "Stringa di connessione al database. Obbligatoria con sqlserver; con sqlite, se vuota, si usa un file nella cartella dei dati.",
+            "stringa");
+
+        public StorageSettings(string dataFolder = null, StorageKind storage = StorageKind.Sqlite,
+            DataAccessKind dataAccess = DataAccessKind.Ado, string connectionString = null)
         {
             DataFolder = dataFolder ?? string.Empty;
+            Storage = storage;
+            DataAccess = dataAccess;
+            ConnectionString = connectionString ?? string.Empty;
         }
 
         /// <summary>Cartella configurata (può essere vuota: vale il percorso predefinito).</summary>
         public string DataFolder { get; }
 
+        public StorageKind Storage { get; }
+
+        public DataAccessKind DataAccess { get; }
+
+        /// <summary>Stringa di connessione configurata (può essere vuota).</summary>
+        public string ConnectionString { get; }
+
+        /// <summary>Database da usare quando <see cref="Storage"/> non è <see cref="StorageKind.File"/>.</summary>
+        public DatabaseProvider Provider => Storage == StorageKind.SqlServer ? DatabaseProvider.SqlServer : DatabaseProvider.Sqlite;
+
         /// <summary>Opzioni da dichiarare nel catalogo dell'applicazione.</summary>
-        public static IEnumerable<OptionDefinition> Options => new[] { DataFolderOption };
+        public static IEnumerable<OptionDefinition> Options =>
+            new[] { DataFolderOption, StorageOption, DataAccessOption, ConnectionStringOption };
 
         public static StorageSettings From(IAppConfiguration configuration)
         {
-            return new StorageSettings(configuration.GetString(DataFolderKey));
+            return new StorageSettings(
+                configuration.GetString(DataFolderKey),
+                ParseStorage(configuration.GetString(StorageKey)),
+                ParseDataAccess(configuration.GetString(DataAccessKey)),
+                configuration.GetString(ConnectionStringKey));
+        }
+
+        /// <summary>Controlli che coinvolgono più parametri insieme (restituisce i messaggi d'errore).</summary>
+        public IEnumerable<string> Validate()
+        {
+            if (Storage == StorageKind.SqlServer && string.IsNullOrWhiteSpace(ConnectionString))
+                yield return "Con --storage sqlserver serve la stringa di connessione (--connection-string o chiave ConnectionString in App.config).";
         }
 
         /// <summary>Cartella effettiva: quella configurata (con le variabili d'ambiente espanse) oppure <c>%LocalAppData%\nome app</c>, che non richiede permessi di amministratore.</summary>
@@ -38,6 +100,37 @@ namespace DesktopAppTemplate.Infrastructure
                 return Environment.ExpandEnvironmentVariables(DataFolder.Trim());
 
             return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), appName);
+        }
+
+        /// <summary>Stringa di connessione effettiva: quella configurata (variabili espanse) oppure, per SQLite, un file <c>nome app.db</c> nella cartella dei dati.</summary>
+        public string ResolveConnectionString(string appName)
+        {
+            if (!string.IsNullOrWhiteSpace(ConnectionString))
+                return Environment.ExpandEnvironmentVariables(ConnectionString.Trim());
+
+            return Storage == StorageKind.Sqlite
+                ? "Data Source=" + Path.Combine(ResolveFolder(appName), appName + ".db")
+                : null;
+        }
+
+        private static StorageKind ParseStorage(string value)
+        {
+            switch ((value ?? string.Empty).Trim().ToLowerInvariant())
+            {
+                case "file": return StorageKind.File;
+                case "sqlserver": return StorageKind.SqlServer;
+                default: return StorageKind.Sqlite;
+            }
+        }
+
+        private static DataAccessKind ParseDataAccess(string value)
+        {
+            switch ((value ?? string.Empty).Trim().ToLowerInvariant())
+            {
+                case "dapper": return DataAccessKind.Dapper;
+                case "ef": return DataAccessKind.EntityFramework;
+                default: return DataAccessKind.Ado;
+            }
         }
     }
 }

@@ -10,12 +10,21 @@ namespace DesktopAppTemplate.Infrastructure
     {
         public const string TasksFileName = "tasks.json";
 
-        /// <summary>Registra le implementazioni concrete. Le impostazioni derivano dalla configurazione (<see cref="IAppConfiguration"/>, registrata dall'host).</summary>
+        /// <summary>
+        /// Registra le implementazioni concrete di uso generale (orologio, informazioni sull'app, impostazioni di archiviazione).
+        /// L'archivio dei dati si sceglie a parte (<see cref="AddFileStorage"/> o i progetti Data.*): vedi <c>Host/StorageRegistration</c>.
+        /// </summary>
         public static IServiceCollection AddInfrastructure(this IServiceCollection services)
         {
             services.AddSingleton<IClock, SystemClock>();
             services.AddSingleton<IAppInfo, AppInfo>();
             services.AddSingleton(provider => StorageSettings.From(provider.GetRequiredService<IAppConfiguration>()));
+            return services;
+        }
+
+        /// <summary>Salva le attività in un file JSON nella cartella dei dati (nessun database).</summary>
+        public static IServiceCollection AddFileStorage(this IServiceCollection services)
+        {
             services.AddSingleton<ITaskRepository>(provider =>
             {
                 var folder = provider.GetRequiredService<StorageSettings>().ResolveFolder(provider.GetRequiredService<IAppInfo>().Name);

@@ -4,6 +4,27 @@ Tutte le modifiche rilevanti di DesktopAppTemplate sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [3.0.0] - 2026-10-08
+
+### Aggiunto
+- Accesso al database SQLite e SQL Server con tre tecnologie selezionabili (`--data-access ado|dapper|ef`): ADO.NET (predefinita), Dapper ed Entity Framework 6,
+  in progetti separati (`Data.Ado`, `Data.Dapper`, `Data.EntityFramework`) con tabelle e SQL comuni.
+- Punti di aggancio per una libreria esistente: `IDbExecutor`, `IDbConnectionFactory`, `ISqlDialect` e `AdoNetOptions.ConfigureCommand`;
+  i repository ADO.NET usano solo `IDbExecutor`. Vale l'ultima registrazione nel contenitore.
+- Progetto `DesktopAppTemplate.Data`: fabbrica di connessioni, dialetto SQL, executor ADO.NET, migrazioni dello schema con script `Vnnn_Nome.sql`
+  per database (tabella `SchemaVersion`, una transazione per script), riga `TaskRow` e SQL delle attività condivisi.
+- Parametri `--storage sqlite|sqlserver|file`, `--data-access ado|dapper|ef`, `--connection-string` (chiavi `Storage`, `DataAccess`, `ConnectionString`),
+  con controllo incrociato (SQL Server richiede la stringa di connessione).
+- `IRepository<TEntity, TId>` generico: `ITaskRepository` ne deriva.
+- Preparazione dell'archivio all'avvio (migrazioni e attività di esempio solo a database nuovo); errore chiaro con codice di uscita 3 se il database non è raggiungibile.
+- Test: contratto comune ai tre repository su SQLite, scambio di dati tra le tecnologie, migrazioni, executor e punti di aggancio, impostazioni;
+  test su SQL Server attivabili con la variabile `DESKTOPAPPTEMPLATE_SQLSERVER` (non eseguiti in CI).
+
+### Modificato
+- **Incompatibile:** l'archivio predefinito è SQLite (file `<nome app>.db` nella cartella dei dati) e non più il file JSON; per il file JSON usare `--storage file`.
+- **Incompatibile:** `AddInfrastructure()` non registra più `ITaskRepository`: l'archivio si sceglie in `Host/StorageRegistration.cs` (`AddFileStorage()` o `AddDatabase` + una tecnologia).
+- `StorageSettings` comprende archiviazione, tecnologia di accesso e stringa di connessione.
+
 ## [2.0.1] - 2026-10-08
 
 ### Corretto

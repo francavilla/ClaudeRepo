@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Repository con ADO.NET puro, tramite IDbExecutor (punto di aggancio per librerie esistenti). Nessun pacchetto aggiuntivo. -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>DesktopAppTemplate.Data.Ado</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DesktopAppTemplate.Data\DesktopAppTemplate.Data.csproj" />
+  </ItemGroup>
+
+</Project>

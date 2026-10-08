@@ -48,20 +48,65 @@ La pagina *Informazioni* mostra la configurazione in uso con l'origine di ogni v
 Regola: chi ha bisogno di poco chiede poco (es. `TaskSettings` o `IAppConfiguration`, non tutto il contesto):
 così il contesto non diventa un "service locator" e le dipendenze restano visibili nei costruttori.
 
-## Dati su file
+## Dati e database
 
-Le attività sono salvate in un file JSON (`tasks.json`), per impostazione predefinita in
-`%LocalAppData%\DesktopAppTemplate` (cartella dell'utente: non servono permessi di amministratore).
-Per cambiarla: chiave `DataFolder` in `App.config` oppure `--data-folder` (sono ammesse variabili come `%USERPROFILE%`).
+Le attività si possono salvare in **SQLite** (predefinito, non richiede installare nulla), **SQL Server** oppure in un **file JSON**.
+Si sceglie come per ogni altro parametro (App.config o riga di comando):
 
-- Al primo avvio, se il file non esiste, parte con alcune attività di esempio (`SampleTasks`); poi vale solo il file.
-- Ogni modifica riscrive il file in modo sicuro (file temporaneo + sostituzione): un'interruzione non lo lascia a metà.
-- Se il file è danneggiato l'app mostra l'errore con il percorso e **non lo tocca**: si corregge o si elimina per ripartire da zero.
+```
+DesktopAppTemplate.exe --storage sqlite                               # predefinito: file <nome app>.db in %LocalAppData%\<nome app>
+DesktopAppTemplate.exe --storage sqlserver --connection-string "Server=.;Database=Demo;Integrated Security=True"
+DesktopAppTemplate.exe --storage file                                 # file JSON, senza database
+DesktopAppTemplate.exe --data-access dapper                           # ado (predefinito) | dapper | ef
+```
+
+Con SQL Server preferisci l'autenticazione di Windows (`Integrated Security=True`): una password in App.config è in chiaro.
+La stringa di connessione non viene mai scritta nei messaggi dell'app.
+
+### Tre tecnologie, stessa slice
+`--data-access` sceglie come si leggono e scrivono i dati. Le tre implementazioni di `ITaskRepository` usano le **stesse tabelle** e lo stesso SQL
+(`TaskSql`), quindi i dati scritti con una si leggono con le altre e si possono confrontare sullo stesso database:
+
+| Progetto | Tecnologia | Pacchetti |
+|---|---|---|
+| `Data.Ado` (predefinita) | ADO.NET puro tramite `IDbExecutor` | nessuno in più |
+| `Data.Dapper` | Dapper (SQL tuo, meno codice di lettura) | Dapper |
+| `Data.EntityFramework` | Entity Framework 6 (net462; per SQLite usa il driver `System.Data.SQLite`) | EntityFramework, System.Data.SQLite.EF6 |
+
+Nei progetti reali tieni quella che preferisci ed elimina le altre: un progetto `Data.*`, il suo `ProjectReference` nell'Host e il `case` in `Host/StorageRegistration.cs`.
+
+### Agganciare la libreria esistente (punti di aggancio)
+I repository ADO.NET non aprono connessioni né creano comandi: usano solo interfacce piccole, che si possono sostituire una per una.
+Dopo `AddDatabase` (in `Host/StorageRegistration.cs`) basta registrare la propria implementazione: **vale l'ultima registrazione**.
+
+| Punto di aggancio | A cosa serve | Quando sostituirlo |
+|---|---|---|
+| `IDbExecutor` | esegue SQL con parametri nominati (`QueryAsync`, `ExecuteAsync`) | la libreria ha già un modo suo di eseguire query: si scrive un adattatore che la richiama |
+| `IDbConnectionFactory` | come si ottiene una connessione | la libreria gestisce già connessioni e stringhe di connessione |
+| `ISqlDialect` | convenzione dei parametri (`@Nome`, `:Nome`...) | database o libreria con segnaposto diversi |
+| `AdoNetOptions.ConfigureCommand` | gancio su ogni comando prima dell'esecuzione (timeout, log delle query, regole della libreria) | serve solo personalizzare, senza sostituire |
+
+Esempio: `services.AddSingleton<IDbExecutor, MiaLibreriaExecutor>();` e i repository ADO.NET usano la libreria senza altre modifiche
+(il test `Il_repository_ADO_usa_solo_l_executor_quindi_si_puo_agganciare_una_libreria` ne mostra il principio).
+Gli SQL del modello sono scritti con `@Nome`: il dialetto li adatta, quindi non vanno riscritti.
+
+### Schema del database e migrazioni
+Lo schema si crea da solo all'avvio: gli script `Data/Scripts/<Database>/Vnnn_Nome.sql` (incorporati nell'assembly, uno per SQLite e uno per SQL Server)
+non ancora applicati vengono eseguiti in ordine, ciascuno in una transazione; la versione corrente è nella tabella `SchemaVersion`.
+Per cambiare lo schema si **aggiunge** uno script (`V002_...`), senza modificare quelli già applicati. Al primo avvio con database nuovo si inseriscono
+le attività di esempio. Se il database non è raggiungibile l'app lo segnala e esce con codice 3.
+
+Le colonne usano tipi semplici e uguali nei due database (testo e interi, data in formato ISO 8601): niente conversioni dipendenti dal driver.
+
+### Salvataggio su file JSON (`--storage file`)
+- Le attività stanno in `tasks.json` nella cartella dei dati (`--data-folder`, predefinita `%LocalAppData%\<nome app>`).
+- Ogni modifica riscrive il file in modo sicuro (file temporaneo + sostituzione); se è danneggiato l'app mostra l'errore con il percorso e **non lo tocca**.
 - È pensato per una sola istanza dell'app alla volta.
-- Il formato su disco (`TaskRecord`) è separato dal modello di dominio e porta un numero di versione (`Version`).
 
-Per passare a un database basta un'altra implementazione di `ITaskRepository` registrata in
-`InfrastructureServiceCollectionExtensions`: slice e view model non cambiano.
+### Test sul database
+I test girano su SQLite in un file temporaneo, con le stesse verifiche per le tre tecnologie. SQL Server **non è provato in CI**: i test
+`SqlServerTests` si attivano solo se imposti la variabile d'ambiente `DESKTOPAPPTEMPLATE_SQLSERVER` con la connessione a un database di prova
+(le tabelle `Tasks` e `SchemaVersion` vengono create se mancano; i test eliminano solo le righe che inseriscono).
 
 ## Icona e versione
 
@@ -76,7 +121,9 @@ e nelle proprietà dell'`.exe`.
 src/
   DesktopAppTemplate.Core            netstandard2.0  Mediator, validazione, MVVM, astrazioni (nessuna UI)
   DesktopAppTemplate.Features        netstandard2.0  Slice: richieste, handler, validatori, view model
-  DesktopAppTemplate.Infrastructure  netstandard2.0  Implementazioni concrete (orologio, archivio su file JSON, info app)
+  DesktopAppTemplate.Infrastructure  netstandard2.0  Implementazioni concrete (orologio, info app, archivio su file JSON)
+  DesktopAppTemplate.Data            netstandard2.0  Accesso al database: connessioni, dialetto, executor ADO.NET, migrazioni
+  DesktopAppTemplate.Data.Ado/.Dapper/.EntityFramework   Le tre tecnologie di accesso (repository delle attività)
   DesktopAppTemplate.UI.Wpf          net462          Solo view XAML + tema
   DesktopAppTemplate.UI.WinForms     net462          Solo view Windows Forms (con designer)
   DesktopAppTemplate.Host            net462          Composition root: DI e scelta della UI
@@ -128,8 +175,8 @@ che dipendono dai view model registrati, vengono create nel codice di `MainForm`
    oltre alla riga di registrazione della pagina e alla view.
 4. **Una sola interfaccia?** Eliminare il progetto `UI.*` non necessario, il suo `ProjectReference` nell'Host e il ramo
    corrispondente in `Program.cs`.
-5. **Persistenza**: i dati sono già su file JSON (`JsonFileTaskRepository`); per un database sostituire
-   l'implementazione del repository nell'Infrastructure, le slice non cambiano.
+5. **Persistenza**: i dati sono già su database (SQLite/SQL Server, con tre tecnologie a scelta) o su file JSON: vedi *Dati e database*.
+   Per una nuova slice si aggiunge uno script di migrazione, uno `ITaskRepository`-like derivato da `IRepository<,>` e la sua implementazione.
 6. **Versione e changelog**: `<Version>` in `Directory.Build.props` e `CHANGELOG.md`.
 
 Regole per mantenerlo scalabile: ogni dipendenza punta verso `Core`; le view non contengono logica; un caso d'uso

@@ -16,12 +16,14 @@ namespace DesktopAppTemplate.Host
     internal static class Program
     {
         private const int ExitInvalidArguments = 2;
+        private const int ExitStorageError = 3;
 
         /// <summary>
         /// Avvio. La configurazione si ottiene sovrapponendo, dal più debole al più forte:
         /// valori predefiniti, App.config, riga di comando (vedi <see cref="AppOptions"/>).
         /// <c>--help</c> e <c>--version</c> mostrano le informazioni ed escono; argomenti o valori non validi
-        /// vengono segnalati (codice di uscita 2) senza aprire l'interfaccia.
+        /// vengono segnalati (codice di uscita 2) senza aprire l'interfaccia; un archivio non raggiungibile
+        /// (database, migrazioni) viene segnalato con codice di uscita 3.
         /// </summary>
         [STAThread]
         private static int Main(string[] args)
@@ -47,7 +49,8 @@ namespace DesktopAppTemplate.Host
                 .AddSource(ConfigurationBuilder.CommandLineSourceName, commandLine.Values)
                 .Build();
 
-            var errors = commandLine.Errors.Concat(built.Errors).ToList();
+            var storage = StorageSettings.From(built.Configuration);
+            var errors = commandLine.Errors.Concat(built.Errors).Concat(storage.Validate()).ToList();
             if (errors.Count > 0)
             {
                 ConsoleOutput.Show(info.Name, string.Join(Environment.NewLine, errors)
@@ -62,7 +65,8 @@ namespace DesktopAppTemplate.Host
             services.AddMediator()
                     .AddAppContext(configuration)
                     .AddFeatures()
-                    .AddInfrastructure();
+                    .AddInfrastructure()
+                    .AddStorage(storage, info.Name);
 
             // L'unica differenza tra le due versioni è questa scelta: la logica è identica.
             if (UiSettings.From(configuration).Ui == UiKind.WinForms)
@@ -72,6 +76,16 @@ namespace DesktopAppTemplate.Host
 
             using (var provider = services.BuildServiceProvider())
             {
+                try
+                {
+                    StorageBootstrapper.Initialize(provider);
+                }
+                catch (Exception ex)
+                {
+                    ConsoleOutput.Show(info.Name, "Impossibile preparare l'archivio dei dati: " + ex.Message, isError: true);
+                    return ExitStorageError;
+                }
+
                 return provider.GetRequiredService<IUiShell>().Run();
             }
         }
