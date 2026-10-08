@@ -462,8 +462,8 @@ public class MainViewModel : ObservableObject
 
         if (await RunSyncAsync(address, passphrase))
         {
+            _syncPassphrases.Save(passphrase);   // prima la frase, poi l'indirizzo: appena la sincronizzazione risulta attiva, la frase c'è già
             _settings.SyncPath = address;
-            _syncPassphrases.Save(passphrase);
             SaveSettings();
             RefreshSyncState();
         }

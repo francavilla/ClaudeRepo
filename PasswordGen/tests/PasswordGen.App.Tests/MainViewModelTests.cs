@@ -197,8 +197,9 @@ namespace PasswordGen.App.Tests
             h.Dialogs.Passphrases.Enqueue(Phrase);
 
             h.ViewModel.SetupSyncCommand.Execute(null);
-            WaitFor(() => h.ViewModel.SyncActive, "attivazione della sincronizzazione");
+            WaitFor(() => h.Settings.Load().SyncPath == file, "salvataggio delle impostazioni di sincronizzazione");
 
+            Assert.True(h.ViewModel.SyncActive);
             Assert.True(File.Exists(file));
             Assert.Equal(file, h.Settings.Load().SyncPath);
             Assert.Equal(Phrase, h.Passphrases.Load());
@@ -331,6 +332,7 @@ namespace PasswordGen.App.Tests
         [Fact]
         public void Importa_FraseSbagliata_NonModificaLoStorico()
         {
+            Directory.CreateDirectory(_directory);
             var backup = Path.Combine(_directory, "backup.pgx");
             var other = new PasswordHistory();
             other.Add("Aaaa-1111-bbbb!", GenerationMode.Passphrase, Today);

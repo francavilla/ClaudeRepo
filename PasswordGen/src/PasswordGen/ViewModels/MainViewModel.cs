@@ -714,7 +714,7 @@ namespace PasswordGen.ViewModels
 
             if (await RunSyncAsync(path, passphrase))
             {
-                _settings.SyncPath = path;
+                // Prima la frase, poi il percorso: appena la sincronizzazione risulta attiva, la frase c'è già.
                 try
                 {
                     _syncPassphrases.Save(passphrase);
@@ -724,6 +724,7 @@ namespace PasswordGen.ViewModels
                     StatusMessage = "Impossibile salvare la frase segreta: " + ex.Message;
                 }
 
+                _settings.SyncPath = path;
                 SaveSettings();
                 RefreshSyncState();
             }
