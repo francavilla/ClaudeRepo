@@ -116,6 +116,7 @@ Nella cartella `src/PasswordGen.Mobile` c'è l'app Android (.NET MAUI), che rius
 - L'APK è allegata a ogni release (`PasswordGen-Android-vX.Y.Z.apk`, nella release `passwordgen-android-vX.Y.Z`); le build di prova si scaricano anche dall'artifact del workflow *CI PasswordGen Android*. Per installarlo sul telefono servono le «origini sconosciute».
 - Senza un keystore fisso l'APK è firmato con una chiave di debug diversa a ogni build: per **aggiornare** l'app senza disinstallarla
   (e perdere le impostazioni) servirà una chiave fissa, da fornire come secret del repository.
+- L'APK di Release contiene solo l'architettura ARM a 64 bit (circa 36 MB); non si installa su telefoni solo a 32 bit.
 - Non c'è nella `PasswordGen.sln` perché richiede il workload Android: si compila con `dotnet publish` (vedi il workflow).
 - Permessi Android: notifiche e riavvio del telefono (promemoria), impronta/PIN (blocco dell'app); rete solo per l'accesso facoltativo a Google Drive.
   Il backup di Android è disattivato: impostazioni e storico non lasciano il telefono.

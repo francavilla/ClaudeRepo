@@ -14,6 +14,8 @@ Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Bui
 - `PasswordGen.Core`: `GoogleOAuthClient`, `GoogleAccessTokenProvider`, `GoogleDriveStorage` (con test su un Google finto).
 
 ### Modificato
+- **APK molto più piccola (da ~64 a ~36 MB):** in Release solo l'architettura ARM a 64 bit. Gli assembly venivano copiati una volta per architettura
+  (~25 MB ciascuna); i telefoni solo a 32 bit non sono più supportati, i modelli recenti e tutti quelli con impronta e Android 9+ sono a 64 bit.
 - L'app Android ha ora il permesso di usare la rete, **solo** per l'accesso facoltativo a Google Drive: senza attivarlo non invia né riceve nulla.
 - Le note delle release Android dicono che la rete serve a Google Drive.
 
