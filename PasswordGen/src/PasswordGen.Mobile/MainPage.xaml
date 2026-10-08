@@ -85,6 +85,37 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <!-- Parole della passphrase -->
+                <Border Style="{StaticResource Card}" IsVisible="{Binding IsPassphrase}">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Parole della passphrase" Style="{StaticResource CardTitle}" />
+                        <Label Text="{Binding WordSummary}" FontAttributes="Bold" />
+
+                        <RadioButton GroupName="Words" Content="Solo la lista integrata" IsChecked="{Binding IsBuiltinWords, Mode=TwoWay}" />
+                        <RadioButton GroupName="Words" Content="Aggiungi il mio file alla lista integrata"
+                                     IsEnabled="{Binding HasCustomWords}" IsChecked="{Binding IsCombinedWords, Mode=TwoWay}" />
+                        <RadioButton GroupName="Words" Content="Solo il mio file (almeno 300 parole)"
+                                     IsEnabled="{Binding HasCustomWords}" IsChecked="{Binding IsCustomOnlyWords, Mode=TwoWay}" />
+
+                        <Label Text="{Binding CustomFileSummary}" Style="{StaticResource MutedText}" Margin="0,4,0,0" />
+                        <Border BackgroundColor="#FFFBEB" Stroke="#FDE68A" StrokeThickness="1" Padding="10,6" IsVisible="{Binding HasWordWarning}">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <Label Text="{Binding WordWarning}" TextColor="#B45309" FontSize="12" />
+                        </Border>
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,6,0,0">
+                            <Button Text="Carica file..." Command="{Binding LoadWordFileCommand}"
+                                    BackgroundColor="White" TextColor="{StaticResource Accent}" BorderColor="#CBD5E1" BorderWidth="1" />
+                            <Button Grid.Column="1" Text="Ripristina integrata" Command="{Binding ResetWordsCommand}"
+                                    BackgroundColor="White" TextColor="{StaticResource Accent}" BorderColor="#CBD5E1" BorderWidth="1" />
+                        </Grid>
+                        <Label Style="{StaticResource MutedText}"
+                               Text="File di testo con una parola per riga (4-9 lettere, accenti rimossi, # per i commenti). Viene copiato nella memoria privata dell'app." />
+                    </VerticalStackLayout>
+                </Border>
+
                 <!-- Policy -->
                 <Border Style="{StaticResource Card}">
                     <VerticalStackLayout Spacing="6">

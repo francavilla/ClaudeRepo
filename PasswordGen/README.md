@@ -85,7 +85,8 @@ Nella cartella `src/PasswordGen.Mobile` c'è l'app Android (.NET MAUI), che rius
   negli appunti (segnalata come sensibile, cancellata dopo 30 secondi).
 - **Tappa 2**: scheda *Storico* (ultime 12 password, cifrate con una chiave del Keystore di Android) e promemoria con notifica
   giornaliera quando la password sta per scadere.
-- **Prossima tappa**: file di parole personale.
+- **Tappa 3**: file di parole personale (card *Parole della passphrase*): carichi un file di testo, che viene copiato nella
+  memoria privata dell'app, con le stesse modalità e gli stessi limiti dell'app Windows (almeno 300 parole per «solo il mio file»).
 
 - L'APK è allegata a ogni release (`PasswordGen-vX.Y.Z.apk`); le build di prova si scaricano anche dall'artifact del workflow *CI PasswordGen Android*. Per installarlo sul telefono servono le «origini sconosciute».
 - Senza un keystore fisso l'APK è firmato con una chiave di debug diversa a ogni build: per **aggiornare** l'app senza disinstallarla

@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Text;
 using System.Windows.Input;
 using PasswordGen.Core.Generation;
 using PasswordGen.Core.History;
@@ -20,6 +21,8 @@ public class MainViewModel : ObservableObject
     private readonly PasswordHistory _history;
     private readonly IDialogService _dialogs;
     private readonly IReminderScheduler _scheduler;
+    private readonly WordList _builtinWords;
+    private readonly IWordFileService _wordFiles;
 
     private bool _loading = true;
     private GenerationMode _mode;
@@ -35,6 +38,11 @@ public class MainViewModel : ObservableObject
     private bool _avoidAmbiguous;
     private string _previousPassword = string.Empty;
     private string _statusMessage = string.Empty;
+    private WordSourceMode _wordSource;
+    private string _customWordsPath;
+    private WordFileResult _customWords;
+    private string _wordSummary = string.Empty;
+    private string _wordWarning = string.Empty;
     private bool _historyEnabled;
     private bool _reminderEnabled;
     private int _validityDays;
@@ -45,11 +53,13 @@ public class MainViewModel : ObservableObject
     /// <param name="historyStore">Archivio cifrato dello storico; nullo se la chiave non è disponibile (storico non utilizzabile).</param>
     public MainViewModel(
         PasswordGenerator generator,
+        WordList builtinWords,
         SettingsStore store,
         HistoryStore historyStore,
         SecretClipboard clipboard,
         IDialogService dialogs,
-        IReminderScheduler scheduler)
+        IReminderScheduler scheduler,
+        IWordFileService wordFiles)
     {
         _generator = generator;
         _store = store;
@@ -57,6 +67,8 @@ public class MainViewModel : ObservableObject
         _historyStore = historyStore;
         _dialogs = dialogs;
         _scheduler = scheduler;
+        _builtinWords = builtinWords;
+        _wordFiles = wordFiles;
 
         _settings = store.Load();
         _mode = _settings.Mode;
@@ -72,6 +84,12 @@ public class MainViewModel : ObservableObject
         _avoidAmbiguous = _settings.AvoidAmbiguous;
         _reminderEnabled = _settings.ReminderEnabled;
         _validityDays = _settings.ValidityDays;
+        _wordSource = _settings.WordSource;
+        _customWordsPath = _settings.CustomWordsPath;
+        if (!string.IsNullOrEmpty(_customWordsPath))
+        {
+            _customWords = CustomWordList.Load(_customWordsPath);
+        }
 
         HistoryAvailable = historyStore != null;
         _historyEnabled = HistoryAvailable && _settings.HistoryEnabled;
@@ -82,10 +100,13 @@ public class MainViewModel : ObservableObject
         GenerateCommand = new Command(Generate);
         MarkChangedCommand = new Command(() => RunSafe(MarkChangedAsync));
         ClearHistoryCommand = new Command(() => RunSafe(ClearHistoryAsync));
+        LoadWordFileCommand = new Command(() => RunSafe(LoadWordFileAsync));
+        ResetWordsCommand = new Command(ResetWords, () => _customWords != null || _wordSource != WordSourceMode.Builtin);
 
         _loading = false;
         RefreshReminder();
         RefreshHistory();
+        ApplyWordSource();
         Generate();
         if (!HistoryAvailable)
         {
@@ -104,6 +125,10 @@ public class MainViewModel : ObservableObject
     public ICommand MarkChangedCommand { get; }
 
     public ICommand ClearHistoryCommand { get; }
+
+    public ICommand LoadWordFileCommand { get; }
+
+    public ICommand ResetWordsCommand { get; }
 
     public string StatusMessage
     {
@@ -305,6 +330,151 @@ public class MainViewModel : ObservableObject
         StatusMessage = _clipboard.Copy(suggestion.Text)
             ? "Copiata negli appunti: verrà cancellata tra " + (int)_clipboard.ClearAfter.TotalSeconds + " secondi."
             : "Impossibile accedere agli appunti: riprova.";
+    }
+
+    // ---------------------------------------------------------------- Parole della passphrase
+
+    public bool IsBuiltinWords
+    {
+        get => _wordSource == WordSourceMode.Builtin;
+        set { if (value) { SetWordSource(WordSourceMode.Builtin); } }
+    }
+
+    public bool IsCombinedWords
+    {
+        get => _wordSource == WordSourceMode.Combined;
+        set { if (value) { SetWordSource(WordSourceMode.Combined); } }
+    }
+
+    public bool IsCustomOnlyWords
+    {
+        get => _wordSource == WordSourceMode.CustomOnly;
+        set { if (value) { SetWordSource(WordSourceMode.CustomOnly); } }
+    }
+
+    /// <summary>True se è stato caricato un file leggibile con almeno una parola valida.</summary>
+    public bool HasCustomWords => _customWords != null && _customWords.Error == null && _customWords.Words.Count > 0;
+
+    /// <summary>Lista in uso e quanto vale ogni parola in bit.</summary>
+    public string WordSummary
+    {
+        get => _wordSummary;
+        private set => SetProperty(ref _wordSummary, value);
+    }
+
+    public string CustomFileSummary => _customWords == null
+        ? "Nessun file caricato."
+        : _customWords.FileName + ": " + _customWords.Summary;
+
+    public string WordWarning
+    {
+        get => _wordWarning;
+        private set
+        {
+            if (SetProperty(ref _wordWarning, value))
+            {
+                OnPropertyChanged(nameof(HasWordWarning));
+            }
+        }
+    }
+
+    public bool HasWordWarning => _wordWarning.Length > 0;
+
+    private void SetWordSource(WordSourceMode mode)
+    {
+        if (_wordSource == mode)
+        {
+            return;
+        }
+
+        _wordSource = mode;
+        ApplyWordSource();
+        Generate();
+        SaveSettings();
+    }
+
+    private async Task LoadWordFileAsync()
+    {
+        var picked = await _wordFiles.PickAsync();
+        if (picked == null)
+        {
+            return;
+        }
+
+        WordFileResult result;
+        try
+        {
+            result = CustomWordList.Parse(File.ReadAllLines(picked.TempPath, Encoding.UTF8), picked.FinalPath);
+        }
+        catch (Exception ex)
+        {
+            _wordFiles.Discard(picked);
+            StatusMessage = "Impossibile leggere il file: " + ex.Message;
+            return;
+        }
+
+        if (result.Words.Count == 0)
+        {
+            _wordFiles.Discard(picked);
+            StatusMessage = "Il file non contiene parole valide (una per riga, 4-9 lettere): " + result.Summary;
+            return;
+        }
+
+        // Il file precedente resta intatto finché quello nuovo non è valido.
+        var previousPath = _customWordsPath;
+        _wordFiles.Commit(picked);
+        if (previousPath != null && previousPath != picked.FinalPath)
+        {
+            _wordFiles.Delete(previousPath);
+        }
+
+        _customWords = result;
+        _customWordsPath = picked.FinalPath;
+        if (_wordSource == WordSourceMode.Builtin)
+        {
+            _wordSource = WordSourceMode.Combined;
+        }
+
+        ApplyWordSource();
+        Generate();
+        SaveSettings();
+        StatusMessage = "Caricate " + result.Words.Count + " parole da " + result.FileName + ".";
+    }
+
+    private void ResetWords()
+    {
+        _wordFiles.Delete(_customWordsPath);
+        _customWords = null;
+        _customWordsPath = null;
+        _wordSource = WordSourceMode.Builtin;
+        ApplyWordSource();
+        Generate();
+        SaveSettings();
+        StatusMessage = "Ripristinata la lista di parole integrata.";
+    }
+
+    /// <summary>Sceglie la lista di parole in base alla modalità e al file, e aggiorna riepilogo e avvisi.</summary>
+    private void ApplyWordSource()
+    {
+        var selection = WordSelection.Select(_builtinWords, _customWords, _wordSource);
+        _generator.SetWords(selection.List);
+
+        var origin = selection.Effective switch
+        {
+            WordSourceMode.Combined => "Lista integrata + " + _customWords.FileName,
+            WordSourceMode.CustomOnly => "Solo " + _customWords.FileName,
+            _ => "Lista integrata",
+        };
+
+        WordSummary = origin + ": " + selection.List.Count + " parole, "
+            + selection.BitsPerWord.ToString("0.0", CultureInfo.CurrentCulture) + " bit per parola";
+        WordWarning = selection.Warning;
+
+        OnPropertyChanged(nameof(IsBuiltinWords));
+        OnPropertyChanged(nameof(IsCombinedWords));
+        OnPropertyChanged(nameof(IsCustomOnlyWords));
+        OnPropertyChanged(nameof(HasCustomWords));
+        OnPropertyChanged(nameof(CustomFileSummary));
     }
 
     // ---------------------------------------------------------------- Promemoria
@@ -607,6 +777,8 @@ public class MainViewModel : ObservableObject
         _settings.RequireSpecial = _requireSpecial;
         _settings.AvoidAmbiguous = _avoidAmbiguous;
         _settings.HistoryEnabled = _historyEnabled;
+        _settings.WordSource = _wordSource;
+        _settings.CustomWordsPath = _customWordsPath;
         _settings.ReminderEnabled = _reminderEnabled;
         _settings.ValidityDays = _validityDays;
 

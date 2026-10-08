@@ -29,7 +29,8 @@ public partial class App : Application
             : new HistoryStore(Path.Combine(FileSystem.AppDataDirectory, "history.dat"), new AesHmacProtector(key));
 
         var viewModel = new MainViewModel(
-            generator, settings, history, new SecretClipboard(TimeSpan.FromSeconds(30)), new DialogService(), new AndroidReminderScheduler());
+            generator, words, settings, history, new SecretClipboard(TimeSpan.FromSeconds(30)),
+            new DialogService(), new AndroidReminderScheduler(), new WordFileService());
         viewModel.RestoreReminder();
 
         var tabs = new TabbedPage();

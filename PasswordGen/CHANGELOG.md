@@ -4,6 +4,16 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.6.0] - 2026-10-08
+
+### Aggiunto
+- **App Android, tappa 3**: file di parole personale per le passphrase, come nell'app Windows (card «Parole della passphrase»).
+  - Si sceglie un file di testo (una parola per riga, 4-9 lettere, `#` per i commenti): l'app lo copia nella memoria privata,
+    lo normalizza (minuscole, senza accenti, senza duplicati) e mostra quante parole ha accettato e perché ha scartato le altre.
+  - Tre modalità: solo la lista integrata, aggiungi il mio file (basta una parola valida), solo il mio file (almeno 300 parole).
+  - Riepilogo con i bit per parola e avviso sotto le 1000 parole; se il file manca o è troppo corto si usa la lista integrata.
+  - Il file precedente resta intatto finché quello nuovo non è valido.
+
 ## [1.5.0] - 2026-10-08
 
 ### Aggiunto
