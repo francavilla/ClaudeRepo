@@ -4,6 +4,8 @@
 - Lavorare e fare push sul branch **`main`**: dall'8 ottobre 2026 tutte le integrazioni avvengono lì, anche se la sessione ne assegna un altro (confermato dall'utente).
 - **`Progetti_Claude` è congelato** allo stato di DesktopAppTemplate 4.2.2 (commit `b2d2eb3`): non aggiungervi altro.
 - DesktopAppTemplate riparte dalla versione **1.0.0** (equivalente alla 4.2.2); le versioni 1.0.0 – 4.2.2 del changelog sono la cronologia interna dello sviluppo precedente.
+- PasswordGen riparte dalla versione **1.0.0** (equivalente alla 1.9.1, release `passwordgen-v1.9.1` congelata); le versioni 1.0.0 – 1.9.1 del changelog sono la cronologia interna precedente.
+  Il codice di versione Android delle release è `100000 + major*10000 + minor*100 + patch`.
 
 ## Versioni (obbligatorio a ogni modifica)
 Ogni modifica a un'applicazione del repository deve aggiornare il suo numero di versione:

@@ -4,6 +4,14 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.0.0] - 2026-10-08
+
+### Modificato
+- **Nuova numerazione:** da `main` PasswordGen riparte dalla versione **1.0.0**, equivalente alla 1.9.1 (stesso codice). Le versioni dalla 1.0.0 alla 1.9.1
+  riportate qui sotto sono la cronologia interna dello sviluppo precedente; la release `passwordgen-v1.9.1` resta pubblicata ma congelata.
+- Il codice di versione Android delle release ora parte da 110000 (`100000 + major*10000 + minor*100 + patch`), così gli APK 1.x nuovi
+  si installano sopra quelli delle vecchie release (che arrivavano a 10701) senza essere scambiati per un downgrade.
+
 ## [1.9.1] - 2026-10-08
 
 ### Corretto
