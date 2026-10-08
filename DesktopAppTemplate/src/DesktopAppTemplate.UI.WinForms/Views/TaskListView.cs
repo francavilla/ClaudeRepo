@@ -111,7 +111,8 @@ namespace DesktopAppTemplate.UI.WinForms.Views
 
         private void grid_CellMouseEnter(object sender, DataGridViewCellEventArgs e)
         {
-            var clickable = e.RowIndex >= 0 && (e.ColumnIndex == toggleColumn.Index || e.ColumnIndex == removeColumn.Index);
+            var clickable = _viewModel != null && _viewModel.CanEdit && e.RowIndex >= 0
+                            && (e.ColumnIndex == toggleColumn.Index || e.ColumnIndex == removeColumn.Index);
             grid.Cursor = clickable ? Cursors.Hand : Cursors.Default;
         }
 
@@ -144,6 +145,7 @@ namespace DesktopAppTemplate.UI.WinForms.Views
                 titleBox.Text = _viewModel.NewTitle;
 
             addButton.Enabled = _viewModel.AddCommand.CanExecute(null);
+            titleBox.Enabled = _viewModel.CanEdit;
 
             if (!ReferenceEquals(filterBox.SelectedItem, _viewModel.SelectedFilter))
                 filterBox.SelectedItem = _viewModel.SelectedFilter;

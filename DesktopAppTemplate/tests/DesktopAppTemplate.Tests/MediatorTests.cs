@@ -37,7 +37,7 @@ namespace DesktopAppTemplate.Tests
         private static IMediator Create(bool withValidator)
         {
             var services = new ServiceCollection();
-            services.AddCore();
+            services.AddMediator();
             services.AddTransient<IRequestHandler<Ping, string>, PingHandler>();
             if (withValidator)
                 services.AddTransient<IValidator<Ping>, PingValidator>();

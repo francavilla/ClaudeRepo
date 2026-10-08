@@ -17,6 +17,7 @@ namespace DesktopAppTemplate.Features.Tasks
     {
         private readonly IMediator _mediator;
         private readonly IDialogService _dialogs;
+        private readonly TaskSettings _settings;
 
         private string _newTitle = string.Empty;
         private FilterOption _selectedFilter;
@@ -38,10 +39,10 @@ namespace DesktopAppTemplate.Features.Tasks
             };
             _selectedFilter = FilterOptions[0];
 
-            AddCommand = new AsyncRelayCommand(AddAsync, () => !string.IsNullOrWhiteSpace(NewTitle));
+            AddCommand = new AsyncRelayCommand(AddAsync, () => CanEdit && !string.IsNullOrWhiteSpace(NewTitle));
             RefreshCommand = new AsyncRelayCommand(RefreshAsync);
-            ToggleCommand = new AsyncRelayCommand<TaskItemViewModel>(ToggleAsync, item => item != null);
-            RemoveCommand = new AsyncRelayCommand<TaskItemViewModel>(RemoveAsync, item => item != null);
+            ToggleCommand = new AsyncRelayCommand<TaskItemViewModel>(ToggleAsync, item => CanEdit && item != null);
+            RemoveCommand = new AsyncRelayCommand<TaskItemViewModel>(RemoveAsync, item => CanEdit && item != null);
 
             AddCommand.ErrorHandler = HandleError;
             RefreshCommand.ErrorHandler = HandleError;
@@ -104,6 +105,9 @@ namespace DesktopAppTemplate.Features.Tasks
             private set { SetProperty(ref _isEmpty, value); }
         }
 
+        /// <summary>False in modalità sola lettura (opzione <c>--read-only</c>).</summary>
+        public bool CanEdit => !_settings.ReadOnly;
+
         public string EmptyMessage => "Nessuna attività da mostrare.";
 
         public override Task OnNavigatedToAsync() => RefreshCommand.ExecuteAsync();
@@ -122,7 +126,8 @@ namespace DesktopAppTemplate.Features.Tasks
             foreach (var item in result.Items)
                 Items.Add(new TaskItemViewModel(item));
 
-            Summary = $"{result.TotalCount} attività · {result.CompletedCount} completate";
+            Summary = $"{result.TotalCount} attività · {result.CompletedCount} completate"
+                      + (CanEdit ? string.Empty : " · sola lettura");
             IsEmpty = Items.Count == 0;
         }
 

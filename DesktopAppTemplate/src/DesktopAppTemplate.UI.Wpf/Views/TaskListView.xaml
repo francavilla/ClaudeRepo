@@ -26,6 +26,7 @@
 
                 <Grid>
                     <TextBox x:Name="NewTitleBox" Style="{StaticResource ModernTextBox}" MaxLength="200"
+                             IsEnabled="{Binding CanEdit}"
                              Text="{Binding NewTitle, UpdateSourceTrigger=PropertyChanged}">
                         <TextBox.InputBindings>
                             <KeyBinding Key="Return" Command="{Binding AddCommand}" />

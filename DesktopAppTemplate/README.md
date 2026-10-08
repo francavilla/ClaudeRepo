@@ -6,21 +6,53 @@ Modello di applicazione desktop per .NET Framework 4.6.2+ con **due interfacce i
 ## Avvio
 
 ```
-DesktopAppTemplate.exe --ui wpf        # interfaccia WPF
-DesktopAppTemplate.exe --ui winforms   # interfaccia Windows Forms
+DesktopAppTemplate.exe --ui winforms          # interfaccia Windows Forms (predefinita: wpf)
+DesktopAppTemplate.exe --read-only            # attività in sola lettura
+DesktopAppTemplate.exe --data-folder D:\Dati  # cartella dei dati
+DesktopAppTemplate.exe --help                 # elenco completo delle opzioni
+DesktopAppTemplate.exe --version
 ```
 
-Altre opzioni: `--help` (o `-h`, `/?`) mostra l'aiuto e `--version` (o `-v`) la versione, senza aprire l'interfaccia.
-Se l'app è avviata da un prompt il testo compare lì, altrimenti in una finestra di messaggio.
+`--help` e `--version` mostrano le informazioni ed escono senza aprire l'interfaccia. Se l'app è avviata da un prompt
+il testo compare lì, altrimenti in una finestra di messaggio. Un argomento sconosciuto o un valore non valido
+(es. `--ui boh`) viene segnalato con un messaggio chiaro e l'app esce con codice 2, senza aprire l'interfaccia.
+Da Visual Studio: impostare gli *Application arguments* nelle proprietà di debug del progetto `DesktopAppTemplate.Host`.
 
-Senza argomento vale `Ui` in `App.config` (predefinito `wpf`). Da Visual Studio: impostare gli
-*Application arguments* nelle proprietà di debug del progetto `DesktopAppTemplate.Host`.
+## Configurazione e contesto
+
+**Un parametro, tre modi per impostarlo.** Ogni parametro si dichiara una volta sola (`OptionDefinition`) e vale
+sia in `App.config` (chiave `DataFolder`) sia da riga di comando (`--data-folder`, ricavato dalla chiave).
+Le sorgenti si sovrappongono, dalla più debole alla più forte:
+
+```
+valori predefiniti  <  App.config  <  riga di comando
+```
+
+Dalla dichiarazione derivano da soli: la lettura da entrambe le sorgenti, la validazione e il testo di `--help`.
+La pagina *Informazioni* mostra la configurazione in uso con l'origine di ogni valore (predefinito, App.config o riga di comando).
+
+**Aggiungere un parametro** (3 passi):
+1. nel modulo che lo usa, dichiarare l'opzione e leggerla nella sua classe `XxxSettings` (esempi: `UiSettings`, `StorageSettings`, `TaskSettings`);
+2. aggiungere una riga in `Host/AppOptions.cs`;
+3. iniettare `XxxSettings` dove serve (e, se vuoi, documentare la chiave in `App.config`).
+
+**Il contesto** (`IAppContext`) è il punto unico da cui view model e handler ottengono ciò che serve:
+
+| Parte | Contenuto | Cambia? |
+|---|---|---|
+| `Configuration` | configurazione risolta | no |
+| `App` | nome, versione, runtime | no |
+| `Environment` | interfaccia attiva, utente, computer | no |
+| `Session` | stato di lavoro condiviso tra le pagine (valori tipizzati per chiave, evento `Changed`) | sì |
+
+Regola: chi ha bisogno di poco chiede poco (es. `TaskSettings` o `IAppConfiguration`, non tutto il contesto):
+così il contesto non diventa un "service locator" e le dipendenze restano visibili nei costruttori.
 
 ## Dati su file
 
 Le attività sono salvate in un file JSON (`tasks.json`), per impostazione predefinita in
 `%LocalAppData%\DesktopAppTemplate` (cartella dell'utente: non servono permessi di amministratore).
-Per cambiarla: chiave `DataFolder` in `App.config` (sono ammesse variabili come `%USERPROFILE%`).
+Per cambiarla: chiave `DataFolder` in `App.config` oppure `--data-folder` (sono ammesse variabili come `%USERPROFILE%`).
 
 - Al primo avvio, se il file non esiste, parte con alcune attività di esempio (`SampleTasks`); poi vale solo il file.
 - Ogni modifica riscrive il file in modo sicuro (file temporaneo + sostituzione): un'interruzione non lo lascia a metà.

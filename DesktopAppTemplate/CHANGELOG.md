@@ -4,6 +4,23 @@ Tutte le modifiche rilevanti di DesktopAppTemplate sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [2.0.0] - 2026-10-08
+
+### Aggiunto
+- Configurazione unificata: ogni parametro si dichiara una sola volta (`OptionDefinition`) e vale in `App.config` e da riga di comando
+  (`--data-folder` ricavato da `DataFolder`), con priorità predefinito < App.config < riga di comando, validazione e origine di ogni valore.
+- Testo di `--help` generato dalle opzioni dichiarate; il catalogo delle opzioni sta in `Host/AppOptions.cs`.
+- Contesto applicativo `IAppContext` (configurazione, informazioni, ambiente, stato di sessione `ISessionState` con notifica dei cambiamenti).
+- Classi `UiSettings`, `StorageSettings`, `TaskSettings` che leggono la configurazione per ciascun modulo.
+- Opzione dimostrativa `--read-only` / chiave `ReadOnly`: le attività si vedono ma non si modificano (comandi e casella disabilitati in entrambe le UI).
+- La pagina Informazioni mostra utente, computer e la configurazione in uso con l'origine di ogni valore.
+
+### Modificato
+- **Incompatibile:** un argomento sconosciuto o un valore non valido (es. `--ui boh`) ora è un errore (codice di uscita 2, messaggio chiaro) invece di essere ignorato.
+- **Incompatibile:** `AddCore()` diventa `AddMediator()` + `AddAppContext(configuration)`; `AddInfrastructure()` non riceve più la cartella dati
+  (la legge dalla configurazione); `UiSelector` e `CommandLine` sono sostituiti da `UiSettings` e dal nuovo parser.
+- `TaskListViewModel` riceve `TaskSettings`; `AboutViewModel` riceve `IAppContext`.
+
 ## [1.3.0] - 2026-10-08
 
 ### Aggiunto

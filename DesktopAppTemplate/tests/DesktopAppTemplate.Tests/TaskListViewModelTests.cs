@@ -6,9 +6,9 @@ namespace DesktopAppTemplate.Tests
 {
     public class TaskListViewModelTests
     {
-        private static TaskListViewModel Create(TestHost host, FakeDialogService dialogs = null)
+        private static TaskListViewModel Create(TestHost host, FakeDialogService dialogs = null, bool readOnly = false)
         {
-            return new TaskListViewModel(host.Mediator, dialogs ?? new FakeDialogService());
+            return new TaskListViewModel(host.Mediator, dialogs ?? new FakeDialogService(), new TaskSettings(readOnly));
         }
 
         [Fact]
@@ -81,6 +81,23 @@ namespace DesktopAppTemplate.Tests
             await Task.Yield();
             Assert.Empty(vm.Items);
             Assert.True(vm.IsEmpty);
+        }
+
+        [Fact]
+        public async Task In_sola_lettura_i_comandi_di_modifica_sono_disabilitati()
+        {
+            var host = new TestHost();
+            await host.Mediator.Send(new DesktopAppTemplate.Features.Tasks.AddTask.AddTaskCommand("esistente"));
+            var vm = Create(host, readOnly: true);
+            await vm.OnNavigatedToAsync();
+            vm.NewTitle = "nuova";
+
+            Assert.False(vm.CanEdit);
+            Assert.False(vm.AddCommand.CanExecute(null));
+            Assert.False(vm.ToggleCommand.CanExecute(vm.Items[0]));
+            Assert.False(vm.RemoveCommand.CanExecute(vm.Items[0]));
+            Assert.Contains("sola lettura", vm.Summary);
+            Assert.Single(vm.Items);
         }
     }
 }

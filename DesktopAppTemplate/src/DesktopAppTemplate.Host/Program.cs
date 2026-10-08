@@ -1,7 +1,9 @@
 using System;
 using System.Configuration;
+using System.Linq;
 using DesktopAppTemplate.Core;
 using DesktopAppTemplate.Core.Abstractions;
+using DesktopAppTemplate.Core.Configuration;
 using DesktopAppTemplate.Core.Hosting;
 using DesktopAppTemplate.Features;
 using DesktopAppTemplate.Infrastructure;
@@ -13,36 +15,57 @@ namespace DesktopAppTemplate.Host
 {
     internal static class Program
     {
+        private const int ExitInvalidArguments = 2;
+
         /// <summary>
-        /// Avvio: <c>DesktopAppTemplate.exe --ui wpf</c> oppure <c>--ui winforms</c>.
-        /// Senza argomento vale l'impostazione "Ui" in App.config (predefinita: wpf).
-        /// <c>--help</c> e <c>--version</c> mostrano le informazioni ed escono senza aprire l'interfaccia.
+        /// Avvio. La configurazione si ottiene sovrapponendo, dal più debole al più forte:
+        /// valori predefiniti, App.config, riga di comando (vedi <see cref="AppOptions"/>).
+        /// <c>--help</c> e <c>--version</c> mostrano le informazioni ed escono; argomenti o valori non validi
+        /// vengono segnalati (codice di uscita 2) senza aprire l'interfaccia.
         /// </summary>
         [STAThread]
         private static int Main(string[] args)
         {
             var info = new AppInfo();
-            if (CommandLine.IsHelpRequested(args))
+            var options = AppOptions.All;
+
+            var commandLine = CommandLineParser.Parse(args, options);
+            if (commandLine.HelpRequested)
             {
-                ConsoleOutput.Show(info.Name, CommandLine.GetUsage(info.Name, info.Version));
+                ConsoleOutput.Show(info.Name, UsageText.Build(info.Name, info.Version, options));
                 return 0;
             }
 
-            if (CommandLine.IsVersionRequested(args))
+            if (commandLine.VersionRequested)
             {
                 ConsoleOutput.Show(info.Name, info.Name + " " + info.Version);
                 return 0;
             }
 
-            var ui = UiSelector.Resolve(args, ConfigurationManager.AppSettings["Ui"]);
+            var built = new ConfigurationBuilder(options)
+                .AddNameValueSource("App.config", ConfigurationManager.AppSettings)
+                .AddSource(ConfigurationBuilder.CommandLineSourceName, commandLine.Values)
+                .Build();
+
+            var errors = commandLine.Errors.Concat(built.Errors).ToList();
+            if (errors.Count > 0)
+            {
+                ConsoleOutput.Show(info.Name, string.Join(Environment.NewLine, errors)
+                                              + Environment.NewLine + Environment.NewLine
+                                              + "Usa --help per l'elenco delle opzioni.", isError: true);
+                return ExitInvalidArguments;
+            }
+
+            var configuration = built.Configuration;
 
             var services = new ServiceCollection();
-            services.AddCore()
+            services.AddMediator()
+                    .AddAppContext(configuration)
                     .AddFeatures()
-                    .AddInfrastructure(ConfigurationManager.AppSettings["DataFolder"]);
+                    .AddInfrastructure();
 
-            // L'unica differenza tra le due versioni è questa riga: la logica è identica.
-            if (ui == UiKind.WinForms)
+            // L'unica differenza tra le due versioni è questa scelta: la logica è identica.
+            if (UiSettings.From(configuration).Ui == UiKind.WinForms)
                 services.AddWinFormsUi();
             else
                 services.AddWpfUi();

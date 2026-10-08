@@ -136,7 +136,7 @@ namespace DesktopAppTemplate.Tests
         [Fact]
         public void La_cartella_predefinita_sta_in_LocalAppData_con_il_nome_dell_app()
         {
-            var folder = InfrastructureServiceCollectionExtensions.ResolveDataFolder(null, "MiaApp");
+            var folder = new StorageSettings(null).ResolveFolder("MiaApp");
 
             Assert.Equal(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MiaApp"), folder);
         }
@@ -144,7 +144,7 @@ namespace DesktopAppTemplate.Tests
         [Fact]
         public void La_cartella_configurata_espande_le_variabili_d_ambiente()
         {
-            var folder = InfrastructureServiceCollectionExtensions.ResolveDataFolder(@"%TEMP%\MieiDati", "MiaApp");
+            var folder = new StorageSettings(@"%TEMP%\MieiDati").ResolveFolder("MiaApp");
 
             Assert.Equal(Path.Combine(Environment.ExpandEnvironmentVariables("%TEMP%"), "MieiDati"), folder);
         }

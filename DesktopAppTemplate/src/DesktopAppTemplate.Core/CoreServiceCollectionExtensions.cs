@@ -1,5 +1,7 @@
 using System;
 using System.Reflection;
+using DesktopAppTemplate.Core.Configuration;
+using DesktopAppTemplate.Core.Context;
 using DesktopAppTemplate.Core.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -9,9 +11,25 @@ namespace DesktopAppTemplate.Core
     public static class CoreServiceCollectionExtensions
     {
         /// <summary>Registra il mediator.</summary>
-        public static IServiceCollection AddCore(this IServiceCollection services)
+        public static IServiceCollection AddMediator(this IServiceCollection services)
         {
             services.TryAddSingleton<IMediator, Mediator>();
+            return services;
+        }
+
+        /// <summary>
+        /// Registra la configurazione e il contesto dell'applicazione. Richiede che siano registrati anche
+        /// <see cref="DesktopAppTemplate.Core.Abstractions.IAppInfo"/> e <see cref="DesktopAppTemplate.Core.Abstractions.IUiDescriptor"/>
+        /// (lo fanno l'Infrastructure e la UI scelta).
+        /// </summary>
+        public static IServiceCollection AddAppContext(this IServiceCollection services, IAppConfiguration configuration)
+        {
+            if (configuration == null) throw new ArgumentNullException(nameof(configuration));
+
+            services.AddSingleton<IAppConfiguration>(configuration);
+            services.AddSingleton<ISessionState, SessionState>();
+            services.AddSingleton<IAppEnvironment, AppEnvironment>();
+            services.AddSingleton<IAppContext, DefaultAppContext>();
             return services;
         }
 

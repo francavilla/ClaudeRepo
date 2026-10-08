@@ -16,6 +16,7 @@ namespace DesktopAppTemplate.Host
         private const uint FileShareWrite = 0x2;
         private const uint OpenExisting = 3;
         private const uint MessageBoxInformation = 0x40;
+        private const uint MessageBoxError = 0x10;
 
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool AttachConsole(int processId);
@@ -27,12 +28,12 @@ namespace DesktopAppTemplate.Host
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         private static extern int MessageBoxW(IntPtr hWnd, string text, string caption, uint type);
 
-        public static void Show(string title, string text)
+        public static void Show(string title, string text, bool isError = false)
         {
             if (TryWriteToParentConsole(text))
                 return;
 
-            MessageBoxW(IntPtr.Zero, text, title, MessageBoxInformation);
+            MessageBoxW(IntPtr.Zero, text, title, isError ? MessageBoxError : MessageBoxInformation);
         }
 
         private static bool TryWriteToParentConsole(string text)

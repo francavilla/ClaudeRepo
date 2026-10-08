@@ -25,6 +25,17 @@ namespace DesktopAppTemplate.UI.WinForms.Views
             descriptionLabel.Text = viewModel.Description;
             uiValueLabel.Text = viewModel.UiName;
             runtimeValueLabel.Text = viewModel.Runtime;
+            userValueLabel.Text = viewModel.UserName;
+            machineValueLabel.Text = viewModel.MachineName;
+
+            configList.Items.Clear();
+            foreach (var entry in viewModel.Configuration)
+            {
+                var item = new ListViewItem(entry.Key);
+                item.SubItems.Add(entry.Value);
+                item.SubItems.Add(entry.Source);
+                configList.Items.Add(item);
+            }
         }
     }
 }

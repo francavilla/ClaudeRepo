@@ -17,7 +17,7 @@ namespace DesktopAppTemplate.Tests
             Clock = new FakeClock();
 
             var services = new ServiceCollection();
-            services.AddCore();
+            services.AddMediator();
             services.AddHandlersFromAssembly(typeof(FeaturesServiceCollectionExtensions).Assembly);
             services.AddSingleton<ITaskRepository>(Repository);
             services.AddSingleton<IClock>(Clock);
