@@ -147,6 +147,8 @@ namespace PasswordGen.ViewModels
             StopSyncCommand = new RelayCommand(StopSync, () => SyncActive && !_syncBusy);
             ExportCommand = new RelayCommand(() => { var ignored = ExportAsync(); }, () => !_syncBusy);
             ImportCommand = new RelayCommand(() => { var ignored = ImportAsync(); }, () => !_syncBusy);
+            SetCredentialCommand = new RelayCommand(() => { var ignored = SetCredentialAsync(); }, () => CanSetCredential);
+            RemoveCredentialCommand = new RelayCommand(() => { var ignored = RemoveCredentialAsync(); }, () => _lock.HasCredential);
             DismissLockHintCommand = new RelayCommand(DismissLockHint);
             EnableLockFromHintCommand = new RelayCommand(() => { DismissLockHint(); LockEnabled = true; });
 
@@ -1000,44 +1002,236 @@ namespace PasswordGen.ViewModels
             get { return new RelayCommand(_lock.LockNow, () => _lockEnabled); }
         }
 
+        /// <summary>
+        /// Conferma l'identità prima di cambiare il blocco: Windows Hello se c'è; altrimenti il PIN o la password dell'app.
+        /// Senza né l'uno né l'altro (blocco non ancora attivo) non c'è nulla da confermare.
+        /// </summary>
+        private async Task<bool> ConfirmIdentityAsync(string message)
+        {
+            if (_lock.HelloAvailable)
+            {
+                var outcome = await _lock.ConfirmAsync(message);
+                if (!outcome.Success)
+                {
+                    StatusMessage = "Verifica non riuscita (" + outcome.Reason + ").";
+                    return false;
+                }
+
+                return true;
+            }
+
+            if (_lock.HasCredential)
+            {
+                var secret = _dialogs.AskSecret("Conferma", "Inserisci il " + (_lock.CredentialKind == CredentialKind.Pin ? "PIN" : "la password") + " dell'app per confermare.");
+                if (secret == null)
+                {
+                    StatusMessage = "Identità non confermata.";
+                    return false;
+                }
+
+                var attempt = await _lock.VerifySecretAsync(secret);
+                if (!attempt.Success)
+                {
+                    StatusMessage = attempt.Message;
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         private async Task ChangeLockAsync(bool enable)
         {
             try
             {
-                if (enable)
+                if (!enable)
                 {
-                    var availability = await _lock.CheckAvailabilityAsync();
-                    if (!availability.Success)
+                    // Chi trova il PC sbloccato non può togliere il blocco: serve confermare l'identità.
+                    if (!await ConfirmIdentityAsync("Conferma per disattivare il blocco di PasswordGen"))
                     {
-                        StatusMessage = availability.Reason + ".";
+                        StatusMessage = "Identità non confermata: il blocco è rimasto com'era.";
+                        return;
+                    }
+
+                    _lockEnabled = false;
+                    _lock.SetEnabled(false);
+                    _lock.ClearCredential();
+                    RefreshLockProperties();
+                    SaveSettings();
+                    StatusMessage = "Blocco dell'app disattivato (l'eventuale PIN o password dell'app sono stati rimossi).";
+                    return;
+                }
+
+                await _lock.RefreshAvailabilityAsync();
+                var hello = _lock.HelloAvailable;
+                var options = new System.Collections.Generic.List<string>();
+                var kinds = new System.Collections.Generic.List<CredentialKind?>();
+                if (hello)
+                {
+                    options.Add("Windows Hello (PIN, impronta o volto)");
+                    kinds.Add(null);
+                }
+
+                if (_lock.CredentialsSupported)
+                {
+                    options.Add("PIN dell'app (4-12 cifre)");
+                    kinds.Add(CredentialKind.Pin);
+                    options.Add("Password dell'app");
+                    kinds.Add(CredentialKind.Password);
+                }
+
+                if (options.Count == 0)
+                {
+                    StatusMessage = "Per usare il blocco serve Windows Hello (Impostazioni, Account, Opzioni di accesso) oppure un PIN o una password dell'app.";
+                    return;
+                }
+
+                var index = options.Count == 1 ? 0 : _dialogs.Choose("Come vuoi sbloccare PasswordGen?", options);
+                if (index < 0)
+                {
+                    return;
+                }
+
+                var kind = kinds[index];
+                if (kind.HasValue)
+                {
+                    var secret = _dialogs.AskNewSecret(kind.Value);
+                    if (secret == null)
+                    {
+                        StatusMessage = "Nessun PIN o password impostati: il blocco è rimasto com'era.";
+                        return;
+                    }
+
+                    await _lock.SetCredentialAsync(kind.Value, secret);
+                }
+                else
+                {
+                    // Con Windows Hello si verifica subito che funzioni, prima di attivare il blocco.
+                    var outcome = await _lock.ConfirmAsync("Conferma per attivare il blocco di PasswordGen");
+                    if (!outcome.Success)
+                    {
+                        StatusMessage = "Verifica non riuscita (" + outcome.Reason + "): il blocco è rimasto com'era.";
                         return;
                     }
                 }
 
-                // Attivare o disattivare il blocco richiede Windows Hello: chi trova il PC sbloccato non può toglierlo.
-                var outcome = await _lock.ConfirmAsync(enable
-                    ? "Conferma per attivare il blocco di PasswordGen"
-                    : "Conferma per disattivare il blocco di PasswordGen");
-                if (!outcome.Success)
-                {
-                    StatusMessage = "Verifica non riuscita (" + outcome.Reason + "): il blocco è rimasto com'era.";
-                    return;
-                }
-
-                _lockEnabled = enable;
-                _lock.SetEnabled(enable);
-                OnPropertyChanged(nameof(LockEnabled));
-                OnPropertyChanged(nameof(ShowLockHint));
-                OnPropertyChanged(nameof(CanLockNow));
+                _lockEnabled = true;
+                _lock.SetEnabled(true);
+                RefreshLockProperties();
                 SaveSettings();
-                StatusMessage = enable
-                    ? "Blocco dell'app attivato: si attiva alla prossima apertura e " + LockGraceNames[LockGraceIndex].ToLowerInvariant() + " in secondo piano. Prova «Blocca adesso»."
-                    : "Blocco dell'app disattivato.";
+                StatusMessage = "Blocco dell'app attivato: si attiva alla prossima apertura e " + LockGraceNames[LockGraceIndex].ToLowerInvariant() + " in secondo piano. Prova «Blocca adesso».";
             }
             catch (Exception ex)
             {
                 StatusMessage = "Errore del blocco: " + ex.Message;
             }
+        }
+
+        // ---------------------------------------------------------------- PIN o password dell'app
+
+        public ICommand SetCredentialCommand { get; private set; }
+
+        public ICommand RemoveCredentialCommand { get; private set; }
+
+        public bool HasCredential
+        {
+            get { return _lock.HasCredential; }
+        }
+
+        /// <summary>Si può cambiare il PIN o la password solo con il blocco attivo.</summary>
+        public bool CanSetCredential
+        {
+            get { return _lockEnabled && _lock.CredentialsSupported; }
+        }
+
+        public string CredentialText
+        {
+            get
+            {
+                if (!_lock.HasCredential)
+                {
+                    return "Nessun PIN o password dell'app: si sblocca con Windows Hello.";
+                }
+
+                return _lock.CredentialKind == CredentialKind.Pin
+                    ? "PIN dell'app impostato (si può sbloccare anche con Windows Hello, se configurato)."
+                    : "Password dell'app impostata (si può sbloccare anche con Windows Hello, se configurato).";
+            }
+        }
+
+        /// <summary>Imposta o cambia il PIN o la password dell'app (con il blocco già attivo).</summary>
+        private async Task SetCredentialAsync()
+        {
+            if (!_lockEnabled || !_lock.CredentialsSupported)
+            {
+                return;
+            }
+
+            try
+            {
+                if (!await ConfirmIdentityAsync("Conferma per cambiare il PIN o la password di PasswordGen"))
+                {
+                    StatusMessage = "Identità non confermata: nulla è cambiato.";
+                    return;
+                }
+
+                var index = _dialogs.Choose("Che cosa vuoi impostare?", new[] { "PIN dell'app (4-12 cifre)", "Password dell'app" });
+                if (index < 0)
+                {
+                    return;
+                }
+
+                var kind = index == 0 ? CredentialKind.Pin : CredentialKind.Password;
+                var secret = _dialogs.AskNewSecret(kind);
+                if (secret == null)
+                {
+                    return;
+                }
+
+                await _lock.SetCredentialAsync(kind, secret);
+                _lock.RefreshCredentialProperties();
+                RefreshLockProperties();
+                StatusMessage = kind == CredentialKind.Pin ? "PIN dell'app impostato." : "Password dell'app impostata.";
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = "Errore: " + ex.Message;
+            }
+        }
+
+        private async Task RemoveCredentialAsync()
+        {
+            if (!_lock.HasCredential)
+            {
+                return;
+            }
+
+            // Senza Windows Hello il PIN o la password dell'app sono l'unico modo per sbloccare: non si possono togliere.
+            if (!_lock.HelloAvailable)
+            {
+                StatusMessage = "Windows Hello non è configurato: il PIN o la password dell'app sono l'unico modo di sbloccare e non si possono rimuovere (puoi cambiarli o disattivare il blocco).";
+                return;
+            }
+
+            if (!await ConfirmIdentityAsync("Conferma per rimuovere il PIN o la password di PasswordGen"))
+            {
+                StatusMessage = "Identità non confermata: nulla è cambiato.";
+                return;
+            }
+
+            _lock.ClearCredential();
+            RefreshLockProperties();
+            StatusMessage = "PIN o password dell'app rimossi: si sblocca con Windows Hello.";
+        }
+
+        private void RefreshLockProperties()
+        {
+            OnPropertyChanged(nameof(LockEnabled));
+            OnPropertyChanged(nameof(CanLockNow));
+            OnPropertyChanged(nameof(CanSetCredential));
+            OnPropertyChanged(nameof(HasCredential));
+            OnPropertyChanged(nameof(CredentialText));
+            OnPropertyChanged(nameof(ShowLockHint));
         }
 
         /// <summary>Da chiamare quando l'app si blocca: via la password attuale e password dello storico di nuovo mascherate.</summary>

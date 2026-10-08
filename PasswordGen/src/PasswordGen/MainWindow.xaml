@@ -91,7 +91,7 @@
                     <Button Style="{StaticResource GhostButton}" Command="{Binding DismissLockHintCommand}" Content="Non ora" Margin="8,0,0,0" />
                 </StackPanel>
                 <TextBlock VerticalAlignment="Center" TextWrapping="Wrap"
-                           Text="Proteggi PasswordGen con Windows Hello: chi usa il tuo PC non potrà vedere lo storico delle password." />
+                           Text="Proteggi PasswordGen con Windows Hello o con un PIN/password: chi usa il tuo PC non potrà vedere lo storico delle password." />
             </DockPanel>
         </Border>
 
@@ -240,14 +240,21 @@
 
                     <Border Style="{StaticResource Card}">
                         <StackPanel>
-                            <TextBlock Style="{StaticResource CardTitle}" Text="Blocco dell'app (Windows Hello)" />
-                            <CheckBox Content="Richiedi PIN, impronta o volto per aprire l'app" IsChecked="{Binding LockEnabled, Mode=TwoWay}" />
+                            <TextBlock Style="{StaticResource CardTitle}" Text="Blocco dell'app" />
+                            <CheckBox Content="Richiedi Windows Hello o il PIN/password dell'app per aprire l'app" IsChecked="{Binding LockEnabled, Mode=TwoWay}" />
                             <TextBlock Style="{StaticResource Muted}" Text="Blocca di nuovo" Margin="0,8,0,2" />
                             <ComboBox ItemsSource="{Binding LockGraceNames}" SelectedIndex="{Binding LockGraceIndex, Mode=TwoWay}" Padding="6,4" />
+                            <TextBlock Style="{StaticResource Muted}" Text="{Binding CredentialText}" Margin="0,10,0,0" TextWrapping="Wrap" />
+                            <WrapPanel Margin="0,6,0,0">
+                                <Button Style="{StaticResource GhostButton}" Command="{Binding SetCredentialCommand}" Content="Imposta o cambia PIN/password"
+                                        Margin="0,0,8,6" />
+                                <Button Style="{StaticResource GhostButton}" Command="{Binding RemoveCredentialCommand}" Content="Rimuovi PIN/password"
+                                        Margin="0,0,8,6" />
+                            </WrapPanel>
                             <Button Style="{StaticResource GhostButton}" Command="{Binding LockNowCommand}" Content="Blocca adesso"
-                                    HorizontalAlignment="Left" Margin="0,10,0,0" />
+                                    HorizontalAlignment="Left" Margin="0,4,0,0" />
                             <TextBlock Style="{StaticResource Muted}" Margin="0,8,0,0"
-                                       Text="Windows Hello deve essere configurato (Impostazioni, Account, Opzioni di accesso). Con il blocco attivo la finestra è esclusa anche da screenshot e registrazioni dello schermo." />
+                                       Text="Con Windows Hello (Impostazioni, Account, Opzioni di accesso) o con un PIN o una password dell'app; dopo 5 errori con il PIN/password l'app aspetta sempre di più (30 secondi, 1, 2, 4 minuti... fino a un'ora). Con il blocco attivo la finestra è esclusa anche da screenshot e registrazioni dello schermo." />
                         </StackPanel>
                     </Border>
 
@@ -413,18 +420,25 @@
         </Grid>
     </DockPanel>
 
-    <!-- Schermata di blocco: copre tutto finché l'utente non si autentica con Windows Hello -->
+    <!-- Schermata di blocco: copre tutto finché l'utente non si autentica (Windows Hello o PIN/password dell'app) -->
     <Border Background="{StaticResource HeaderBrush}"
             Visibility="{Binding Lock.IsLocked, Converter={StaticResource BoolToVisibility}}">
         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="460">
             <TextBlock Style="{StaticResource Icon}" Text="&#xE72E;" FontSize="56" Foreground="White" HorizontalAlignment="Center" />
             <TextBlock Text="PasswordGen è bloccata" FontSize="24" FontWeight="SemiBold" Foreground="White"
                        HorizontalAlignment="Center" Margin="0,16,0,6" />
-            <TextBlock Text="Usa Windows Hello (PIN, impronta o volto) per continuare." Foreground="#CCFFFFFF"
-                       TextAlignment="Center" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding Lock.Prompt}" Foreground="#CCFFFFFF" TextAlignment="Center" TextWrapping="Wrap" />
             <TextBlock Text="{Binding Lock.Message}" Foreground="#FCA5A5" TextAlignment="Center" TextWrapping="Wrap" Margin="0,10,0,0" />
-            <Button Style="{StaticResource PrimaryButton}" Command="{Binding Lock.UnlockCommand}" Content="Sblocca"
-                    Margin="0,22,0,0" HorizontalAlignment="Center" MinWidth="180" />
+            <TextBlock Text="{Binding Lock.WaitText}" Foreground="#FDE68A" TextAlignment="Center" TextWrapping="Wrap" Margin="0,4,0,0" />
+            <StackPanel Visibility="{Binding Lock.ShowSecretEntry, Converter={StaticResource BoolToVisibility}}" Margin="0,18,0,0">
+                <TextBlock Text="{Binding Lock.SecretPrompt}" Foreground="White" Margin="0,0,0,4" />
+                <PasswordBox x:Name="UnlockBox" Padding="8,6" KeyDown="OnUnlockBoxKeyDown" />
+                <Button Style="{StaticResource PrimaryButton}" Content="Sblocca con PIN/password" Click="OnUnlockWithSecret"
+                        Margin="0,12,0,0" HorizontalAlignment="Center" MinWidth="220" />
+            </StackPanel>
+            <Button Style="{StaticResource GhostButton}" Command="{Binding Lock.UnlockCommand}" Content="Sblocca con Windows Hello"
+                    Margin="0,14,0,0" HorizontalAlignment="Center" MinWidth="220"
+                    Visibility="{Binding Lock.HelloAvailable, Converter={StaticResource BoolToVisibility}}" />
         </StackPanel>
     </Border>
     </Grid>

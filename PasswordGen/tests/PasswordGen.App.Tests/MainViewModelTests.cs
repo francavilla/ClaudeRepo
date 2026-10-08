@@ -52,6 +52,21 @@ namespace PasswordGen.App.Tests
                 Asked.Add(message);
                 return Passphrases.Count > 0 ? Passphrases.Dequeue() : null;
             }
+
+            public int ChooseIndex = -1;
+            public IReadOnlyList<string> ChooseOptions;
+            public string NewSecret;
+            public string ExistingSecret;
+
+            public int Choose(string title, IReadOnlyList<string> options)
+            {
+                ChooseOptions = options;
+                return ChooseIndex;
+            }
+
+            public string AskNewSecret(CredentialKind kind) { return NewSecret; }
+
+            public string AskSecret(string title, string message) { return ExistingSecret; }
         }
 
         private sealed class FakeClipboard : ISecretClipboard
@@ -70,8 +85,20 @@ namespace PasswordGen.App.Tests
 
         private sealed class FakeHello : IWindowsHello
         {
-            public Task<HelloResult> CheckAvailabilityAsync() { return Task.FromResult(HelloResult.Ok); }
-            public Task<HelloResult> AuthenticateAsync(IntPtr window, string message) { return Task.FromResult(HelloResult.Ok); }
+            public bool Available = true;
+            public bool AuthenticationSucceeds = true;
+            public int Authentications;
+
+            public Task<HelloResult> CheckAvailabilityAsync()
+            {
+                return Task.FromResult(Available ? HelloResult.Ok : HelloResult.Failed("Windows Hello non è configurato"));
+            }
+
+            public Task<HelloResult> AuthenticateAsync(IntPtr window, string message)
+            {
+                Authentications++;
+                return Task.FromResult(AuthenticationSucceeds ? HelloResult.Ok : HelloResult.Failed("rifiutato"));
+            }
         }
 
         private sealed class XorProtector : ISecretProtector
@@ -87,9 +114,12 @@ namespace PasswordGen.App.Tests
             public SettingsStore Settings;
             public SyncPassphraseStore Passphrases;
             public HistoryStore History;
+            public FakeHello Hello;
+            public AppLockController Lock;
+            public LockCredentialManager Credentials;
         }
 
-        private Harness CreateViewModel(string name, AppSettings initial = null)
+        private Harness CreateViewModel(string name, AppSettings initial = null, bool helloAvailable = true)
         {
             var folder = Path.Combine(_directory, name);
             Directory.CreateDirectory(folder);
@@ -103,12 +133,15 @@ namespace PasswordGen.App.Tests
             var dialogs = new FakeDialogs();
             var history = new HistoryStore(Path.Combine(folder, "history.dat"), new XorProtector());
             var passphrases = new SyncPassphraseStore(Path.Combine(folder, "sync.key"), new XorProtector());
-            var appLock = new AppLockController(new AppLockState(TimeSpan.FromSeconds(30)), new FakeHello(), () => IntPtr.Zero);
+            var hello = new FakeHello { Available = helloAvailable };
+            var credentials = new LockCredentialManager(new LockCredentialStore(Path.Combine(folder, "lock.dat"), new XorProtector()));
+            var appLock = new AppLockController(new AppLockState(TimeSpan.FromSeconds(30)), hello, () => IntPtr.Zero, credentials);
+            appLock.RefreshAvailabilityAsync().GetAwaiter().GetResult();
 
             var viewModel = new MainViewModel(new PasswordGenerator(new SecureRandom(), words), words, settings, new FakeClipboard(),
                 new FakeStartup(), history, dialogs, appLock, passphrases, () => Today);
 
-            return new Harness { ViewModel = viewModel, Dialogs = dialogs, Settings = settings, Passphrases = passphrases, History = history };
+            return new Harness { ViewModel = viewModel, Dialogs = dialogs, Settings = settings, Passphrases = passphrases, History = history, Hello = hello, Lock = appLock, Credentials = credentials };
         }
 
         private static void WaitFor(Func<bool> condition, string what)
@@ -183,6 +216,185 @@ namespace PasswordGen.App.Tests
             Assert.False(h.ViewModel.ShowLockHint);
             Assert.True(h.Settings.Load().LockHintDismissed);
             Assert.False(CreateViewModel("a").ViewModel.ShowLockHint);
+        }
+
+
+        // ---- blocco: Windows Hello, PIN e password dell'app ----
+
+        [Fact]
+        public void AttivaBloccoConPin_SalvaIlPinEAttivaIlBlocco()
+        {
+            var h = CreateViewModel("a");
+            h.Dialogs.ChooseIndex = 1;                // Windows Hello, PIN, password: si sceglie il PIN
+            h.Dialogs.NewSecret = "246810";
+
+            h.ViewModel.LockEnabled = true;
+            WaitFor(() => h.ViewModel.StatusMessage.Contains("Blocco dell'app attivato"), "attivazione del blocco");
+
+            Assert.Equal(3, h.Dialogs.ChooseOptions.Count);
+            Assert.True(h.ViewModel.LockEnabled);
+            Assert.True(h.Settings.Load().LockEnabled);
+            Assert.Equal(CredentialKind.Pin, h.Lock.CredentialKind);
+            Assert.True(File.Exists(Path.Combine(_directory, "a", "lock.dat")));
+        }
+
+        [Fact]
+        public void AttivaBloccoConWindowsHello_NonImpostaNessunPin()
+        {
+            var h = CreateViewModel("a");
+            h.Dialogs.ChooseIndex = 0;
+
+            h.ViewModel.LockEnabled = true;
+            WaitFor(() => h.ViewModel.StatusMessage.Contains("Blocco dell'app attivato"), "attivazione del blocco");
+
+            Assert.False(h.ViewModel.HasCredential);
+            Assert.Equal(1, h.Hello.Authentications);   // verifica che Windows Hello funzioni, prima di attivare
+        }
+
+        [Fact]
+        public void SenzaWindowsHello_ILBloccoSiAttivaSoloConPinOPassword()
+        {
+            var h = CreateViewModel("a", helloAvailable: false);
+            h.Dialogs.ChooseIndex = 0;                // senza Hello le voci sono solo PIN e password
+            h.Dialogs.NewSecret = "246810";
+
+            h.ViewModel.LockEnabled = true;
+            WaitFor(() => h.ViewModel.StatusMessage.Contains("Blocco dell'app attivato"), "attivazione del blocco");
+
+            Assert.Equal(2, h.Dialogs.ChooseOptions.Count);
+            Assert.Equal(CredentialKind.Pin, h.Lock.CredentialKind);
+            Assert.True(h.Lock.HasCredential);
+            Assert.Equal(0, h.Hello.Authentications);
+        }
+
+        [Fact]
+        public void SbloccoConPin_GiustoSblocca_SbagliatoDaIlConteggioDeiTentativi()
+        {
+            var h = CreateViewModel("a", helloAvailable: false);
+            h.Dialogs.ChooseIndex = 0;
+            h.Dialogs.NewSecret = "246810";
+            h.ViewModel.LockEnabled = true;
+            WaitFor(() => h.ViewModel.StatusMessage.Contains("Blocco dell'app attivato"), "attivazione del blocco");
+            h.Lock.LockNow();
+            Assert.True(h.Lock.IsLocked);
+
+            var wrong = h.Lock.TryUnlockWithSecretAsync("000000").GetAwaiter().GetResult();
+            Assert.False(wrong.Success);
+            Assert.Contains("Ancora 4 tentativi", wrong.Message);
+            Assert.True(h.Lock.IsLocked);
+
+            var right = h.Lock.TryUnlockWithSecretAsync("246810").GetAwaiter().GetResult();
+            Assert.True(right.Success);
+            Assert.False(h.Lock.IsLocked);
+        }
+
+        [Fact]
+        public void DopoCinqueErrori_CeUnAttesaCrescenteChePersisteAnchoraConIlPinGiusto()
+        {
+            var h = CreateViewModel("a", helloAvailable: false);
+            h.Dialogs.ChooseIndex = 0;
+            h.Dialogs.NewSecret = "246810";
+            h.ViewModel.LockEnabled = true;
+            WaitFor(() => h.ViewModel.StatusMessage.Contains("Blocco dell'app attivato"), "attivazione del blocco");
+            h.Lock.LockNow();
+
+            for (var i = 0; i < 5; i++)
+            {
+                h.Lock.TryUnlockWithSecretAsync("111111").GetAwaiter().GetResult();
+            }
+
+            var duringWait = h.Lock.TryUnlockWithSecretAsync("246810").GetAwaiter().GetResult();
+            Assert.False(duringWait.Success);
+            Assert.Contains("riprova tra", duringWait.Message);
+            Assert.True(h.Lock.IsLocked);
+            Assert.True(h.Credentials.RetryAfter() > TimeSpan.Zero);
+        }
+
+        [Fact]
+        public void DisattivaBlocco_ConfermaConHello_ERimuoveIlPin()
+        {
+            var h = CreateViewModel("a");
+            h.Dialogs.ChooseIndex = 1;
+            h.Dialogs.NewSecret = "246810";
+            h.ViewModel.LockEnabled = true;
+            WaitFor(() => h.ViewModel.StatusMessage.Contains("Blocco dell'app attivato"), "attivazione del blocco");
+
+            h.ViewModel.LockEnabled = false;
+            WaitFor(() => h.ViewModel.StatusMessage.Contains("Blocco dell'app disattivato"), "disattivazione del blocco");
+
+            Assert.False(h.ViewModel.HasCredential);
+            Assert.False(h.Settings.Load().LockEnabled);
+            Assert.False(File.Exists(Path.Combine(_directory, "a", "lock.dat")));
+        }
+
+        [Fact]
+        public void DisattivaBlocco_ConfermaNonRiuscita_ILBloccoResta()
+        {
+            var h = CreateViewModel("a");
+            h.Dialogs.ChooseIndex = 1;
+            h.Dialogs.NewSecret = "246810";
+            h.ViewModel.LockEnabled = true;
+            WaitFor(() => h.ViewModel.StatusMessage.Contains("Blocco dell'app attivato"), "attivazione del blocco");
+            h.Hello.AuthenticationSucceeds = false;
+
+            h.ViewModel.LockEnabled = false;
+            WaitFor(() => h.ViewModel.StatusMessage.Contains("Identità non confermata"), "messaggio di conferma fallita");
+
+            Assert.True(h.ViewModel.LockEnabled);
+            Assert.True(h.ViewModel.HasCredential);
+        }
+
+        [Fact]
+        public void SenzaHello_DisattivareChiedeIlPinDellApp()
+        {
+            var h = CreateViewModel("a", helloAvailable: false);
+            h.Dialogs.ChooseIndex = 0;
+            h.Dialogs.NewSecret = "246810";
+            h.ViewModel.LockEnabled = true;
+            WaitFor(() => h.ViewModel.StatusMessage.Contains("Blocco dell'app attivato"), "attivazione del blocco");
+
+            h.Dialogs.ExistingSecret = "000000";   // sbagliato
+            h.ViewModel.LockEnabled = false;
+            WaitFor(() => h.ViewModel.StatusMessage.Contains("Identità non confermata"), "messaggio di PIN errato");
+            Assert.True(h.ViewModel.LockEnabled);
+            Assert.True(h.Lock.HasCredential);
+
+            h.Dialogs.ExistingSecret = "246810";   // giusto
+            h.ViewModel.LockEnabled = false;
+            WaitFor(() => h.ViewModel.StatusMessage.Contains("Blocco dell'app disattivato"), "disattivazione del blocco");
+            Assert.False(h.ViewModel.HasCredential);
+        }
+
+        [Fact]
+        public void SenzaHello_ILPinNonSiPuoRimuovere()
+        {
+            var h = CreateViewModel("a", helloAvailable: false);
+            h.Dialogs.ChooseIndex = 0;
+            h.Dialogs.NewSecret = "246810";
+            h.ViewModel.LockEnabled = true;
+            WaitFor(() => h.ViewModel.StatusMessage.Contains("Blocco dell'app attivato"), "attivazione del blocco");
+
+            h.ViewModel.RemoveCredentialCommand.Execute(null);
+            WaitFor(() => h.ViewModel.StatusMessage.Contains("non si possono rimuovere"), "messaggio sul PIN non rimovibile");
+
+            Assert.True(h.ViewModel.HasCredential);
+        }
+
+        [Fact]
+        public void CambiaPin_ConfermaConHello_ELoSostituisce()
+        {
+            var h = CreateViewModel("a");
+            h.Dialogs.ChooseIndex = 1;
+            h.Dialogs.NewSecret = "246810";
+            h.ViewModel.LockEnabled = true;
+            WaitFor(() => h.ViewModel.StatusMessage.Contains("Blocco dell'app attivato"), "attivazione del blocco");
+
+            h.Dialogs.ChooseIndex = 1;   // «Password dell'app»
+            h.Dialogs.NewSecret = "nuova password lunga";
+            h.ViewModel.SetCredentialCommand.Execute(null);
+            WaitFor(() => h.Lock.CredentialKind == CredentialKind.Password, "cambio in password");
+
+            Assert.True(h.Credentials.Check("nuova password lunga").Outcome == CredentialCheck.Correct);
         }
 
         // ---- sincronizzazione ----

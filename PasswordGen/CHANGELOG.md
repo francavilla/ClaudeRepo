@@ -4,6 +4,25 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.4.0] - 2026-10-08
+
+### Aggiunto
+- **App Windows: PIN o password dell'app**, come su Android. Attivando il blocco si sceglie tra Windows Hello, un PIN (4-12 cifre) e una password dell'app (6-64 caratteri).
+  La schermata di blocco ha la casella del PIN/password e il pulsante «Sblocca con Windows Hello»; dopo 5 errori scatta un'**attesa crescente**
+  (30 secondi, 1, 2, 4 minuti... fino a un'ora) che sopravvive alla chiusura dell'app e ha il conto alla rovescia. Del PIN/password si conserva solo un hash
+  (PBKDF2-SHA256, 150.000 iterazioni) in `%AppData%\PasswordGen\lock.dat`, cifrato con DPAPI.
+- Il blocco ora si può usare **anche sui PC senza Windows Hello**, con un PIN o una password dell'app.
+- Pulsanti «Imposta o cambia PIN/password» e «Rimuovi PIN/password» nella card del blocco; disattivare il blocco, cambiare o togliere il PIN chiede di
+  confermare l'identità (con Windows Hello, o con il PIN/password se Hello non c'è).
+- Test del ViewModel Windows sul blocco: attivazione con Hello, PIN o password, sblocco, attesa crescente, disattivazione, cambio e rimozione.
+
+### Corretto
+- Windows: una finestra di dialogo dell'app (scelta di un file, PIN, conferme) non fa più scattare il blocco quando il tempo scelto è «Subito».
+
+### Modificato
+- Le due app hanno ora le **stesse funzioni**: restano solo le differenze della piattaforma (impronta e Google Drive diretto su Android; Windows Hello e avvio con Windows su Windows).
+- Card «Blocco dell'app» e schermata di blocco di Windows riscritte per le tre modalità di sblocco.
+
 ## [1.3.2] - 2026-10-08
 
 ### Modificato

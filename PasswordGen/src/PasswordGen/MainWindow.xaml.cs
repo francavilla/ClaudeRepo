@@ -1,6 +1,8 @@
 using System;
 using System.ComponentModel;
+using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Input;
 using PasswordGen.ViewModels;
 
 namespace PasswordGen
@@ -44,6 +46,11 @@ namespace PasswordGen
                     {
                         PreviousBox.Password = string.Empty;
                         vm.ClearSensitive();
+                        UnlockBox.Clear();
+                        if (vm.Lock.HasCredential)
+                        {
+                            Dispatcher.BeginInvoke(new Action(() => UnlockBox.Focus()));
+                        }
                     }
                 }
             };
@@ -51,6 +58,42 @@ namespace PasswordGen
 
             await vm.Lock.StartAsync();
             await vm.AutoSyncAsync();
+        }
+
+        private async void OnUnlockWithSecret(object sender, RoutedEventArgs e)
+        {
+            await TryUnlockWithSecretAsync();
+        }
+
+        private async void OnUnlockBoxKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                e.Handled = true;
+                await TryUnlockWithSecretAsync();
+            }
+        }
+
+        private async Task TryUnlockWithSecretAsync()
+        {
+            var lockController = Lock;
+            if (lockController == null)
+            {
+                return;
+            }
+
+            var secret = UnlockBox.Password;
+            UnlockBox.Clear();
+            if (secret.Length == 0)
+            {
+                return;
+            }
+
+            await lockController.TryUnlockWithSecretAsync(secret);
+            if (lockController.IsLocked)
+            {
+                UnlockBox.Focus();
+            }
         }
 
         /// <summary>Se la dimensione predefinita supera l'area utile dello schermo, la finestra viene ridotta.</summary>

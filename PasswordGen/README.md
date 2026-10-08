@@ -61,12 +61,15 @@ L'entropia mostrata tiene conto della lista in uso: con 400 parole ogni parola v
 più parole per la stessa sicurezza (sotto le 1000 parole compare un avviso). Evita nomi di familiari, date e soprannomi:
 sono facili da indovinare per chi ti conosce. Se il file manca o non è valido, l'app usa la lista integrata e lo segnala.
 
-## Blocco con Windows Hello
+## Blocco dell'app
 
-Nella card *Blocco dell'app* si può richiedere Windows Hello (PIN, impronta o volto) per aprire l'app, all'avvio e dopo il tempo scelto in
-secondo piano. Serve che Windows Hello sia configurato (Impostazioni, Account, Opzioni di accesso). L'app non riceve mai PIN o impronta,
-solo l'esito della verifica. Con il blocco attivo la finestra non compare negli screenshot né nelle condivisioni dello schermo.
-Se Windows Hello non è più disponibile all'avvio, il blocco si disattiva da solo con un avviso.
+Nella card *Blocco dell'app* si può richiedere di sbloccare l'app all'avvio e dopo il tempo scelto in secondo piano. Attivandolo si sceglie come sbloccare:
+- **Windows Hello** (PIN, impronta o volto): deve essere configurato (Impostazioni, Account, Opzioni di accesso). L'app non riceve mai PIN o impronta, solo l'esito.
+- **PIN dell'app** (4-12 cifre) o **password dell'app** (6-64 caratteri): anche su PC senza Windows Hello. Se si imposta un PIN/password, si può sbloccare anche con Windows Hello (se c'è).
+  Si conserva solo un hash (PBKDF2-SHA256) in `%AppData%\PasswordGen\lock.dat`, cifrato con DPAPI. Dopo 5 errori scatta un'**attesa crescente**
+  (30 secondi, 1, 2, 4 minuti... fino a un'ora), che resta anche se si chiude e riapre l'app.
+- Per disattivare il blocco, cambiare o togliere il PIN/password si conferma l'identità (Windows Hello, o il PIN/password se Hello non c'è).
+- Con il blocco attivo la finestra non compare negli screenshot né nelle condivisioni dello schermo. Se né Windows Hello né un PIN/password sono utilizzabili, il blocco si disattiva da solo con un avviso.
 
 ## Storico delle password
 

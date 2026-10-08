@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using PasswordGen.Core.Security;
+
 namespace PasswordGen.Services
 {
     /// <summary>Finestre di dialogo semplici, astratte per tenere il ViewModel privo di codice UI.</summary>
@@ -17,5 +20,14 @@ namespace PasswordGen.Services
 
         /// <summary>Chiede una frase segreta (due volte se <paramref name="confirm"/>); null se l'utente annulla.</summary>
         string AskPassphrase(string title, string message, bool confirm);
+
+        /// <summary>Fa scegliere una voce da un elenco; restituisce l'indice, o -1 se l'utente annulla.</summary>
+        int Choose(string title, IReadOnlyList<string> options);
+
+        /// <summary>Chiede due volte un nuovo PIN o una nuova password; restituisce il testo scelto, o null se l'utente annulla.</summary>
+        string AskNewSecret(CredentialKind kind);
+
+        /// <summary>Chiede il PIN o la password dell'app già impostati; null se l'utente annulla.</summary>
+        string AskSecret(string title, string message);
     }
 }

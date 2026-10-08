@@ -52,12 +52,15 @@ namespace PasswordGen
             MainWindow window = null;
             var saved = store.Load();
             var lockState = new AppLockState(TimeSpan.FromSeconds(saved.LockGraceSeconds)) { Enabled = saved.LockEnabled };
+            // PIN o password dell'app: hash in un file cifrato con DPAPI (lock.dat), accanto alle impostazioni.
+            var dataDirectory = System.IO.Path.GetDirectoryName(SettingsStore.DefaultPath);
+            var credentials = new LockCredentialManager(new LockCredentialStore(System.IO.Path.Combine(dataDirectory, "lock.dat"), new DpapiProtector()));
             var appLock = new AppLockController(
-                lockState, new WindowsHelloService(), () => window == null ? IntPtr.Zero : new WindowInteropHelper(window).Handle);
+                lockState, new WindowsHelloService(), () => window == null ? IntPtr.Zero : new WindowInteropHelper(window).Handle, credentials);
 
             var viewModel = new MainViewModel(generator, builtinWords, store, _clipboard, new StartupRegistration(),
                 new HistoryStore(HistoryStore.DefaultPath, new DpapiProtector()), new DialogService(), appLock,
-                new SyncPassphraseStore(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(SettingsStore.DefaultPath), "sync.key"), new DpapiProtector()),
+                new SyncPassphraseStore(System.IO.Path.Combine(dataDirectory, "sync.key"), new DpapiProtector()),
                 () => DateTime.Today);
 
             window = new MainWindow { DataContext = viewModel };
