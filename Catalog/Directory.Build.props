@@ -1,0 +1,16 @@
+<Project>
+  <!-- Impostazioni comuni a tutti i progetti della solution. -->
+  <PropertyGroup>
+    <LangVersion>7.3</LangVersion>
+    <Company>Catalog</Company>
+    <Product>Catalog</Product>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Reference assemblies .NET Framework: permettono la build anche senza
+         targeting pack installato (build server, Linux/Mono, container). -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

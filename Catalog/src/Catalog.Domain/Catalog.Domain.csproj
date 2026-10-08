@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Domain: nessuna dipendenza esterna. Contiene entità, value object e invarianti. -->
+  <PropertyGroup>
+    <TargetFramework>net462</TargetFramework>
+    <RootNamespace>Catalog.Domain</RootNamespace>
+  </PropertyGroup>
+
+</Project>

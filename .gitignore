@@ -1,0 +1,26 @@
+## Visual Studio / .NET
+.vs/
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+packages/
+*.nupkg
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+_ReSharper*/
+*.DotSettings.user
+.idea/
+
+## Web
+App_Data/*.mdf
+App_Data/*.ldf
+PublishProfiles/
+*.pubxml
+*.publishsettings
