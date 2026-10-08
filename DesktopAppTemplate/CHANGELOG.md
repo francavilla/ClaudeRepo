@@ -4,6 +4,12 @@ Tutte le modifiche rilevanti di DesktopAppTemplate sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [2.0.1] - 2026-10-08
+
+### Corretto
+- `TaskListViewModel` non riceveva `TaskSettings` (costruttore non aggiornato): la compilazione dei test falliva e la modalità `--read-only` non avrebbe funzionato.
+- I glifi delle icone nei sorgenti sono scritti come sequenze `\uXXXX` invece che come caratteri speciali invisibili.
+
 ## [2.0.0] - 2026-10-08
 
 ### Aggiunto

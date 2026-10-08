@@ -13,9 +13,9 @@ namespace DesktopAppTemplate.UI.WinForms.Views
     /// </summary>
     public partial class TaskListView : UserControl
     {
-        private const string ToggleOff = "";
-        private const string ToggleOn = "";
-        private const string RemoveGlyph = "";
+        private const string ToggleOff = "\uEA3A";
+        private const string ToggleOn = "\uEC61";
+        private const string RemoveGlyph = "\uE74D";
 
         private TaskListViewModel _viewModel;
         private bool _rebuildPending;

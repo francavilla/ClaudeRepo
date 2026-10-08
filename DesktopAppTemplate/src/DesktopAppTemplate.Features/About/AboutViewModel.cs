@@ -12,7 +12,7 @@ namespace DesktopAppTemplate.Features.About
     public sealed class AboutViewModel : PageViewModel
     {
         public AboutViewModel(IAppContext context)
-            : base("Informazioni", "", 90)
+            : base("Informazioni", "\uE946", 90)
         {
             AppName = context.App.Name;
             Version = "v" + context.App.Version;

@@ -25,11 +25,12 @@ namespace DesktopAppTemplate.Features.Tasks
         private string _errorMessage;
         private bool _isEmpty = true;
 
-        public TaskListViewModel(IMediator mediator, IDialogService dialogs)
-            : base("Attività", "", 10)
+        public TaskListViewModel(IMediator mediator, IDialogService dialogs, TaskSettings settings)
+            : base("Attività", "\uE73A", 10)
         {
             _mediator = mediator;
             _dialogs = dialogs;
+            _settings = settings;
 
             FilterOptions = new List<FilterOption>
             {
