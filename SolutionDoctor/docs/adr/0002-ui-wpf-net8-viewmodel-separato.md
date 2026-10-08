@@ -26,7 +26,9 @@ Il XAML e il code-behind si compilano solo su Windows, quindi:
 2. `XamlContractTests` legge i file XAML e controlla binding (anche nei template delle griglie, con il tipo della riga),
    risorse e loro ordine di definizione, gestori di evento, `x:Static`, riferimenti ai file e voci della solution;
    un test verifica il verificatore stesso su un XAML volutamente sbagliato;
-3. la CI compila l'app su Windows e ne prova l'avvio: la finestra deve comparire e completare l'analisi di una solution.
+3. la CI compila l'app su Windows e la prova davvero: avvia la finestra su `samples/LegacyDemo`, apre le quattro sezioni
+   con UI Automation e controlla righe e testi della prima riga di ogni griglia. È il solo controllo automatico dei binding
+   dentro le celle, che WPF in caso di errore ignora in silenzio.
 
 ## Conseguenze
 - Spostare la UI su un altro host (Avalonia, MAUI, web) riusa `Presentation` e `Core` senza modifiche.

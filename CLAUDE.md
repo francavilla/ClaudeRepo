@@ -39,7 +39,7 @@ Più modifiche nella stessa richiesta = un solo incremento di versione.
 - `.github/workflows/ci-exebuilder.yml` compila ExeBuilder su Windows (XAML compreso) ed esegue i test
   a ogni push su `Progetti_Claude`/`main` e a ogni PR verso `main`; l'app compilata è un artifact del run (14 giorni).
 - `.github/workflows/ci-solutiondoctor.yml` fa lo stesso per SolutionDoctor: compila tutto (app WPF compresa), esegue i test,
-  pubblica CLI e app, prova la CLI su ExeBuilder e prova l'avvio dell'interfaccia.
+  pubblica CLI e app, prova la CLI su ExeBuilder e prova l'interfaccia (avvio e contenuto delle griglie su `SolutionDoctor/samples/LegacyDemo`).
 - Dopo ogni push controllare l'esito della CI e correggere subito eventuali errori.
 
 ## Applicazioni

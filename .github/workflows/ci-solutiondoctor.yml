@@ -1,6 +1,6 @@
 # Integrazione continua di SolutionDoctor: a ogni push o PR compila su Windows (app WPF e XAML compresi), esegue i test,
-# pubblica CLI e interfaccia, prova la CLI su ExeBuilder, prova l'avvio dell'interfaccia e rende scaricabile tutto
-# come artifact del run.
+# pubblica CLI e interfaccia, prova la CLI su ExeBuilder, prova l'interfaccia (avvio e contenuto delle griglie) e rende
+# scaricabile tutto come artifact del run.
 name: CI SolutionDoctor
 
 on:
@@ -59,32 +59,83 @@ jobs:
       - name: Prova della CLI su ExeBuilder (con cronologia git)
         run: publish/SolutionDoctor-Cli/solutiondoctor.exe analyze ExeBuilder/ExeBuilder.sln -o publish/SolutionDoctor-ExeBuilder.md
 
-      # Un errore nel XAML (risorsa mancante, binding sbagliato nel template) si vede solo avviando la finestra:
-      # l'app parte con ExeBuilder come argomento, analizza da sola e il titolo della finestra deve diventare
-      # "SolutionDoctor — ExeBuilder" (compare solo a risultato mostrato).
+      # Un errore nel XAML (risorsa mancante, binding sbagliato in una cella) si vede solo avviando la finestra.
+      # L'app parte sulla solution di esempio con l'argomento da riga di comando, analizza da sola; poi, tramite
+      # l'accessibilita' di Windows (UI Automation), si apre una per una ogni sezione e si controllano numero di righe
+      # e testi della prima riga di ogni griglia: se un binding di cella non funziona, la cella resta vuota e il passo fallisce.
+      # Windows PowerShell 5.1 (UIAutomationClient e' garantito) e solo caratteri ASCII nello script.
       - name: Prova di avvio dell'interfaccia
-        shell: pwsh
+        shell: powershell
         run: |
-          $process = Start-Process -FilePath 'publish/SolutionDoctor-App/SolutionDoctor.App.exe' -ArgumentList '"ExeBuilder/ExeBuilder.sln"' -PassThru
+          $ErrorActionPreference = 'Stop'
+          Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
+
+          $process = Start-Process -FilePath 'publish\SolutionDoctor-App\SolutionDoctor.App.exe' -ArgumentList '"SolutionDoctor\samples\LegacyDemo\LegacyDemo.sln"' -PassThru
+
+          function Fail($message) {
+            Write-Host "ERRORE: $message"
+            try { Stop-Process -Id $process.Id -Force } catch { }
+            exit 1
+          }
+
+          function Find-All($root, $controlType) {
+            $condition = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ControlTypeProperty, $controlType)
+            return $root.FindAll([System.Windows.Automation.TreeScope]::Descendants, $condition)
+          }
+
+          # 1. La finestra compare e il titolo diventa "SolutionDoctor - <solution>" solo a risultato mostrato.
           $title = ''
           $deadline = (Get-Date).AddSeconds(90)
           while ((Get-Date) -lt $deadline) {
             Start-Sleep -Seconds 2
-            if ($process.HasExited) {
-              Write-Error "L'interfaccia si è chiusa da sola (codice di uscita $($process.ExitCode))."
-              exit 1
-            }
+            if ($process.HasExited) { Fail "L'interfaccia si e' chiusa da sola (codice di uscita $($process.ExitCode))." }
             $process.Refresh()
             $title = $process.MainWindowTitle
             Write-Host "Titolo della finestra: '$title'"
-            if ($title -like '*ExeBuilder*') { break }
+            if ($title -like '*LegacyDemo*') { break }
           }
+          if ($title -notlike '*LegacyDemo*') { Fail "La finestra non ha mostrato il risultato entro 90 secondi (ultimo titolo: '$title')." }
+
+          # 2. Le quattro sezioni, con il contenuto delle griglie.
+          try {
+            $window = [System.Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle)
+            $tabs = @(Find-All $window ([System.Windows.Automation.ControlType]::RadioButton))
+            Write-Host ("Sezioni: " + (($tabs | ForEach-Object { $_.Current.Name }) -join ' | '))
+            if ($tabs.Count -ne 4) { Fail "Attese 4 sezioni, trovate $($tabs.Count)." }
+
+            function Test-Tab($index, $minimumRows, $expectedText) {
+              $tab = $tabs[$index]
+              $tab.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
+              Start-Sleep -Seconds 1
+              $grids = @(Find-All $window ([System.Windows.Automation.ControlType]::DataGrid) | Where-Object { -not $_.Current.IsOffscreen })
+              if ($grids.Count -lt 1) { Fail "Sezione '$($tab.Current.Name)': nessuna griglia visibile." }
+              $pattern = $grids[0].GetCurrentPattern([System.Windows.Automation.GridPattern]::Pattern)
+              $rows = $pattern.Current.RowCount
+              $columns = $pattern.Current.ColumnCount
+              $cells = @()
+              for ($c = 0; $c -lt $columns; $c++) {
+                $cell = $pattern.GetItem(0, $c)
+                $texts = @(Find-All $cell ([System.Windows.Automation.ControlType]::Text) | ForEach-Object { $_.Current.Name })
+                if ($texts.Count -eq 0) { $texts = @($cell.Current.Name) }
+                $cells += ($texts -join '/')
+              }
+              $line = $cells -join ' | '
+              Write-Host ("[{0}] righe={1} colonne={2} prima riga: {3}" -f $tab.Current.Name, $rows, $columns, $line)
+              if ($rows -lt $minimumRows) { Fail "Sezione '$($tab.Current.Name)': attese almeno $minimumRows righe, trovate $rows." }
+              if ($line -notlike "*$expectedText*") { Fail "Sezione '$($tab.Current.Name)': la prima riga non contiene '$expectedText'." }
+            }
+
+            Test-Tab 0 3 'Gestionale.OrdiniForm'
+            Test-Tab 1 10 'Alta'
+            Test-Tab 2 2 'net452'
+            Test-Tab 3 2 'Dati'
+          }
+          catch {
+            Fail "Controllo dell'interfaccia non riuscito: $($_.Exception.Message)"
+          }
+
           Stop-Process -Id $process.Id -Force
-          if ($title -notlike '*ExeBuilder*') {
-            Write-Error "La finestra non ha mostrato il risultato entro 90 secondi (ultimo titolo: '$title')."
-            exit 1
-          }
-          Write-Host "Interfaccia avviata e analisi completata."
+          Write-Host "Interfaccia avviata, analisi completata e griglie verificate."
 
       - name: Artifact
         uses: actions/upload-artifact@v4

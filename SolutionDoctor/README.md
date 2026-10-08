@@ -24,6 +24,9 @@ Risponde alla domanda più difficile di un refactoring: *da dove comincio, e in 
 
 Percorso e opzioni dell'ultima analisi sono ricordati in `%APPDATA%\SolutionDoctor\settings.txt`.
 
+Per provarla subito c'è una solution di esempio con gli smell più tipici:
+`SolutionDoctor.App.exe SolutionDoctor\samples\LegacyDemo\LegacyDemo.sln`.
+
 ## Riga di comando
 
 ```
