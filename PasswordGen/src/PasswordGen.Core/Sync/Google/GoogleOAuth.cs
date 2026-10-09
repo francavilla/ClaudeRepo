@@ -62,13 +62,20 @@ namespace PasswordGen.Core.Sync.Google
         private readonly string _clientId;
         private readonly string _redirectUri;
         private readonly Func<DateTime> _utcNow;
+        private readonly string _clientSecret;
 
-        public GoogleOAuthClient(HttpClient http, string clientId, string redirectUri, Func<DateTime> utcNow = null)
+        /// <param name="redirectUri">Indirizzo di ritorno predefinito (si può cambiare a ogni accesso: su Windows la porta locale cambia).</param>
+        /// <param name="clientSecret">
+        /// Chiave del client: i client «App desktop» di Google la richiedono, anche se per le app installate non è considerata riservata.
+        /// Per i client Android non serve (null).
+        /// </param>
+        public GoogleOAuthClient(HttpClient http, string clientId, string redirectUri, Func<DateTime> utcNow = null, string clientSecret = null)
         {
             _http = http;
             _clientId = clientId;
             _redirectUri = redirectUri;
             _utcNow = utcNow ?? (() => DateTime.UtcNow);
+            _clientSecret = clientSecret;
         }
 
         public static PkceChallenge CreatePkce()
@@ -85,12 +92,12 @@ namespace PasswordGen.Core.Sync.Google
             }
         }
 
-        public Uri BuildAuthorizationUri(PkceChallenge pkce)
+        public Uri BuildAuthorizationUri(PkceChallenge pkce, string redirectUri = null)
         {
             var query = new[]
             {
                 Pair("client_id", _clientId),
-                Pair("redirect_uri", _redirectUri),
+                Pair("redirect_uri", redirectUri ?? _redirectUri),
                 Pair("response_type", "code"),
                 Pair("scope", DriveFileScope),
                 Pair("code_challenge", pkce.Challenge),
@@ -103,7 +110,7 @@ namespace PasswordGen.Core.Sync.Google
             return new Uri(AuthEndpoint + "?" + string.Join("&", query));
         }
 
-        public async Task<GoogleTokens> ExchangeCodeAsync(string code, string verifier)
+        public async Task<GoogleTokens> ExchangeCodeAsync(string code, string verifier, string redirectUri = null)
         {
             return await PostAsync(new Dictionary<string, string>
             {
@@ -111,7 +118,7 @@ namespace PasswordGen.Core.Sync.Google
                 { "code", code },
                 { "code_verifier", verifier },
                 { "grant_type", "authorization_code" },
-                { "redirect_uri", _redirectUri }
+                { "redirect_uri", redirectUri ?? _redirectUri }
             });
         }
 
@@ -128,6 +135,11 @@ namespace PasswordGen.Core.Sync.Google
 
         private async Task<GoogleTokens> PostAsync(Dictionary<string, string> form)
         {
+            if (!string.IsNullOrEmpty(_clientSecret))
+            {
+                form["client_secret"] = _clientSecret;
+            }
+
             using (var response = await _http.PostAsync(TokenEndpoint, new FormUrlEncodedContent(form)).ConfigureAwait(false))
             {
                 var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);

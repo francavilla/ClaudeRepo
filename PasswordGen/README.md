@@ -91,10 +91,11 @@ riscrive se c'è qualcosa di nuovo. Succede all'avvio, dopo ogni «Ho cambiato l
 
 - Il file è cifrato con una **frase segreta** scelta da te (almeno 8 caratteri, AES-256 con controllo di integrità, chiave PBKDF2-SHA256).
   Non si può recuperare: senza la frase il file non si apre. Su ogni dispositivo la frase è conservata cifrata (DPAPI su Windows, Keystore su Android).
-- **Windows**: «Imposta...» e scegli un file, per esempio nella cartella di Google Drive per desktop.
+- **Windows**: «Imposta...» e scegli *Il mio Google Drive* (accesso con l'account Google nel browser, come su Android) oppure un file, per esempio nella cartella di Google Drive per desktop.
 - **Android**: «Imposta...» e scegli *Il mio Google Drive* (accesso con l'account Google; l'app crea il file nel tuo Drive e vede solo i file che ha creato),
   oppure un file esistente o nuovo scelto con il selettore di documenti.
-- Per cominciare conviene attivare la sincronizzazione **prima sul telefono con Google Drive**: il file compare poi nella cartella di Drive sul PC.
+- Con *Il mio Google Drive* le due app usano lo stesso file nel Drive (ambito `drive.file`: l'app vede solo i file che ha creato; il file lo crea la prima app che si collega).
+  L'accesso diretto su Windows richiede il client OAuth «App desktop» di Google Cloud (ID e chiave incorporati in compilazione); senza, resta l'opzione del file.
 - **Esporta / Importa** usano lo stesso formato cifrato, una volta sola: backup o cambio telefono.
 - Un cambio che elimini su un dispositivo può ricomparire dopo la sincronizzazione (l'unione non cancella mai nulla).
 

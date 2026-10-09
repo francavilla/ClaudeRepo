@@ -9,6 +9,7 @@ using PasswordGen.Core.Security;
 using PasswordGen.Core.Policy;
 using PasswordGen.Core.Settings;
 using PasswordGen.Core.Sync;
+using PasswordGen.Core.Sync.Google;
 using System.Security.Cryptography;
 using PasswordGen.Mobile.Services;
 

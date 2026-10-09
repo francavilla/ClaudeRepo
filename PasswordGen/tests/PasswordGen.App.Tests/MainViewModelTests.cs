@@ -11,6 +11,7 @@ using PasswordGen.Core.Randomness;
 using PasswordGen.Core.Security;
 using PasswordGen.Core.Settings;
 using PasswordGen.Core.Sync;
+using PasswordGen.Core.Sync.Google;
 using PasswordGen.Services;
 using PasswordGen.ViewModels;
 using Xunit;
@@ -107,6 +108,49 @@ namespace PasswordGen.App.Tests
             public byte[] Unprotect(byte[] data) { return data.Select(b => (byte)(b ^ 0x5A)).ToArray(); }
         }
 
+        private sealed class MemoryStorage : ISyncStorage
+        {
+            public byte[] Data;
+
+            public byte[] Read() { return Data; }
+
+            public void Write(byte[] data) { Data = data; }
+        }
+
+        /// <summary>Google Drive finto: si può condividere lo stesso «file» tra due finti dispositivi.</summary>
+        private sealed class FakeDrive : IGoogleDriveService
+        {
+            public bool Configured = true;
+            public bool SignedIn;
+            public string SignInProblem;
+            public int SignIns;
+            public int SignOuts;
+            public MemoryStorage Storage = new MemoryStorage();
+
+            public string Address { get { return "google-drive:"; } }
+            public bool IsConfigured { get { return Configured; } }
+            public bool IsSignedIn { get { return SignedIn; } }
+
+            public Task<string> SignInAsync()
+            {
+                SignIns++;
+                if (SignInProblem == null)
+                {
+                    SignedIn = true;
+                }
+
+                return Task.FromResult(SignInProblem);
+            }
+
+            public ISyncStorage CreateStorage() { return Storage; }
+
+            public void SignOut()
+            {
+                SignOuts++;
+                SignedIn = false;
+            }
+        }
+
         private sealed class Harness
         {
             public MainViewModel ViewModel;
@@ -116,10 +160,11 @@ namespace PasswordGen.App.Tests
             public HistoryStore History;
             public FakeHello Hello;
             public AppLockController Lock;
+            public FakeDrive Drive;
             public LockCredentialManager Credentials;
         }
 
-        private Harness CreateViewModel(string name, AppSettings initial = null, bool helloAvailable = true)
+        private Harness CreateViewModel(string name, AppSettings initial = null, bool helloAvailable = true, FakeDrive drive = null)
         {
             var folder = Path.Combine(_directory, name);
             Directory.CreateDirectory(folder);
@@ -133,15 +178,16 @@ namespace PasswordGen.App.Tests
             var dialogs = new FakeDialogs();
             var history = new HistoryStore(Path.Combine(folder, "history.dat"), new XorProtector());
             var passphrases = new SyncPassphraseStore(Path.Combine(folder, "sync.key"), new XorProtector());
+            drive = drive ?? new FakeDrive();
             var hello = new FakeHello { Available = helloAvailable };
             var credentials = new LockCredentialManager(new LockCredentialStore(Path.Combine(folder, "lock.dat"), new XorProtector()));
             var appLock = new AppLockController(new AppLockState(TimeSpan.FromSeconds(30)), hello, () => IntPtr.Zero, credentials);
             appLock.RefreshAvailabilityAsync().GetAwaiter().GetResult();
 
             var viewModel = new MainViewModel(new PasswordGenerator(new SecureRandom(), words), words, settings, new FakeClipboard(),
-                new FakeStartup(), history, dialogs, appLock, passphrases, () => Today);
+                new FakeStartup(), history, dialogs, appLock, passphrases, drive, () => Today);
 
-            return new Harness { ViewModel = viewModel, Dialogs = dialogs, Settings = settings, Passphrases = passphrases, History = history, Hello = hello, Lock = appLock, Credentials = credentials };
+            return new Harness { ViewModel = viewModel, Dialogs = dialogs, Settings = settings, Passphrases = passphrases, History = history, Hello = hello, Lock = appLock, Credentials = credentials, Drive = drive };
         }
 
         private static void WaitFor(Func<bool> condition, string what)
@@ -408,6 +454,7 @@ namespace PasswordGen.App.Tests
             h.Dialogs.SaveFilePath = file;
             h.Dialogs.Passphrases.Enqueue(Phrase);
 
+            h.Dialogs.ChooseIndex = 1;
             h.ViewModel.SetupSyncCommand.Execute(null);
             WaitFor(() => h.Settings.Load().SyncPath == file, "salvataggio delle impostazioni di sincronizzazione");
 
@@ -432,6 +479,7 @@ namespace PasswordGen.App.Tests
             h.Dialogs.SaveFilePath = file;
             h.Dialogs.Passphrases.Enqueue(Phrase);
 
+            h.Dialogs.ChooseIndex = 1;
             h.ViewModel.SetupSyncCommand.Execute(null);
             WaitFor(() => h.ViewModel.StatusMessage.Contains("frase segreta"), "messaggio di frase errata");
 
@@ -449,12 +497,14 @@ namespace PasswordGen.App.Tests
             RegisterChange(a.ViewModel, 1);
             a.Dialogs.SaveFilePath = file;
             a.Dialogs.Passphrases.Enqueue(Phrase);
+            a.Dialogs.ChooseIndex = 1;
             a.ViewModel.SetupSyncCommand.Execute(null);
             WaitFor(() => a.ViewModel.SyncActive, "attivazione sul primo dispositivo");
 
             var b = CreateViewModel("b");
             b.Dialogs.SaveFilePath = file;
             b.Dialogs.Passphrases.Enqueue(Phrase);
+            b.Dialogs.ChooseIndex = 1;
             b.ViewModel.SetupSyncCommand.Execute(null);
             WaitFor(() => b.ViewModel.SyncActive, "attivazione sul secondo dispositivo");
 
@@ -470,12 +520,14 @@ namespace PasswordGen.App.Tests
             var a = CreateViewModel("a");
             a.Dialogs.SaveFilePath = file;
             a.Dialogs.Passphrases.Enqueue(Phrase);
+            a.Dialogs.ChooseIndex = 1;
             a.ViewModel.SetupSyncCommand.Execute(null);
             WaitFor(() => a.ViewModel.SyncActive, "attivazione sul primo dispositivo");
 
             var b = CreateViewModel("b");
             b.Dialogs.SaveFilePath = file;
             b.Dialogs.Passphrases.Enqueue(Phrase);
+            b.Dialogs.ChooseIndex = 1;
             b.ViewModel.SetupSyncCommand.Execute(null);
             WaitFor(() => b.ViewModel.SyncActive, "attivazione sul secondo dispositivo");
 
@@ -495,6 +547,7 @@ namespace PasswordGen.App.Tests
             var h = CreateViewModel("a");
             h.Dialogs.SaveFilePath = file;
             h.Dialogs.Passphrases.Enqueue(Phrase);
+            h.Dialogs.ChooseIndex = 1;
             h.ViewModel.SetupSyncCommand.Execute(null);
             WaitFor(() => h.ViewModel.SyncActive, "attivazione");
 
@@ -512,10 +565,114 @@ namespace PasswordGen.App.Tests
             var h = CreateViewModel("a", new AppSettings { HistoryEnabled = false });
             h.Dialogs.SaveFilePath = Path.Combine(_directory, "drive", "sync.pgx");
 
+            h.Dialogs.ChooseIndex = 1;
             h.ViewModel.SetupSyncCommand.Execute(null);
             WaitFor(() => h.ViewModel.StatusMessage.Contains("storico"), "messaggio sullo storico");
 
             Assert.False(h.ViewModel.SyncActive);
+        }
+
+
+        // ---- sincronizzazione su Google Drive ----
+
+        [Fact]
+        public void ImpostaSuGoogleDrive_AccedeCreaIlFileEAttivaLaSincronizzazione()
+        {
+            var h = CreateViewModel("a");
+            RegisterChange(h.ViewModel, 1);
+            h.Dialogs.ChooseIndex = 0;                  // «Il mio Google Drive»
+            h.Dialogs.Passphrases.Enqueue(Phrase);
+
+            h.ViewModel.SetupSyncCommand.Execute(null);
+            WaitFor(() => h.Settings.Load().SyncPath == "google-drive:", "salvataggio delle impostazioni di sincronizzazione");
+
+            Assert.Equal(1, h.Drive.SignIns);
+            Assert.True(h.ViewModel.SyncActive);
+            Assert.Contains("Google Drive", h.ViewModel.SyncSummary);
+            Assert.Single(ExchangeFile.Decrypt(h.Drive.Storage.Data, Phrase).Entries);
+            Assert.Equal(Phrase, h.Passphrases.Load());
+        }
+
+        [Fact]
+        public void GoogleDriveNonConfigurato_LOpzioneDiceChiaramenteCosaManca()
+        {
+            var h = CreateViewModel("a", drive: new FakeDrive { Configured = false });
+            h.Dialogs.ChooseIndex = 0;
+
+            h.ViewModel.SetupSyncCommand.Execute(null);
+            WaitFor(() => h.ViewModel.StatusMessage.Contains("non è configurato"), "messaggio di Drive non configurato");
+
+            Assert.False(h.ViewModel.SyncActive);
+            Assert.Equal(0, h.Drive.SignIns);
+        }
+
+        [Fact]
+        public void AccessoAGoogleNonRiuscito_NonAttivaNulla_EMostraIlMotivo()
+        {
+            var h = CreateViewModel("a", drive: new FakeDrive { SignInProblem = "Accesso negato: non hai consentito l'uso di Google Drive." });
+            h.Dialogs.ChooseIndex = 0;
+
+            h.ViewModel.SetupSyncCommand.Execute(null);
+            WaitFor(() => h.ViewModel.StatusMessage.Contains("Accesso negato"), "messaggio di accesso negato");
+
+            Assert.False(h.ViewModel.SyncActive);
+            Assert.Null(h.Settings.Load().SyncPath);
+            Assert.Null(h.Drive.Storage.Data);
+        }
+
+        [Fact]
+        public void DuePcSuGoogleDrive_SiScambianoLoStorico()
+        {
+            var shared = new MemoryStorage();
+
+            var a = CreateViewModel("a", drive: new FakeDrive { Storage = shared });
+            RegisterChange(a.ViewModel, 1);
+            a.Dialogs.ChooseIndex = 0;
+            a.Dialogs.Passphrases.Enqueue(Phrase);
+            a.ViewModel.SetupSyncCommand.Execute(null);
+            WaitFor(() => a.Settings.Load().SyncPath == "google-drive:", "attivazione sul primo PC");
+
+            var b = CreateViewModel("b", drive: new FakeDrive { Storage = shared });
+            b.Dialogs.ChooseIndex = 0;
+            b.Dialogs.Passphrases.Enqueue(Phrase);
+            b.ViewModel.SetupSyncCommand.Execute(null);
+            WaitFor(() => b.Settings.Load().SyncPath == "google-drive:", "attivazione sul secondo PC");
+
+            Assert.Single(b.ViewModel.HistoryEntries);
+            Assert.Equal(a.ViewModel.HistoryEntries[0].Password, b.ViewModel.HistoryEntries[0].Password);
+            Assert.Contains("già", b.Dialogs.Asked.Single());   // il file su Drive esisteva: frase chiesta una sola volta
+        }
+
+        [Fact]
+        public void SincronizzaOra_SuDriveSenzaAccesso_RifaLAccesso()
+        {
+            var h = CreateViewModel("a");
+            h.Dialogs.ChooseIndex = 0;
+            h.Dialogs.Passphrases.Enqueue(Phrase);
+            h.ViewModel.SetupSyncCommand.Execute(null);
+            WaitFor(() => h.Settings.Load().SyncPath == "google-drive:", "attivazione");
+            h.Drive.SignedIn = false;   // l'accesso è scaduto
+            var signIns = h.Drive.SignIns;
+
+            h.ViewModel.SyncNowCommand.Execute(null);
+            WaitFor(() => h.Drive.SignIns == signIns + 1, "nuovo accesso");
+            WaitFor(() => h.ViewModel.StatusMessage.Contains("Sincronizzato"), "sincronizzazione dopo il nuovo accesso");
+        }
+
+        [Fact]
+        public void DisattivaSincronizzazioneSuDrive_EsceDaGoogle_ELasciaIlFile()
+        {
+            var h = CreateViewModel("a");
+            h.Dialogs.ChooseIndex = 0;
+            h.Dialogs.Passphrases.Enqueue(Phrase);
+            h.ViewModel.SetupSyncCommand.Execute(null);
+            WaitFor(() => h.Settings.Load().SyncPath == "google-drive:", "attivazione");
+
+            h.ViewModel.StopSyncCommand.Execute(null);
+
+            Assert.False(h.ViewModel.SyncActive);
+            Assert.Equal(1, h.Drive.SignOuts);
+            Assert.NotNull(h.Drive.Storage.Data);
         }
 
         // ---- esporta e importa ----

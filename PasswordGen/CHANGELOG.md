@@ -4,6 +4,21 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.5.0] - 2026-10-09
+
+### Aggiunto
+- **App Windows: sincronizzazione direttamente su Google Drive**, come su Android. In «Sincronizzazione e backup» → «Imposta...» → «Il mio Google Drive» si apre il browser,
+  si accede con l'account Google e l'app usa il file cifrato `PasswordGen-sync.pgx` nel Drive (ambito `drive.file`: vede solo i file creati dall'app). L'app non vede mai
+  la password di Google; il token di rinnovo è cifrato con DPAPI (`%AppData%\PasswordGen\google.key`). Il ritorno dal browser arriva a un piccolo server locale su 127.0.0.1
+  (porta libera, una sola richiesta). Se l'accesso scade o viene revocato, «Sincronizza ora» lo rifà.
+- **Richiede un client OAuth «App desktop»** di Google Cloud: ID client e chiave sono incorporati in compilazione (`GoogleDesktopClientId` nel progetto, secret
+  `GOOGLE_DESKTOP_CLIENT_SECRET` nella CI). Senza, l'opzione dice che Google Drive non è configurato e resta la sincronizzazione con un file.
+- `PasswordGen.Core`: `LoopbackReceiver`, interfaccia `IGoogleDriveService` condivisa tra le due app, chiave del client e indirizzo di ritorno variabile in `GoogleOAuthClient` (con test).
+- Test del ViewModel Windows sulla sincronizzazione su Drive (accesso, file nuovo ed esistente, due PC, accesso scaduto, disattivazione).
+
+### Modificato
+- «Imposta...» chiede prima dove sincronizzare (Google Drive o un file).
+
 ## [1.4.0] - 2026-10-08
 
 ### Aggiunto

@@ -45,6 +45,7 @@ namespace PasswordGen.Core.Tests
             public string RefreshTokenReturned;        // se valorizzato, il rinnovo restituisce anche un nuovo token di rinnovo
             public string TokenError;                   // se valorizzato, il token endpoint risponde con questo errore (400)
             public int TokenCalls;
+            public string LastTokenForm;
             public int Counter = 1;
             public byte[] FileContent;
             public string FileId;
@@ -61,6 +62,7 @@ namespace PasswordGen.Core.Tests
                 if (url.StartsWith(GoogleOAuthClient.TokenEndpoint, StringComparison.Ordinal))
                 {
                     TokenCalls++;
+                    LastTokenForm = await request.Content.ReadAsStringAsync();
                     if (TokenError != null)
                     {
                         return Json(HttpStatusCode.BadRequest, "{\"error\":\"" + TokenError + "\",\"error_description\":\"prova\"}");
@@ -270,6 +272,122 @@ namespace PasswordGen.Core.Tests
 
             Assert.False(rig.Tokens.IsSignedIn);
             Assert.Null(rig.RefreshStore.Load());
+        }
+
+        [Fact]
+        public void ClientDesktop_LaChiaveDelClienteVaNellaRichiesta_QuelloAndroidNo()
+        {
+            var google = new FakeGoogle();
+            var http = new HttpClient(google);
+
+            new GoogleOAuthClient(http, ClientId, Redirect, () => Now, "chiave-del-client").RefreshAsync("r").GetAwaiter().GetResult();
+            Assert.Contains("client_secret=chiave-del-client", google.LastTokenForm);
+
+            new GoogleOAuthClient(http, ClientId, Redirect, () => Now).RefreshAsync("r").GetAwaiter().GetResult();
+            Assert.DoesNotContain("client_secret", google.LastTokenForm);
+        }
+
+        [Fact]
+        public void IndirizzoDiRitornoPersonalizzato_SostituisceQuelloPredefinito()
+        {
+            var google = new FakeGoogle();
+            var oauth = new GoogleOAuthClient(new HttpClient(google), ClientId, Redirect, () => Now);
+            var pkce = GoogleOAuthClient.CreatePkce();
+
+            var uri = oauth.BuildAuthorizationUri(pkce, "http://127.0.0.1:5555/").ToString();
+            oauth.ExchangeCodeAsync("codice", pkce.Verifier, "http://127.0.0.1:5555/").GetAwaiter().GetResult();
+
+            Assert.Contains("redirect_uri=" + Uri.EscapeDataString("http://127.0.0.1:5555/"), uri);
+            Assert.Contains("redirect_uri=" + Uri.EscapeDataString("http://127.0.0.1:5555/"), google.LastTokenForm);
+        }
+
+        // ---- ritorno del browser (app per computer) ----
+
+        private static string SendRequest(int port, string requestLine)
+        {
+            using (var client = new System.Net.Sockets.TcpClient("127.0.0.1", port))
+            {
+                var stream = client.GetStream();
+                var bytes = Encoding.ASCII.GetBytes(requestLine + " HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n");
+                stream.Write(bytes, 0, bytes.Length);
+                var buffer = new byte[4096];
+                var total = new StringBuilder();
+                int read;
+                while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    total.Append(Encoding.UTF8.GetString(buffer, 0, read));
+                }
+
+                return total.ToString();
+            }
+        }
+
+        [Fact]
+        public void Loopback_RiceveCodiceEStato_ERispondeConUnaPaginaDiConferma()
+        {
+            using (var receiver = new LoopbackReceiver())
+            {
+                var waiting = receiver.WaitAsync(TimeSpan.FromSeconds(20), CancellationToken.None);
+
+                var response = SendRequest(receiver.Port, "GET /?code=4%2Fabc&state=xyz");
+                var parameters = waiting.GetAwaiter().GetResult();
+
+                Assert.Equal("4/abc", parameters["code"]);
+                Assert.Equal("xyz", parameters["state"]);
+                Assert.Contains("200 OK", response);
+                Assert.Contains("Accesso completato", response);
+                Assert.StartsWith("http://127.0.0.1:", receiver.RedirectUri);
+            }
+        }
+
+        [Fact]
+        public void Loopback_IgnoraLeRichiesteSenzaParametri_ComeIlFavicon()
+        {
+            using (var receiver = new LoopbackReceiver())
+            {
+                var waiting = receiver.WaitAsync(TimeSpan.FromSeconds(20), CancellationToken.None);
+
+                SendRequest(receiver.Port, "GET /favicon.ico");
+                SendRequest(receiver.Port, "GET /?code=ok&state=s");
+
+                Assert.Equal("ok", waiting.GetAwaiter().GetResult()["code"]);
+            }
+        }
+
+        [Fact]
+        public void Loopback_AccessoNegato_RestituisceLErrore()
+        {
+            using (var receiver = new LoopbackReceiver())
+            {
+                var waiting = receiver.WaitAsync(TimeSpan.FromSeconds(20), CancellationToken.None);
+
+                var response = SendRequest(receiver.Port, "GET /?error=access_denied&state=s");
+
+                Assert.Equal("access_denied", waiting.GetAwaiter().GetResult()["error"]);
+                Assert.Contains("Accesso non completato", response);
+            }
+        }
+
+        [Fact]
+        public void Loopback_ScadutoIlTempo_RestituisceNull()
+        {
+            using (var receiver = new LoopbackReceiver())
+            {
+                Assert.Null(receiver.WaitAsync(TimeSpan.FromMilliseconds(300), CancellationToken.None).GetAwaiter().GetResult());
+            }
+        }
+
+        [Fact]
+        public void Loopback_Annullato_RestituisceNull()
+        {
+            using (var receiver = new LoopbackReceiver())
+            using (var cancel = new CancellationTokenSource())
+            {
+                var waiting = receiver.WaitAsync(TimeSpan.FromSeconds(20), cancel.Token);
+                cancel.CancelAfter(200);
+
+                Assert.Null(waiting.GetAwaiter().GetResult());
+            }
         }
 
         // ---- file su Drive ----

@@ -10,6 +10,7 @@ using PasswordGen.Core.Security;
 using PasswordGen.Core.Reminder;
 using PasswordGen.Core.Settings;
 using PasswordGen.Core.Sync;
+using PasswordGen.Core.Sync.Google;
 using PasswordGen.Services;
 using PasswordGen.ViewModels;
 
@@ -61,6 +62,7 @@ namespace PasswordGen
             var viewModel = new MainViewModel(generator, builtinWords, store, _clipboard, new StartupRegistration(),
                 new HistoryStore(HistoryStore.DefaultPath, new DpapiProtector()), new DialogService(), appLock,
                 new SyncPassphraseStore(System.IO.Path.Combine(dataDirectory, "sync.key"), new DpapiProtector()),
+                new GoogleDriveService(new SyncPassphraseStore(System.IO.Path.Combine(dataDirectory, "google.key"), new DpapiProtector())),
                 () => DateTime.Today);
 
             window = new MainWindow { DataContext = viewModel };

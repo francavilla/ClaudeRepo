@@ -13,6 +13,7 @@ using PasswordGen.Core.Reminder;
 using PasswordGen.Core.Security;
 using PasswordGen.Core.Settings;
 using PasswordGen.Core.Sync;
+using PasswordGen.Core.Sync.Google;
 using PasswordGen.Mvvm;
 using PasswordGen.Services;
 
@@ -32,6 +33,7 @@ namespace PasswordGen.ViewModels
         private readonly PasswordHistory _history;
         private readonly AppLockController _lock;
         private readonly SyncPassphraseStore _syncPassphrases;
+        private readonly IGoogleDriveService _drive;
         private bool _syncBusy;
 
         private bool _loading = true;
@@ -76,9 +78,11 @@ namespace PasswordGen.ViewModels
             IDialogService dialogs,
             AppLockController appLock,
             SyncPassphraseStore syncPassphrases,
+            IGoogleDriveService drive,
             Func<DateTime> today)
         {
             _syncPassphrases = syncPassphrases;
+            _drive = drive;
             _generator = generator;
             _builtinWords = builtinWords;
             _lock = appLock;
@@ -676,9 +680,24 @@ namespace PasswordGen.ViewModels
                 }
 
                 var last = ExchangeData.ParseTime(_settings.LastSyncUtcText);
-                return "Attiva con il file " + _settings.SyncPath + ". "
+                return "Attiva con " + SyncTargetName(_settings.SyncPath) + ". "
                     + (last.HasValue ? "Ultima sincronizzazione: " + last.Value.ToLocalTime().ToString("g", CultureInfo.CurrentCulture) + "." : "Non ancora sincronizzato.");
             }
+        }
+
+        private bool IsGoogleDrive(string address)
+        {
+            return address == _drive.Address;
+        }
+
+        private string SyncTargetName(string address)
+        {
+            return IsGoogleDrive(address) ? "il tuo Google Drive (file «PasswordGen-sync.pgx»)" : "il file " + address;
+        }
+
+        private ISyncStorage OpenStorage(string address)
+        {
+            return IsGoogleDrive(address) ? _drive.CreateStorage() : new FileSyncStorage(address);
         }
 
         private void RefreshSyncState()
@@ -696,14 +715,70 @@ namespace PasswordGen.ViewModels
                 return;
             }
 
-            var path = _dialogs.PickSaveFile("Scegli o crea il file di sincronizzazione (per esempio nella cartella di Google Drive)",
-                SyncFilter, "PasswordGen-sync.pgx", false);
+            var choice = _dialogs.Choose("Dove sincronizzare?", new[]
+            {
+                "Il mio Google Drive (accesso con l'account Google)",
+                "Un file (per esempio nella cartella di Google Drive per desktop)"
+            });
+            if (choice < 0)
+            {
+                return;
+            }
+
+            string path;
+            if (choice == 0)
+            {
+                if (!_drive.IsConfigured)
+                {
+                    StatusMessage = "Google Drive non è configurato in questa versione del programma: usa un file nella cartella di Drive per desktop.";
+                    return;
+                }
+
+                if (!_drive.IsSignedIn)
+                {
+                    StatusMessage = "Si apre il browser: accedi con il tuo account Google e consenti l'accesso ai file di Drive creati da PasswordGen...";
+                    var problem = await _drive.SignInAsync();
+                    if (problem != null)
+                    {
+                        StatusMessage = problem;
+                        return;
+                    }
+                }
+
+                path = _drive.Address;
+            }
+            else
+            {
+                path = _dialogs.PickSaveFile("Scegli o crea il file di sincronizzazione (per esempio nella cartella di Google Drive)",
+                    SyncFilter, "PasswordGen-sync.pgx", false);
+            }
+
             if (string.IsNullOrEmpty(path))
             {
                 return;
             }
 
-            var exists = File.Exists(path) && new FileInfo(path).Length > 0;
+            bool exists;
+            if (IsGoogleDrive(path))
+            {
+                exists = await Task.Run(() =>
+                {
+                    try
+                    {
+                        var bytes = _drive.CreateStorage().Read();
+                        return bytes != null && bytes.Length > 0;
+                    }
+                    catch (Exception)
+                    {
+                        return false;
+                    }
+                });
+            }
+            else
+            {
+                exists = File.Exists(path) && new FileInfo(path).Length > 0;
+            }
+
             var passphrase = _dialogs.AskPassphrase("Sincronizzazione",
                 exists
                     ? "Il file esiste già. Inserisci la frase segreta con cui è stato creato."
@@ -734,6 +809,16 @@ namespace PasswordGen.ViewModels
 
         private async Task SyncNowAsync()
         {
+            if (IsGoogleDrive(_settings.SyncPath) && !_drive.IsSignedIn)
+            {
+                var problem = await _drive.SignInAsync();
+                if (problem != null)
+                {
+                    StatusMessage = problem;
+                    return;
+                }
+            }
+
             var passphrase = _syncPassphrases.Load()
                 ?? _dialogs.AskPassphrase("Sincronizzazione", "Inserisci la frase segreta del file di sincronizzazione.", false);
             if (passphrase == null)
@@ -776,10 +861,15 @@ namespace PasswordGen.ViewModels
             try
             {
                 SaveSettings();   // porta nelle impostazioni i valori correnti (per esempio la durata della password)
-                var result = await SyncEngine.RunAsync(new FileSyncStorage(path), passphrase, _history, _settings, DateTime.UtcNow);
+                var result = await SyncEngine.RunAsync(OpenStorage(path), passphrase, _history, _settings, DateTime.UtcNow);
                 if (!result.Succeeded)
                 {
                     StatusMessage = result.Message;
+                    if (IsGoogleDrive(path) && result.Message != null && result.Message.Contains("accedi di nuovo"))
+                    {
+                        _drive.SignOut();   // l'accesso non vale più: al prossimo «Sincronizza ora» si rifà l'accesso
+                    }
+
                     return false;
                 }
 
@@ -811,6 +901,11 @@ namespace PasswordGen.ViewModels
             if (!_dialogs.Confirm("Disattivare la sincronizzazione? Il file resta dov'è e i dati su questo PC non cambiano.", "Sincronizzazione"))
             {
                 return;
+            }
+
+            if (IsGoogleDrive(_settings.SyncPath))
+            {
+                _drive.SignOut();
             }
 
             _settings.SyncPath = null;
