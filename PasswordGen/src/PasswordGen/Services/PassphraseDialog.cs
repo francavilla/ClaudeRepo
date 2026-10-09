@@ -11,7 +11,7 @@ namespace PasswordGen.Services
         {
             var first = new PasswordBox { Margin = new Thickness(0, 0, 0, 8), Padding = new Thickness(6, 5, 6, 5) };
             var second = new PasswordBox { Margin = new Thickness(0, 0, 0, 8), Padding = new Thickness(6, 5, 6, 5) };
-            var error = new TextBlock { Foreground = System.Windows.Media.Brushes.Firebrick, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8) };
+            var error = new TextBlock { Foreground = System.Windows.Media.Brushes.IndianRed, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8) };
             var ok = new Button { Content = "OK", IsDefault = true, MinWidth = 80, Margin = new Thickness(0, 0, 8, 0) };
             var cancel = new Button { Content = "Annulla", IsCancel = true, MinWidth = 80 };
 
@@ -43,6 +43,7 @@ namespace PasswordGen.Services
                 Owner = Application.Current == null ? null : Application.Current.MainWindow
             };
 
+            ThemeManager.Style(window);
             string result = null;
             ok.Click += (s, e) =>
             {

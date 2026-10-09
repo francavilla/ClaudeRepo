@@ -15,6 +15,9 @@ namespace PasswordGen.Core.Sync
         [DataMember] public string DateText { get; set; }
         [DataMember] public GenerationMode Mode { get; set; }
         [DataMember] public string Password { get; set; }
+
+        /// <summary>Quando la voce è stata registrata (UTC); serve a decidere se è precedente a un azzeramento dello storico.</summary>
+        [DataMember] public string AddedUtcText { get; set; }
     }
 
     /// <summary>Contenuto del file di scambio: storico, data dell'ultimo cambio e durata della password.</summary>
@@ -37,6 +40,9 @@ namespace PasswordGen.Core.Sync
         [DataMember] public string LastChangeDateText { get; set; }
         [DataMember] public int ValidityDays { get; set; }
         [DataMember] public List<ExchangeEntry> Entries { get; set; }
+
+        /// <summary>Ultimo azzeramento dello storico (UTC): le voci registrate prima vengono eliminate anche sugli altri dispositivi.</summary>
+        [DataMember] public string HistoryResetUtcText { get; set; }
 
         public DateTime? ModifiedUtc
         {

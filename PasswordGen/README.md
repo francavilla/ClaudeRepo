@@ -3,7 +3,7 @@
 Applicazione desktop **WPF per .NET Framework 4.8** che genera password **casuali, sicure e facili da ricordare**,
 pensata per chi deve cambiare password ogni mese per policy aziendale.
 
-Tutto avviene sul computer: nessuna connessione di rete. Le password non vengono salvate, salvo quelle che scegli tu di conservare nello **storico** (facoltativo, cifrato: vedi sotto).
+Tutto avviene sul computer: il programma usa la rete solo se attivi la sincronizzazione su Google Drive (facoltativa), altrimenti non si collega a nulla. Le password non vengono salvate, salvo quelle che registri nello **storico** (cifrato: vedi sotto).
 
 ## Uso
 
@@ -61,37 +61,44 @@ L'entropia mostrata tiene conto della lista in uso: con 400 parole ogni parola v
 più parole per la stessa sicurezza (sotto le 1000 parole compare un avviso). Evita nomi di familiari, date e soprannomi:
 sono facili da indovinare per chi ti conosce. Se il file manca o non è valido, l'app usa la lista integrata e lo segnala.
 
-## Blocco con Windows Hello
+## Blocco dell'app
 
-Nella card *Blocco dell'app* si può richiedere Windows Hello (PIN, impronta o volto) per aprire l'app, all'avvio e dopo il tempo scelto in
-secondo piano. Serve che Windows Hello sia configurato (Impostazioni, Account, Opzioni di accesso). L'app non riceve mai PIN o impronta,
-solo l'esito della verifica. Con il blocco attivo la finestra non compare negli screenshot né nelle condivisioni dello schermo.
-Se Windows Hello non è più disponibile all'avvio, il blocco si disattiva da solo con un avviso.
+Nella card *Blocco dell'app* si può richiedere di sbloccare l'app all'avvio e dopo il tempo scelto in secondo piano. Attivandolo si sceglie come sbloccare:
+- **Windows Hello** (PIN, impronta o volto): deve essere configurato (Impostazioni, Account, Opzioni di accesso). L'app non riceve mai PIN o impronta, solo l'esito.
+- **PIN dell'app** (4-12 cifre) o **password dell'app** (6-64 caratteri): anche su PC senza Windows Hello. Se si imposta un PIN/password, si può sbloccare anche con Windows Hello (se c'è).
+  Si conserva solo un hash (PBKDF2-SHA256) in `%AppData%\PasswordGen\lock.dat`, cifrato con DPAPI. Dopo 5 errori scatta un'**attesa crescente**
+  (30 secondi, 1, 2, 4 minuti... fino a un'ora), che resta anche se si chiude e riapre l'app.
+- Per disattivare il blocco, cambiare o togliere il PIN/password si conferma l'identità (Windows Hello, o il PIN/password se Hello non c'è).
+- Con il blocco attivo la finestra non compare negli screenshot né nelle condivisioni dello schermo. Se né Windows Hello né un PIN/password sono utilizzabili, il blocco si disattiva da solo con un avviso.
 
 ## Storico delle password
 
-Facoltativo (attivo di default, si disattiva nella card *Storico delle password*). Conserva le **ultime 12** password usate,
-ciascuna con numero progressivo (#1, #2, ... mai riutilizzato), data e tipo. Nella scheda *Storico* le password sono mascherate:
-si possono mostrare, copiare (con la stessa cancellazione automatica dagli appunti) o eliminare. Le nuove proposte evitano
-le varianti di quelle dello storico.
+Sempre attivo. Conserva le **ultime 20** password usate, ciascuna con numero progressivo (#1, #2, ... mai riutilizzato), data e tipo.
+Nella scheda *Storico* le password sono mascherate: si possono mostrare o copiare (con la stessa cancellazione automatica dagli appunti);
+le singole voci non si possono eliminare. Le nuove proposte evitano le varianti di quelle dello storico.
+
+**Regola aziendale:** la nuova password non può essere identica (maiuscole e minuscole contano) a una delle ultime 20. L'app la applica quando
+registri «Ho cambiato la password»; le proposte del generatore sono già conformi alla policy e diverse da quelle dello storico.
 
 - Il file `%AppData%\PasswordGen\history.dat` è cifrato con **DPAPI** (ambito utente): si apre solo con lo stesso account Windows
   sullo stesso computer. Non protegge da un programma malevolo che gira con il tuo account.
-- Disattivando lo storico, o con *Cancella tutto lo storico*, il file viene eliminato.
+- *Azzera storico* (con avviso) elimina il file: serve solo se cambi azienda o account, perché poi il controllo riparte da zero.
 - Se nella scelta indichi «Nessuna», viene registrata solo la data (senza password).
 
 ## Sincronizzazione e backup
 
 Per avere lo stesso storico sul PC e sul telefono (storico, data dell'ultimo cambio e durata della password) le due app condividono un
 **file cifrato** `PasswordGen-sync.pgx`: ognuna lo legge, unisce il contenuto con i propri dati (senza cancellare nulla di locale) e lo
-riscrive se c'è qualcosa di nuovo. Succede all'avvio, dopo ogni «Ho cambiato la password» e con «Sincronizza ora».
+riscrive se c'è qualcosa di nuovo. Succede all'avvio, dopo ogni «Ho cambiato la password», con «Sincronizza ora», quando l'app torna in primo piano e, ad app aperta, ogni 15 secondi o con l'intervallo scelto in *Impostazioni* (con un controllo leggero: si sincronizza solo se il file su Google Drive è cambiato).
+*Azzera storico* si propaga: le voci registrate prima dell'azzeramento vengono eliminate anche sull'altro dispositivo e non tornano.
 
 - Il file è cifrato con una **frase segreta** scelta da te (almeno 8 caratteri, AES-256 con controllo di integrità, chiave PBKDF2-SHA256).
   Non si può recuperare: senza la frase il file non si apre. Su ogni dispositivo la frase è conservata cifrata (DPAPI su Windows, Keystore su Android).
-- **Windows**: «Imposta...» e scegli un file, per esempio nella cartella di Google Drive per desktop.
+- **Windows**: «Imposta...» e scegli *Il mio Google Drive* (accesso con l'account Google nel browser, come su Android) oppure un file, per esempio nella cartella di Google Drive per desktop.
 - **Android**: «Imposta...» e scegli *Il mio Google Drive* (accesso con l'account Google; l'app crea il file nel tuo Drive e vede solo i file che ha creato),
   oppure un file esistente o nuovo scelto con il selettore di documenti.
-- Per cominciare conviene attivare la sincronizzazione **prima sul telefono con Google Drive**: il file compare poi nella cartella di Drive sul PC.
+- Con *Il mio Google Drive* le due app usano lo stesso file nel Drive (ambito `drive.file`: l'app vede solo i file che ha creato; il file lo crea la prima app che si collega).
+  L'accesso diretto su Windows richiede il client OAuth «App desktop» di Google Cloud (ID e chiave incorporati in compilazione); senza, resta l'opzione del file.
 - **Esporta / Importa** usano lo stesso formato cifrato, una volta sola: backup o cambio telefono.
 - Un cambio che elimini su un dispositivo può ricomparire dopo la sincronizzazione (l'unione non cancella mai nulla).
 

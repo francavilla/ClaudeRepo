@@ -51,7 +51,12 @@ namespace PasswordGen.Core.Settings
         [DataMember] public bool LockEnabled { get; set; }
 
         /// <summary>Secondi in secondo piano dopo i quali l'app si blocca di nuovo (0 = subito).</summary>
+        public const int DefaultSyncIntervalSeconds = 15;
+
         [DataMember] public int LockGraceSeconds { get; set; }
+
+        /// <summary>Ogni quanti secondi, ad app aperta, si controlla se l'altro dispositivo ha cambiato qualcosa (predefinito 15).</summary>
+        [DataMember] public int SyncIntervalSeconds { get; set; }
 
         /// <summary>L'avviso che invita ad attivare il blocco è stato chiuso dall'utente.</summary>
         [DataMember] public bool LockHintDismissed { get; set; }
@@ -124,6 +129,7 @@ namespace PasswordGen.Core.Settings
             HistoryEnabled = true;
             LockEnabled = false;
             LockGraceSeconds = 30;
+            SyncIntervalSeconds = DefaultSyncIntervalSeconds;
             LockHintDismissed = false;
             SyncPath = null;
             LastSyncUtcText = null;
@@ -143,6 +149,7 @@ namespace PasswordGen.Core.Settings
             SyllableCount = Clamp(SyllableCount, GenerationOptions.MinSyllables, GenerationOptions.MaxSyllables);
             RandomLength = Clamp(RandomLength, PasswordPolicy.MinAllowedLength, GenerationOptions.MaxRandomLength);
             SuggestionCount = Clamp(SuggestionCount, MinSuggestions, MaxSuggestions);
+            SyncIntervalSeconds = Clamp(SyncIntervalSeconds, 5, 3600);
             LockGraceSeconds = Clamp(LockGraceSeconds, 0, PasswordGen.Core.Security.AppLockState.MaxGraceSeconds);
             ValidityDays = Clamp(ValidityDays, 7, 365);
             WarnDays = Clamp(WarnDays, 0, 30);

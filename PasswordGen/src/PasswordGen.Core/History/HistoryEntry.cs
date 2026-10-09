@@ -22,6 +22,9 @@ namespace PasswordGen.Core.History
         /// <summary>La password usata; vuota se è stata registrata solo la data del cambio.</summary>
         [DataMember] public string Password { get; set; }
 
+        /// <summary>Quando la voce è stata registrata (UTC, yyyy-MM-ddTHH:mm:ssZ); vuota per le voci create prima dell'azzeramento condiviso.</summary>
+        [DataMember] public string AddedUtcText { get; set; }
+
         public bool HasPassword
         {
             get { return !string.IsNullOrEmpty(Password); }

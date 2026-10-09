@@ -13,6 +13,7 @@ using PasswordGen.Core.Reminder;
 using PasswordGen.Core.Security;
 using PasswordGen.Core.Settings;
 using PasswordGen.Core.Sync;
+using PasswordGen.Core.Sync.Google;
 using PasswordGen.Mvvm;
 using PasswordGen.Services;
 
@@ -32,6 +33,7 @@ namespace PasswordGen.ViewModels
         private readonly PasswordHistory _history;
         private readonly AppLockController _lock;
         private readonly SyncPassphraseStore _syncPassphrases;
+        private readonly IGoogleDriveService _drive;
         private bool _syncBusy;
 
         private bool _loading = true;
@@ -54,7 +56,6 @@ namespace PasswordGen.ViewModels
         private string _wordWarning = string.Empty;
         private bool _lockEnabled;
         private int _lockGraceSeconds;
-        private bool _historyEnabled;
         private bool _isChoosing;
         private int _choiceIndex;
         private SuggestionViewModel _lastCopied;
@@ -65,6 +66,10 @@ namespace PasswordGen.ViewModels
         private string _reminderMessage = string.Empty;
         private string _reminderLevel = "Info";
         private string _lastChangeText = string.Empty;
+        private bool _hasReminderDays;
+        private string _reminderDaysText = string.Empty;
+        private string _reminderDaysCaption = string.Empty;
+        private double _reminderProgress;
 
         public MainViewModel(
             PasswordGenerator generator,
@@ -76,9 +81,11 @@ namespace PasswordGen.ViewModels
             IDialogService dialogs,
             AppLockController appLock,
             SyncPassphraseStore syncPassphrases,
+            IGoogleDriveService drive,
             Func<DateTime> today)
         {
             _syncPassphrases = syncPassphrases;
+            _drive = drive;
             _generator = generator;
             _builtinWords = builtinWords;
             _lock = appLock;
@@ -110,6 +117,7 @@ namespace PasswordGen.ViewModels
 
             _lockEnabled = _settings.LockEnabled;
             _lockGraceSeconds = _settings.LockGraceSeconds;
+            _syncIntervalSeconds = _settings.SyncIntervalSeconds;
             appLock.DisabledAutomatically += (sender, message) =>
             {
                 _lockEnabled = false;
@@ -118,8 +126,7 @@ namespace PasswordGen.ViewModels
                 SaveSettings();
                 StatusMessage = message;
             };
-            _historyEnabled = _settings.HistoryEnabled;
-            _history = _historyEnabled ? historyStore.Load() : new PasswordHistory();
+            _history = historyStore.Load();
             _reminderEnabled = _settings.ReminderEnabled;
             _validityDays = _settings.ValidityDays;
 
@@ -147,6 +154,8 @@ namespace PasswordGen.ViewModels
             StopSyncCommand = new RelayCommand(StopSync, () => SyncActive && !_syncBusy);
             ExportCommand = new RelayCommand(() => { var ignored = ExportAsync(); }, () => !_syncBusy);
             ImportCommand = new RelayCommand(() => { var ignored = ImportAsync(); }, () => !_syncBusy);
+            SetCredentialCommand = new RelayCommand(() => { var ignored = SetCredentialAsync(); }, () => CanSetCredential);
+            RemoveCredentialCommand = new RelayCommand(() => { var ignored = RemoveCredentialAsync(); }, () => _lock.HasCredential);
             DismissLockHintCommand = new RelayCommand(DismissLockHint);
             EnableLockFromHintCommand = new RelayCommand(() => { DismissLockHint(); LockEnabled = true; });
 
@@ -190,8 +199,38 @@ namespace PasswordGen.ViewModels
         public string StatusMessage
         {
             get { return _statusMessage; }
-            private set { SetProperty(ref _statusMessage, value); }
+            private set
+            {
+                if (!SetProperty(ref _statusMessage, value) || string.IsNullOrEmpty(value))
+                {
+                    return;
+                }
+
+                // Il messaggio resta visibile per un po', poi la barra si svuota (altrimenti «Proposte generate» resterebbe per sempre).
+                var application = Application.Current;
+                if (application == null)
+                {
+                    return;
+                }
+
+                var version = ++_statusVersion;
+                var timer = new System.Windows.Threading.DispatcherTimer(System.Windows.Threading.DispatcherPriority.Background, application.Dispatcher)
+                {
+                    Interval = TimeSpan.FromSeconds(15)
+                };
+                timer.Tick += (s, e) =>
+                {
+                    timer.Stop();
+                    if (version == _statusVersion)
+                    {
+                        StatusMessage = string.Empty;
+                    }
+                };
+                timer.Start();
+            }
         }
+
+        private int _statusVersion;
 
         // ------------------------------------------------------------ Tipo di password
 
@@ -224,7 +263,35 @@ namespace PasswordGen.ViewModels
             OnPropertyChanged(nameof(IsPassphraseMode));
             OnPropertyChanged(nameof(IsSyllablesMode));
             OnPropertyChanged(nameof(IsRandomMode));
+            OnPropertyChanged(nameof(ModeDescription));
+            OnPropertyChanged(nameof(ModeExample));
             Generate();
+        }
+
+        public string ModeDescription
+        {
+            get
+            {
+                switch (_mode)
+                {
+                    case GenerationMode.Syllables: return "Sillabe pronunciabili, facili da dire ad alta voce.";
+                    case GenerationMode.Random: return "Caratteri casuali, difficili da ricordare: pensata per quando basta copiarla.";
+                    default: return "Parole italiane, facili da ricordare (consigliata).";
+                }
+            }
+        }
+
+        public string ModeExample
+        {
+            get
+            {
+                switch (_mode)
+                {
+                    case GenerationMode.Syllables: return "Bamelo-Tirusa-Pevono83=";
+                    case GenerationMode.Random: return "k7Q#mP2v!xR4tw9N";
+                    default: return "Lampo-Cavallo-Nebbia-Fiume47!";
+                }
+            }
         }
 
         public int WordCount
@@ -548,6 +615,30 @@ namespace PasswordGen.ViewModels
             private set { SetProperty(ref _reminderLevel, value); }
         }
 
+        public bool HasReminderDays
+        {
+            get { return _hasReminderDays; }
+            private set { SetProperty(ref _hasReminderDays, value); }
+        }
+
+        public string ReminderDaysText
+        {
+            get { return _reminderDaysText; }
+            private set { SetProperty(ref _reminderDaysText, value); }
+        }
+
+        public string ReminderDaysCaption
+        {
+            get { return _reminderDaysCaption; }
+            private set { SetProperty(ref _reminderDaysCaption, value); }
+        }
+
+        public double ReminderProgress
+        {
+            get { return _reminderProgress; }
+            private set { SetProperty(ref _reminderProgress, value); }
+        }
+
         public string LastChangeText
         {
             get { return _lastChangeText; }
@@ -576,6 +667,22 @@ namespace PasswordGen.ViewModels
                     break;
             }
 
+            // Giorni alla scadenza e avanzamento (0 = appena cambiata, 1 = scaduta).
+            var remaining = state.DaysRemaining;
+            HasReminderDays = remaining.HasValue;
+            if (remaining.HasValue)
+            {
+                var days = Math.Abs(remaining.Value);
+                ReminderDaysText = days.ToString(CultureInfo.CurrentCulture);
+                ReminderDaysCaption = remaining.Value < 0 ? (days == 1 ? "giorno di ritardo" : "giorni di ritardo")
+                    : (days == 1 ? "giorno rimasto" : "giorni rimasti");
+                ReminderProgress = _validityDays > 0 ? Math.Min(1.0, Math.Max(0.0, 1.0 - (double)remaining.Value / _validityDays)) : 1.0;
+            }
+            else
+            {
+                ReminderProgress = 0;
+            }
+
             LastChangeText = last.HasValue
                 ? "Ultimo cambio: " + last.Value.ToString("d", CultureInfo.CurrentCulture)
                 : "Nessun cambio registrato";
@@ -587,7 +694,7 @@ namespace PasswordGen.ViewModels
         /// </summary>
         private void MarkChanged()
         {
-            if (_historyEnabled && Suggestions.Count > 0)
+            if (Suggestions.Count > 0)
             {
                 ChoiceItems.Clear();
                 ChoiceItems.Add("Nessuna: registra solo la data del cambio");
@@ -618,22 +725,23 @@ namespace PasswordGen.ViewModels
 
         private void CompleteChange(SuggestionViewModel chosen)
         {
+            // Regola aziendale: la nuova password non può essere una delle ultime 20 (confronto identico).
+            var duplicate = chosen == null ? null : _history.Find(chosen.Text);
+            if (duplicate != null)
+            {
+                StatusMessage = "Questa password coincide con la #" + duplicate.Number + " dello storico (" + duplicate.DateText + "): scegli un'altra proposta.";
+                return;
+            }
+
             var today = _today();
             _settings.LastChangeDate = today;
 
-            if (_historyEnabled)
-            {
-                var entry = _history.Add(chosen == null ? null : chosen.Text, chosen == null ? _mode : chosen.Mode, today);
-                SaveHistory();
-                RefreshHistory();
-                StatusMessage = chosen == null
-                    ? "Cambio registrato (#" + entry.Number + ", solo data): " + ReminderTextAfterRefresh()
-                    : "Cambio registrato nello storico come #" + entry.Number + ": " + ReminderTextAfterRefresh();
-            }
-            else
-            {
-                StatusMessage = "Cambio password registrato: " + ReminderTextAfterRefresh();
-            }
+            var entry = _history.Add(chosen == null ? null : chosen.Text, chosen == null ? _mode : chosen.Mode, today, DateTime.UtcNow);
+            SaveHistory();
+            RefreshHistory();
+            StatusMessage = chosen == null
+                ? "Cambio registrato (#" + entry.Number + ", solo data): " + ReminderTextAfterRefresh()
+                : "Cambio registrato nello storico come #" + entry.Number + ": " + ReminderTextAfterRefresh();
 
             SaveSettings();
             var ignoredSync = AutoSyncAsync();
@@ -674,9 +782,24 @@ namespace PasswordGen.ViewModels
                 }
 
                 var last = ExchangeData.ParseTime(_settings.LastSyncUtcText);
-                return "Attiva con il file " + _settings.SyncPath + ". "
+                return "Attiva con " + SyncTargetName(_settings.SyncPath) + ". "
                     + (last.HasValue ? "Ultima sincronizzazione: " + last.Value.ToLocalTime().ToString("g", CultureInfo.CurrentCulture) + "." : "Non ancora sincronizzato.");
             }
+        }
+
+        private bool IsGoogleDrive(string address)
+        {
+            return address == _drive.Address;
+        }
+
+        private string SyncTargetName(string address)
+        {
+            return IsGoogleDrive(address) ? "il tuo Google Drive (file «PasswordGen-sync.pgx»)" : "il file " + address;
+        }
+
+        private ISyncStorage OpenStorage(string address)
+        {
+            return IsGoogleDrive(address) ? _drive.CreateStorage() : new FileSyncStorage(address);
         }
 
         private void RefreshSyncState()
@@ -688,20 +811,70 @@ namespace PasswordGen.ViewModels
 
         private async Task SetupSyncAsync()
         {
-            if (!_historyEnabled)
+            var choice = _dialogs.Choose("Dove sincronizzare?", new[]
             {
-                StatusMessage = "Per sincronizzare attiva prima lo storico delle password.";
+                "Il mio Google Drive (accesso con l'account Google)",
+                "Un file (per esempio nella cartella di Google Drive per desktop)"
+            });
+            if (choice < 0)
+            {
                 return;
             }
 
-            var path = _dialogs.PickSaveFile("Scegli o crea il file di sincronizzazione (per esempio nella cartella di Google Drive)",
-                SyncFilter, "PasswordGen-sync.pgx", false);
+            string path;
+            if (choice == 0)
+            {
+                if (!_drive.IsConfigured)
+                {
+                    StatusMessage = "Google Drive non è configurato in questa versione del programma: usa un file nella cartella di Drive per desktop.";
+                    return;
+                }
+
+                if (!_drive.IsSignedIn)
+                {
+                    StatusMessage = "Si apre il browser: accedi con il tuo account Google e consenti l'accesso ai file di Drive creati da PasswordGen...";
+                    var problem = await _drive.SignInAsync();
+                    if (problem != null)
+                    {
+                        StatusMessage = problem;
+                        return;
+                    }
+                }
+
+                path = _drive.Address;
+            }
+            else
+            {
+                path = _dialogs.PickSaveFile("Scegli o crea il file di sincronizzazione (per esempio nella cartella di Google Drive)",
+                    SyncFilter, "PasswordGen-sync.pgx", false);
+            }
+
             if (string.IsNullOrEmpty(path))
             {
                 return;
             }
 
-            var exists = File.Exists(path) && new FileInfo(path).Length > 0;
+            bool exists;
+            if (IsGoogleDrive(path))
+            {
+                exists = await Task.Run(() =>
+                {
+                    try
+                    {
+                        var bytes = _drive.CreateStorage().Read();
+                        return bytes != null && bytes.Length > 0;
+                    }
+                    catch (Exception)
+                    {
+                        return false;
+                    }
+                });
+            }
+            else
+            {
+                exists = File.Exists(path) && new FileInfo(path).Length > 0;
+            }
+
             var passphrase = _dialogs.AskPassphrase("Sincronizzazione",
                 exists
                     ? "Il file esiste già. Inserisci la frase segreta con cui è stato creato."
@@ -732,6 +905,16 @@ namespace PasswordGen.ViewModels
 
         private async Task SyncNowAsync()
         {
+            if (IsGoogleDrive(_settings.SyncPath) && !_drive.IsSignedIn)
+            {
+                var problem = await _drive.SignInAsync();
+                if (problem != null)
+                {
+                    StatusMessage = problem;
+                    return;
+                }
+            }
+
             var passphrase = _syncPassphrases.Load()
                 ?? _dialogs.AskPassphrase("Sincronizzazione", "Inserisci la frase segreta del file di sincronizzazione.", false);
             if (passphrase == null)
@@ -755,7 +938,7 @@ namespace PasswordGen.ViewModels
         /// <summary>Sincronizza in silenzio (all'avvio e dopo un cambio): niente finestre, solo un messaggio nella barra di stato.</summary>
         public async Task AutoSyncAsync()
         {
-            if (!SyncActive || _syncBusy || !_historyEnabled)
+            if (!SyncActive || _syncBusy)
             {
                 return;
             }
@@ -767,6 +950,100 @@ namespace PasswordGen.ViewModels
             }
         }
 
+        private DateTime _lastBackgroundSync = DateTime.MinValue;
+
+        /// <summary>
+        /// Sincronizza in silenzio se l'ultima sincronizzazione di questo tipo risale ad almeno <paramref name="minimumInterval"/> fa:
+        /// serve quando la finestra torna in primo piano e a intervalli regolari, così le modifiche fatte sull'altro dispositivo
+        /// (per esempio l'azzeramento dello storico) arrivano senza riavviare l'app.
+        /// </summary>
+        public async Task SyncIfIdleAsync(TimeSpan minimumInterval)
+        {
+            if (!SyncActive || _syncBusy || DateTime.UtcNow - _lastBackgroundSync < minimumInterval)
+            {
+                return;
+            }
+
+            _lastBackgroundSync = DateTime.UtcNow;
+
+            // Controllo leggero: se l'impronta del file non è cambiata dall'ultima sincronizzazione non c'è nulla da fare.
+            var token = await ProbeAsync(_settings.SyncPath);
+            if (token != null && token == _knownRemoteToken)
+            {
+                return;
+            }
+
+            // Dove non si può controllare l'impronta (per esempio un documento di Android) si sincronizza al massimo ogni due minuti.
+            if (token == null && DateTime.UtcNow - _lastFullSync < TimeSpan.FromSeconds(Math.Max(120, _syncIntervalSeconds)))
+            {
+                return;
+            }
+
+            await AutoSyncAsync();
+        }
+
+        private static readonly int[] SyncIntervalChoices = { 15, 30, 60, 120, 300, 600 };
+
+        public string[] SyncIntervalNames
+        {
+            get { return new[] { "Ogni 15 secondi", "Ogni 30 secondi", "Ogni minuto", "Ogni 2 minuti", "Ogni 5 minuti", "Ogni 10 minuti" }; }
+        }
+
+        /// <summary>Ogni quanto, ad app aperta, si controlla se l'altro dispositivo ha cambiato qualcosa.</summary>
+        public TimeSpan SyncInterval
+        {
+            get { return TimeSpan.FromSeconds(_syncIntervalSeconds); }
+        }
+
+        public int SyncIntervalIndex
+        {
+            get
+            {
+                // Un valore salvato che non è tra le scelte (file modificato a mano) si porta alla più vicina.
+                var best = 0;
+                for (var i = 1; i < SyncIntervalChoices.Length; i++)
+                {
+                    if (Math.Abs(SyncIntervalChoices[i] - _syncIntervalSeconds) < Math.Abs(SyncIntervalChoices[best] - _syncIntervalSeconds))
+                    {
+                        best = i;
+                    }
+                }
+
+                return best;
+            }
+            set
+            {
+                if (value < 0 || value >= SyncIntervalChoices.Length || SyncIntervalChoices[value] == _syncIntervalSeconds)
+                {
+                    return;
+                }
+
+                _syncIntervalSeconds = SyncIntervalChoices[value];
+                OnPropertyChanged();
+                SaveSettings();
+            }
+        }
+
+        private DateTime _lastFullSync = DateTime.MinValue;
+        private int _syncIntervalSeconds = AppSettings.DefaultSyncIntervalSeconds;
+        private string _knownRemoteToken;
+
+        private Task<string> ProbeAsync(string address)
+        {
+            return Task.Run(() =>
+            {
+                try
+                {
+                    var probe = OpenStorage(address) as IChangeProbe;
+                    return probe == null ? null : probe.Probe();
+                }
+                catch (Exception)
+                {
+                    return null;
+                }
+            });
+        }
+
         private async Task<bool> RunSyncAsync(string path, string passphrase)
         {
             _syncBusy = true;
@@ -774,20 +1051,32 @@ namespace PasswordGen.ViewModels
             try
             {
                 SaveSettings();   // porta nelle impostazioni i valori correnti (per esempio la durata della password)
-                var result = await SyncEngine.RunAsync(new FileSyncStorage(path), passphrase, _history, _settings, DateTime.UtcNow);
+                var hadHistoryBefore = _history.Entries.Count > 0;
+                var tokenBefore = await ProbeAsync(path);
+                var result = await SyncEngine.RunAsync(OpenStorage(path), passphrase, _history, _settings, DateTime.UtcNow);
+                _lastFullSync = DateTime.UtcNow;
                 if (!result.Succeeded)
                 {
                     StatusMessage = result.Message;
+                    if (IsGoogleDrive(path) && result.Message != null && result.Message.Contains("accedi di nuovo"))
+                    {
+                        _drive.SignOut();   // l'accesso non vale più: al prossimo «Sincronizza ora» si rifà l'accesso
+                    }
+
                     return false;
                 }
 
+                _knownRemoteToken = result.Wrote ? null : tokenBefore;   // se abbiamo scritto, il prossimo controllo rilegge una volta
+                var hadHistory = _history.Entries.Count > 0;
                 _validityDays = _settings.ValidityDays;
                 OnPropertyChanged(nameof(ValidityDays));
                 SaveHistory();
                 RefreshHistory();
                 RefreshReminder();
                 SaveSettings();
-                StatusMessage = result.EntriesAdded > 0
+                StatusMessage = hadHistoryBefore && !hadHistory
+                    ? "Sincronizzato: lo storico è stato azzerato dall'altro dispositivo."
+                    : result.EntriesAdded > 0
                     ? "Sincronizzato: " + result.EntriesAdded + (result.EntriesAdded == 1 ? " voce nuova" : " voci nuove") + " dall'altro dispositivo."
                     : "Sincronizzato: tutto era già aggiornato.";
                 return true;
@@ -809,6 +1098,11 @@ namespace PasswordGen.ViewModels
             if (!_dialogs.Confirm("Disattivare la sincronizzazione? Il file resta dov'è e i dati su questo PC non cambiano.", "Sincronizzazione"))
             {
                 return;
+            }
+
+            if (IsGoogleDrive(_settings.SyncPath))
+            {
+                _drive.SignOut();
             }
 
             _settings.SyncPath = null;
@@ -866,12 +1160,6 @@ namespace PasswordGen.ViewModels
 
         private async Task ImportAsync()
         {
-            if (!_historyEnabled)
-            {
-                StatusMessage = "Per importare attiva prima lo storico delle password.";
-                return;
-            }
-
             var path = _dialogs.PickFile("Scegli il file da importare", SyncFilter);
             if (string.IsNullOrEmpty(path))
             {
@@ -1000,44 +1288,243 @@ namespace PasswordGen.ViewModels
             get { return new RelayCommand(_lock.LockNow, () => _lockEnabled); }
         }
 
+        /// <summary>
+        /// Conferma l'identità prima di cambiare il blocco: Windows Hello se c'è; altrimenti il PIN o la password dell'app.
+        /// Senza né l'uno né l'altro (blocco non ancora attivo) non c'è nulla da confermare.
+        /// </summary>
+        private async Task<bool> ConfirmIdentityAsync(string message)
+        {
+            if (_lock.HelloAvailable)
+            {
+                var outcome = await _lock.ConfirmAsync(message);
+                if (!outcome.Success)
+                {
+                    StatusMessage = "Verifica non riuscita (" + outcome.Reason + ").";
+                    return false;
+                }
+
+                return true;
+            }
+
+            if (_lock.HasCredential)
+            {
+                var secret = _dialogs.AskSecret("Conferma", "Inserisci il " + (_lock.CredentialKind == CredentialKind.Pin ? "PIN" : "la password") + " dell'app per confermare.");
+                if (secret == null)
+                {
+                    StatusMessage = "Identità non confermata.";
+                    return false;
+                }
+
+                var attempt = await _lock.VerifySecretAsync(secret);
+                if (!attempt.Success)
+                {
+                    StatusMessage = attempt.Message;
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         private async Task ChangeLockAsync(bool enable)
         {
             try
             {
-                if (enable)
+                if (!enable)
                 {
-                    var availability = await _lock.CheckAvailabilityAsync();
-                    if (!availability.Success)
+                    // Chi trova il PC sbloccato non può togliere il blocco: serve confermare l'identità.
+                    if (!await ConfirmIdentityAsync("Conferma per disattivare il blocco di PasswordGen"))
                     {
-                        StatusMessage = availability.Reason + ".";
+                        StatusMessage = "Identità non confermata: il blocco è rimasto com'era.";
+                        return;
+                    }
+
+                    _lockEnabled = false;
+                    _lock.SetEnabled(false);
+                    _lock.ClearCredential();
+                    RefreshLockProperties();
+                    SaveSettings();
+                    StatusMessage = "Blocco dell'app disattivato (l'eventuale PIN o password dell'app sono stati rimossi).";
+                    return;
+                }
+
+                await _lock.RefreshAvailabilityAsync();
+                var hello = _lock.HelloAvailable;
+                var options = new System.Collections.Generic.List<string>();
+                var kinds = new System.Collections.Generic.List<CredentialKind?>();
+                if (hello)
+                {
+                    options.Add("Windows Hello (PIN, impronta o volto)");
+                    kinds.Add(null);
+                }
+
+                if (_lock.CredentialsSupported)
+                {
+                    options.Add("PIN dell'app (4-12 cifre)");
+                    kinds.Add(CredentialKind.Pin);
+                    options.Add("Password dell'app");
+                    kinds.Add(CredentialKind.Password);
+                }
+
+                if (options.Count == 0)
+                {
+                    StatusMessage = "Per usare il blocco serve Windows Hello (Impostazioni, Account, Opzioni di accesso) oppure un PIN o una password dell'app.";
+                    return;
+                }
+
+                var index = options.Count == 1 ? 0 : _dialogs.Choose("Come vuoi sbloccare PasswordGen?", options);
+                if (index < 0)
+                {
+                    return;
+                }
+
+                var kind = kinds[index];
+                if (kind.HasValue)
+                {
+                    var secret = _dialogs.AskNewSecret(kind.Value);
+                    if (secret == null)
+                    {
+                        StatusMessage = "Nessun PIN o password impostati: il blocco è rimasto com'era.";
+                        return;
+                    }
+
+                    await _lock.SetCredentialAsync(kind.Value, secret);
+                }
+                else
+                {
+                    // Con Windows Hello si verifica subito che funzioni, prima di attivare il blocco.
+                    var outcome = await _lock.ConfirmAsync("Conferma per attivare il blocco di PasswordGen");
+                    if (!outcome.Success)
+                    {
+                        StatusMessage = "Verifica non riuscita (" + outcome.Reason + "): il blocco è rimasto com'era.";
                         return;
                     }
                 }
 
-                // Attivare o disattivare il blocco richiede Windows Hello: chi trova il PC sbloccato non può toglierlo.
-                var outcome = await _lock.ConfirmAsync(enable
-                    ? "Conferma per attivare il blocco di PasswordGen"
-                    : "Conferma per disattivare il blocco di PasswordGen");
-                if (!outcome.Success)
-                {
-                    StatusMessage = "Verifica non riuscita (" + outcome.Reason + "): il blocco è rimasto com'era.";
-                    return;
-                }
-
-                _lockEnabled = enable;
-                _lock.SetEnabled(enable);
-                OnPropertyChanged(nameof(LockEnabled));
-                OnPropertyChanged(nameof(ShowLockHint));
-                OnPropertyChanged(nameof(CanLockNow));
+                _lockEnabled = true;
+                _lock.SetEnabled(true);
+                RefreshLockProperties();
                 SaveSettings();
-                StatusMessage = enable
-                    ? "Blocco dell'app attivato: si attiva alla prossima apertura e " + LockGraceNames[LockGraceIndex].ToLowerInvariant() + " in secondo piano. Prova «Blocca adesso»."
-                    : "Blocco dell'app disattivato.";
+                StatusMessage = "Blocco dell'app attivato: si attiva alla prossima apertura e " + LockGraceNames[LockGraceIndex].ToLowerInvariant() + " in secondo piano. Prova «Blocca adesso».";
             }
             catch (Exception ex)
             {
                 StatusMessage = "Errore del blocco: " + ex.Message;
             }
+        }
+
+        // ---------------------------------------------------------------- PIN o password dell'app
+
+        public ICommand SetCredentialCommand { get; private set; }
+
+        public ICommand RemoveCredentialCommand { get; private set; }
+
+        public bool HasCredential
+        {
+            get { return _lock.HasCredential; }
+        }
+
+        /// <summary>Si può cambiare il PIN o la password solo con il blocco attivo.</summary>
+        public bool CanSetCredential
+        {
+            get { return _lockEnabled && _lock.CredentialsSupported; }
+        }
+
+        /// <summary>«Imposta» se non c'è ancora un PIN o una password dell'app, «Cambia» se c'è già.</summary>
+        public string SetCredentialText
+        {
+            get { return _lock.HasCredential ? "Cambia PIN o password" : "Imposta PIN o password"; }
+        }
+
+        public string CredentialText
+        {
+            get
+            {
+                if (!_lock.HasCredential)
+                {
+                    return "Nessun PIN o password dell'app: si sblocca con Windows Hello.";
+                }
+
+                return _lock.CredentialKind == CredentialKind.Pin
+                    ? "PIN dell'app impostato (si può sbloccare anche con Windows Hello, se configurato)."
+                    : "Password dell'app impostata (si può sbloccare anche con Windows Hello, se configurato).";
+            }
+        }
+
+        /// <summary>Imposta o cambia il PIN o la password dell'app (con il blocco già attivo).</summary>
+        private async Task SetCredentialAsync()
+        {
+            if (!_lockEnabled || !_lock.CredentialsSupported)
+            {
+                return;
+            }
+
+            try
+            {
+                if (!await ConfirmIdentityAsync("Conferma per cambiare il PIN o la password di PasswordGen"))
+                {
+                    StatusMessage = "Identità non confermata: nulla è cambiato.";
+                    return;
+                }
+
+                var index = _dialogs.Choose("Che cosa vuoi impostare?", new[] { "PIN dell'app (4-12 cifre)", "Password dell'app" });
+                if (index < 0)
+                {
+                    return;
+                }
+
+                var kind = index == 0 ? CredentialKind.Pin : CredentialKind.Password;
+                var secret = _dialogs.AskNewSecret(kind);
+                if (secret == null)
+                {
+                    return;
+                }
+
+                await _lock.SetCredentialAsync(kind, secret);
+                _lock.RefreshCredentialProperties();
+                RefreshLockProperties();
+                StatusMessage = kind == CredentialKind.Pin ? "PIN dell'app impostato." : "Password dell'app impostata.";
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = "Errore: " + ex.Message;
+            }
+        }
+
+        private async Task RemoveCredentialAsync()
+        {
+            if (!_lock.HasCredential)
+            {
+                return;
+            }
+
+            // Senza Windows Hello il PIN o la password dell'app sono l'unico modo per sbloccare: non si possono togliere.
+            if (!_lock.HelloAvailable)
+            {
+                StatusMessage = "Windows Hello non è configurato: il PIN o la password dell'app sono l'unico modo di sbloccare e non si possono rimuovere (puoi cambiarli o disattivare il blocco).";
+                return;
+            }
+
+            if (!await ConfirmIdentityAsync("Conferma per rimuovere il PIN o la password di PasswordGen"))
+            {
+                StatusMessage = "Identità non confermata: nulla è cambiato.";
+                return;
+            }
+
+            _lock.ClearCredential();
+            RefreshLockProperties();
+            StatusMessage = "PIN o password dell'app rimossi: si sblocca con Windows Hello.";
+        }
+
+        private void RefreshLockProperties()
+        {
+            OnPropertyChanged(nameof(LockEnabled));
+            OnPropertyChanged(nameof(CanLockNow));
+            OnPropertyChanged(nameof(CanSetCredential));
+            OnPropertyChanged(nameof(HasCredential));
+            OnPropertyChanged(nameof(CredentialText));
+            OnPropertyChanged(nameof(SetCredentialText));
+            OnPropertyChanged(nameof(ShowLockHint));
         }
 
         /// <summary>Da chiamare quando l'app si blocca: via la password attuale e password dello storico di nuovo mascherate.</summary>
@@ -1069,36 +1556,18 @@ namespace PasswordGen.ViewModels
 
         // ------------------------------------------------------------ Storico
 
-        /// <summary>Conserva le password scelte in un file cifrato per il tuo utente Windows. Disattivandolo, lo storico viene cancellato.</summary>
-        public bool HistoryEnabled
+        public ObservableCollection<HistoryEntryViewModel> HistoryEntries { get; private set; }
+
+        /// <summary>Quante delle voci disponibili sono occupate, per esempio «7 di 20 password conservate».</summary>
+        public string HistoryUsageText
         {
-            get { return _historyEnabled; }
-            set
-            {
-                if (value == _historyEnabled)
-                {
-                    return;
-                }
-
-                if (!value && _history.Entries.Count > 0
-                    && !_dialogs.Confirm("Disattivando lo storico, le password conservate vengono cancellate. Continuare?", "Storico"))
-                {
-                    RefreshLater(nameof(HistoryEnabled));
-                    return;
-                }
-
-                _historyEnabled = value;
-                OnPropertyChanged();
-                if (!value)
-                {
-                    ClearHistoryEntries();
-                }
-
-                SaveSettings();
-            }
+            get { return _history.Entries.Count + " di " + PasswordHistory.MaxEntries + " password conservate"; }
         }
 
-        public ObservableCollection<HistoryEntryViewModel> HistoryEntries { get; private set; }
+        public double HistoryUsage
+        {
+            get { return (double)_history.Entries.Count / PasswordHistory.MaxEntries; }
+        }
 
         public bool HasHistory
         {
@@ -1131,47 +1600,44 @@ namespace PasswordGen.ViewModels
             HistoryEntries.Clear();
             foreach (var entry in _history.Entries)
             {
-                HistoryEntries.Add(new HistoryEntryViewModel(entry, CopyHistoryEntry, DeleteHistoryEntry));
+                HistoryEntries.Add(new HistoryEntryViewModel(entry, CopyHistoryEntry, HistoryEntries.Count == 0));
             }
 
+            OnPropertyChanged(nameof(HistoryUsageText));
+            OnPropertyChanged(nameof(HistoryUsage));
             OnPropertyChanged(nameof(HasHistory));
             OnPropertyChanged(nameof(HistoryHeader));
         }
 
         private void CopyHistoryEntry(HistoryEntryViewModel entry)
         {
-            StatusMessage = _clipboard.Copy(entry.Password)
+            var copied = _clipboard.Copy(entry.Password);
+            if (copied)
+            {
+                entry.ShowCopied();
+            }
+
+            StatusMessage = copied
                 ? "Password #" + entry.Number + " copiata: verrà cancellata dagli appunti tra " + (int)_clipboard.ClearAfter.TotalSeconds + " secondi."
                 : "Impossibile accedere agli appunti: riprova.";
         }
 
-        private void DeleteHistoryEntry(HistoryEntryViewModel entry)
-        {
-            if (!_dialogs.Confirm("Eliminare dallo storico la voce " + entry.Title + " del " + entry.DateText + "?", "Storico"))
-            {
-                return;
-            }
-
-            _history.Remove(entry.Number);
-            SaveHistory();
-            RefreshHistory();
-            StatusMessage = "Voce " + entry.Title + " eliminata.";
-        }
-
         private void ClearHistory()
         {
-            if (!_dialogs.Confirm("Cancellare tutto lo storico delle password?", "Storico"))
+            if (!_dialogs.Confirm("Azzerando lo storico l'app non potrà più controllare che la nuova password sia diversa dalle ultime 20 usate. "
+                                  + "Fallo solo se cambi azienda o account. Azzerare lo storico?", "Azzera storico"))
             {
                 return;
             }
 
             ClearHistoryEntries();
-            StatusMessage = "Storico cancellato.";
+            StatusMessage = SyncActive ? "Storico azzerato: l'altro dispositivo lo azzererà alla prossima sincronizzazione." : "Storico azzerato.";
+            var ignoredSync = AutoSyncAsync();
         }
 
         private void ClearHistoryEntries()
         {
-            _history.Clear();
+            _history.Reset(DateTime.UtcNow);   // l'azzeramento viaggia con la sincronizzazione
             SaveHistory();
             RefreshHistory();
         }
@@ -1180,7 +1646,7 @@ namespace PasswordGen.ViewModels
         {
             try
             {
-                if (_history.Entries.Count == 0)
+                if (_history.Entries.Count == 0 && _history.ResetUtcText == null)
                 {
                     _historyStore.Delete();
                 }
@@ -1206,7 +1672,7 @@ namespace PasswordGen.ViewModels
                 SyllableCount = _syllableCount,
                 RandomLength = _randomLength,
                 PreviousPassword = _previousPassword,
-                PreviousPasswords = _historyEnabled ? _history.Passwords() : null,
+                PreviousPasswords = _history.Passwords(),
                 Policy = new PasswordPolicy
                 {
                     MinLength = _minLength,
@@ -1230,7 +1696,7 @@ namespace PasswordGen.ViewModels
                 foreach (var item in items)
                 {
                     SuggestionViewModel row = null;
-                    row = new SuggestionViewModel(item, new RelayCommand(() => Copy(row)));
+                    row = new SuggestionViewModel(item, new RelayCommand(() => Copy(row)), Suggestions.Count == 0);
                     Suggestions.Add(row);
                 }
 
@@ -1251,7 +1717,13 @@ namespace PasswordGen.ViewModels
         private void Copy(SuggestionViewModel suggestion)
         {
             _lastCopied = suggestion;
-            StatusMessage = _clipboard.Copy(suggestion.Text)
+            var copied = _clipboard.Copy(suggestion.Text);
+            if (copied)
+            {
+                suggestion.ShowCopied();
+            }
+
+            StatusMessage = copied
                 ? "Copiata negli appunti: verrà cancellata tra " + (int)_clipboard.ClearAfter.TotalSeconds + " secondi."
                 : "Impossibile accedere agli appunti: riprova.";
         }
@@ -1272,9 +1744,9 @@ namespace PasswordGen.ViewModels
             _settings.RequireDigit = _requireDigit;
             _settings.RequireSpecial = _requireSpecial;
             _settings.AvoidAmbiguous = _avoidAmbiguous;
-            _settings.HistoryEnabled = _historyEnabled;
             _settings.LockEnabled = _lockEnabled;
             _settings.LockGraceSeconds = _lockGraceSeconds;
+            _settings.SyncIntervalSeconds = _syncIntervalSeconds;
             _settings.WordSource = _wordSource;
             _settings.CustomWordsPath = _customWordsPath;
             _settings.ReminderEnabled = _reminderEnabled;

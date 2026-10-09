@@ -9,6 +9,7 @@ using PasswordGen.Core.Security;
 using PasswordGen.Core.Policy;
 using PasswordGen.Core.Settings;
 using PasswordGen.Core.Sync;
+using PasswordGen.Core.Sync.Google;
 using System.Security.Cryptography;
 using PasswordGen.Mobile.Services;
 
@@ -60,6 +61,11 @@ public class MainViewModel : ObservableObject
     private int _validityDays;
     private string _reminderMessage = string.Empty;
     private string _lastChangeText = string.Empty;
+    private bool _hasReminderDays;
+    private string _reminderDaysText = string.Empty;
+    private string _reminderDaysCaption = string.Empty;
+    private double _reminderProgress;
+    private Color _reminderProgressColor = AppPalette.Accent;
     private Color _reminderBackground = Color.FromArgb("#EFF6FF");
 
     /// <param name="syncPassphrases">Frase segreta della sincronizzazione (cifrata col Keystore); nulla se la chiave non è disponibile.</param>
@@ -109,6 +115,7 @@ public class MainViewModel : ObservableObject
         _validityDays = _settings.ValidityDays;
         _wordSource = _settings.WordSource;
         _lockGraceSeconds = _settings.LockGraceSeconds;
+        _syncIntervalSeconds = _settings.SyncIntervalSeconds;
         _lockEnabled = _settings.LockEnabled && (security.IsAvailable || appLock.HasCredential);
         _customWordsPath = _settings.CustomWordsPath;
         if (!string.IsNullOrEmpty(_customWordsPath))
@@ -117,7 +124,7 @@ public class MainViewModel : ObservableObject
         }
 
         HistoryAvailable = historyStore != null;
-        _historyEnabled = HistoryAvailable && _settings.HistoryEnabled;
+        _historyEnabled = HistoryAvailable;   // lo storico è sempre attivo (regola aziendale delle ultime 20 password)
         _history = _historyEnabled ? historyStore.Load() : new PasswordHistory();
 
         Suggestions = new ObservableCollection<SuggestionItem>();
@@ -158,7 +165,33 @@ public class MainViewModel : ObservableObject
     public string StatusMessage
     {
         get => _statusMessage;
-        private set => SetProperty(ref _statusMessage, value);
+        private set
+        {
+            if (!SetProperty(ref _statusMessage, value) || string.IsNullOrEmpty(value))
+            {
+                return;
+            }
+
+            // Il messaggio resta visibile per un po', poi la barra si svuota (altrimenti «Proposte generate» resterebbe per sempre).
+            var version = ++_statusVersion;
+            Application.Current?.Dispatcher?.DispatchDelayed(TimeSpan.FromSeconds(StatusSeconds), () =>
+            {
+                if (version == _statusVersion)
+                {
+                    StatusMessage = string.Empty;
+                }
+            });
+        }
+    }
+
+    private const int StatusSeconds = 15;
+    private int _statusVersion;
+
+    /// <summary>Svuota la barra di stato (per esempio quando si cambia scheda).</summary>
+    public void ClearStatus()
+    {
+        _statusVersion++;
+        StatusMessage = string.Empty;
     }
 
     // ---------------------------------------------------------------- Tipo di password
@@ -178,15 +211,88 @@ public class MainViewModel : ObservableObject
             OnPropertyChanged(nameof(IsPassphrase));
             OnPropertyChanged(nameof(IsSyllables));
             OnPropertyChanged(nameof(IsRandom));
+            OnPropertyChanged(nameof(ModeDescription));
+            OnPropertyChanged(nameof(ModeExample));
+            OnPropertyChanged(nameof(PassphraseBackground));
+            OnPropertyChanged(nameof(SyllablesBackground));
+            OnPropertyChanged(nameof(RandomBackground));
             Generate();
         }
     }
 
-    public bool IsPassphrase => _mode == GenerationMode.Passphrase;
+    // Le tre voci di scelta sono pulsanti di opzione: l'impostazione a «vero» cambia il tipo; l'«falso» (quando un'altra voce viene scelta) si ignora.
+    // Le tre voci sono riquadri da toccare (non RadioButton: con un contenuto composto MAUI mostrava il nome del tipo); il cerchio pieno e lo sfondo indicano la scelta.
+    public ICommand SelectModeCommand => new Command<string>(index => ModeIndex = int.Parse(index));
 
-    public bool IsSyllables => _mode == GenerationMode.Syllables;
+    /// <summary>Da chiamare quando il telefono passa dal tema chiaro a quello scuro (o viceversa): ricalcola i colori scelti dal codice.</summary>
+    public void RefreshTheme()
+    {
+        OnPropertyChanged(nameof(PassphraseBackground));
+        OnPropertyChanged(nameof(SyllablesBackground));
+        OnPropertyChanged(nameof(RandomBackground));
+        RefreshReminder();
+    }
 
-    public bool IsRandom => _mode == GenerationMode.Random;
+    public string ModeDescription => _mode switch
+    {
+        GenerationMode.Syllables => "Sillabe pronunciabili, facili da dire ad alta voce.",
+        GenerationMode.Random => "Caratteri casuali, difficili da ricordare: pensata per quando basta copiarla.",
+        _ => "Parole italiane, facili da ricordare (consigliata).",
+    };
+
+    public string ModeExample => _mode switch
+    {
+        GenerationMode.Syllables => "Bamelo-Tirusa-Pevono83=",
+        GenerationMode.Random => "k7Q#mP2v!xR4tw9N",
+        _ => "Lampo-Cavallo-Nebbia-Fiume47!",
+    };
+
+    public Color PassphraseBackground => ModeBackground(GenerationMode.Passphrase);
+
+    public Color SyllablesBackground => ModeBackground(GenerationMode.Syllables);
+
+    public Color RandomBackground => ModeBackground(GenerationMode.Random);
+
+    private Color ModeBackground(GenerationMode mode)
+    {
+        return _mode == mode ? AppPalette.SelectedBackground : AppPalette.CardBackground;
+    }
+
+    public bool IsPassphrase
+    {
+        get => _mode == GenerationMode.Passphrase;
+        set
+        {
+            if (value)
+            {
+                ModeIndex = (int)GenerationMode.Passphrase;
+            }
+        }
+    }
+
+    public bool IsSyllables
+    {
+        get => _mode == GenerationMode.Syllables;
+        set
+        {
+            if (value)
+            {
+                ModeIndex = (int)GenerationMode.Syllables;
+            }
+        }
+    }
+
+    public bool IsRandom
+    {
+        get => _mode == GenerationMode.Random;
+        set
+        {
+            if (value)
+            {
+                ModeIndex = (int)GenerationMode.Random;
+            }
+        }
+    }
 
     // Gli slider lavorano con double: i valori sono sempre arrotondati a interi.
     public double WordCount
@@ -312,7 +418,7 @@ public class MainViewModel : ObservableObject
             SyllableCount = _syllableCount,
             RandomLength = _randomLength,
             PreviousPassword = _previousPassword,
-            PreviousPasswords = _historyEnabled ? _history.Passwords() : null,
+            PreviousPasswords = _history.Passwords(),
             Policy = new PasswordPolicy
             {
                 MinLength = _minLength,
@@ -334,7 +440,7 @@ public class MainViewModel : ObservableObject
             foreach (var item in items)
             {
                 SuggestionItem row = null;
-                row = new SuggestionItem(item, new Command(() => Copy(row)));
+                row = new SuggestionItem(item, new Command(() => Copy(row)), Suggestions.Count == 0);
                 Suggestions.Add(row);
             }
 
@@ -352,7 +458,13 @@ public class MainViewModel : ObservableObject
 
     private void Copy(SuggestionItem suggestion)
     {
-        StatusMessage = _clipboard.Copy(suggestion.Text)
+        var copied = _clipboard.Copy(suggestion.Text);
+        if (copied)
+        {
+            suggestion.ShowCopied();
+        }
+
+        StatusMessage = copied
             ? "Copiata negli appunti: verrà cancellata tra " + (int)_clipboard.ClearAfter.TotalSeconds + " secondi."
             : "Impossibile accedere agli appunti: riprova.";
     }
@@ -433,7 +545,7 @@ public class MainViewModel : ObservableObject
     {
         if (!_historyEnabled)
         {
-            StatusMessage = "Per sincronizzare attiva prima lo storico delle password.";
+            StatusMessage = "Per sincronizzare serve lo storico, che qui non è disponibile (manca la chiave del Keystore).";
             return;
         }
 
@@ -553,13 +665,110 @@ public class MainViewModel : ObservableObject
         }
     }
 
+    private DateTime _lastBackgroundSync = DateTime.MinValue;
+
+    /// <summary>
+    /// Sincronizza in silenzio se l'ultima sincronizzazione di questo tipo risale ad almeno <paramref name="minimumInterval"/> fa:
+    /// serve quando l'app torna in primo piano e a intervalli regolari, così le modifiche fatte sull'altro dispositivo
+    /// (per esempio l'azzeramento dello storico) arrivano senza riavviare l'app.
+    /// </summary>
+    public async Task SyncIfIdleAsync(TimeSpan minimumInterval)
+    {
+        if (!SyncActive || _syncBusy || DateTime.UtcNow - _lastBackgroundSync < minimumInterval)
+        {
+            return;
+        }
+
+        _lastBackgroundSync = DateTime.UtcNow;
+
+        // Controllo leggero: se l'impronta del file non è cambiata dall'ultima sincronizzazione non c'è nulla da fare.
+        var token = await ProbeAsync(_settings.SyncPath);
+        if (token != null && token == _knownRemoteToken)
+        {
+            return;
+        }
+
+        // Dove non si può controllare l'impronta (per esempio un documento di Android) si sincronizza al massimo ogni due minuti.
+        if (token == null && DateTime.UtcNow - _lastFullSync < TimeSpan.FromSeconds(Math.Max(120, _syncIntervalSeconds)))
+        {
+            return;
+        }
+
+        await AutoSyncAsync();
+    }
+
+    private static readonly int[] SyncIntervalChoices = { 15, 30, 60, 120, 300, 600 };
+
+    public string[] SyncIntervalNames
+    {
+        get { return new[] { "Ogni 15 secondi", "Ogni 30 secondi", "Ogni minuto", "Ogni 2 minuti", "Ogni 5 minuti", "Ogni 10 minuti" }; }
+    }
+
+    /// <summary>Ogni quanto, ad app aperta, si controlla se l'altro dispositivo ha cambiato qualcosa.</summary>
+    public TimeSpan SyncInterval
+    {
+        get { return TimeSpan.FromSeconds(_syncIntervalSeconds); }
+    }
+
+    public int SyncIntervalIndex
+    {
+        get
+        {
+            // Un valore salvato che non è tra le scelte (file modificato a mano) si porta alla più vicina.
+            var best = 0;
+            for (var i = 1; i < SyncIntervalChoices.Length; i++)
+            {
+                if (Math.Abs(SyncIntervalChoices[i] - _syncIntervalSeconds) < Math.Abs(SyncIntervalChoices[best] - _syncIntervalSeconds))
+                {
+                    best = i;
+                }
+            }
+
+            return best;
+        }
+        set
+        {
+            if (value < 0 || value >= SyncIntervalChoices.Length || SyncIntervalChoices[value] == _syncIntervalSeconds)
+            {
+                return;
+            }
+
+            _syncIntervalSeconds = SyncIntervalChoices[value];
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
+    private DateTime _lastFullSync = DateTime.MinValue;
+    private int _syncIntervalSeconds = AppSettings.DefaultSyncIntervalSeconds;
+    private string _knownRemoteToken;
+
+    private Task<string> ProbeAsync(string address)
+    {
+        return Task.Run(() =>
+        {
+            try
+            {
+                var probe = OpenStorage(address) as IChangeProbe;
+                return probe == null ? null : probe.Probe();
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        });
+    }
+
     private async Task<bool> RunSyncAsync(string address, string passphrase)
     {
         SetSyncBusy(true);
         try
         {
             SaveSettings();   // porta nelle impostazioni i valori correnti (per esempio la durata della password)
+            var hadHistoryBefore = _history.Entries.Count > 0;
+            var tokenBefore = await ProbeAsync(address);
             var result = await SyncEngine.RunAsync(OpenStorage(address), passphrase, _history, _settings, DateTime.UtcNow);
+            _lastFullSync = DateTime.UtcNow;
             if (!result.Succeeded)
             {
                 StatusMessage = result.Message;
@@ -571,13 +780,17 @@ public class MainViewModel : ObservableObject
                 return false;
             }
 
+            _knownRemoteToken = result.Wrote ? null : tokenBefore;   // se abbiamo scritto, il prossimo controllo rilegge una volta
+            var hadHistory = _history.Entries.Count > 0;
             _validityDays = _settings.ValidityDays;
             OnPropertyChanged(nameof(ValidityDays));
             SaveHistory();
             RefreshHistory();
             RefreshReminder();
             SaveSettings();
-            StatusMessage = result.EntriesAdded > 0
+            StatusMessage = hadHistoryBefore && !hadHistory
+                ? "Sincronizzato: lo storico è stato azzerato dall'altro dispositivo."
+                : result.EntriesAdded > 0
                 ? "Sincronizzato: " + result.EntriesAdded + (result.EntriesAdded == 1 ? " voce nuova" : " voci nuove") + " dall'altro dispositivo."
                 : "Sincronizzato: tutto era già aggiornato.";
             return true;
@@ -667,7 +880,7 @@ public class MainViewModel : ObservableObject
     {
         if (!_historyEnabled)
         {
-            StatusMessage = "Per importare attiva prima lo storico delle password.";
+            StatusMessage = "Per importare serve lo storico, che qui non è disponibile (manca la chiave del Keystore).";
             return;
         }
 
@@ -782,6 +995,9 @@ public class MainViewModel : ObservableObject
     }
 
     public bool HasCredential => _lock.HasCredential;
+
+    /// <summary>«Imposta» se non c'è ancora un PIN o una password dell'app, «Cambia» se c'è già.</summary>
+    public string SetCredentialText => _lock.HasCredential ? "Cambia PIN o password" : "Imposta PIN o password";
 
     public bool CanSetCredential => _lockEnabled && _lock.CredentialsSupported;
 
@@ -970,6 +1186,7 @@ public class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(CanSetCredential));
         OnPropertyChanged(nameof(HasCredential));
         OnPropertyChanged(nameof(CredentialText));
+        OnPropertyChanged(nameof(SetCredentialText));
         OnPropertyChanged(nameof(ShowLockHint));
     }
 
@@ -1154,6 +1371,36 @@ public class MainViewModel : ObservableObject
         private set => SetProperty(ref _reminderMessage, value);
     }
 
+    public bool HasReminderDays
+    {
+        get => _hasReminderDays;
+        private set => SetProperty(ref _hasReminderDays, value);
+    }
+
+    public string ReminderDaysText
+    {
+        get => _reminderDaysText;
+        private set => SetProperty(ref _reminderDaysText, value);
+    }
+
+    public string ReminderDaysCaption
+    {
+        get => _reminderDaysCaption;
+        private set => SetProperty(ref _reminderDaysCaption, value);
+    }
+
+    public double ReminderProgress
+    {
+        get => _reminderProgress;
+        private set => SetProperty(ref _reminderProgress, value);
+    }
+
+    public Color ReminderProgressColor
+    {
+        get => _reminderProgressColor;
+        private set => SetProperty(ref _reminderProgressColor, value);
+    }
+
     public string LastChangeText
     {
         get => _lastChangeText;
@@ -1172,13 +1419,37 @@ public class MainViewModel : ObservableObject
         var state = ChangeReminder.Evaluate(_reminderEnabled, last, _validityDays, _settings.WarnDays, DateTime.Today);
 
         ReminderMessage = state.Message;
-        ReminderBackground = Color.FromArgb(state.Status switch
+        ReminderBackground = state.Status switch
         {
-            ReminderStatus.Expired => "#FEE2E2",
-            ReminderStatus.DueSoon => "#FEF3C7",
-            ReminderStatus.Ok => "#DCFCE7",
-            _ => "#DBEAFE",
-        });
+            ReminderStatus.Expired => AppPalette.ReminderExpired,
+            ReminderStatus.DueSoon => AppPalette.ReminderDueSoon,
+            ReminderStatus.Ok => AppPalette.ReminderOk,
+            _ => AppPalette.ReminderInfo,
+        };
+        // Giorni alla scadenza e avanzamento (0 = appena cambiata, 1 = scaduta).
+        var remaining = state.DaysRemaining;
+        HasReminderDays = remaining.HasValue;
+        if (remaining.HasValue)
+        {
+            var days = Math.Abs(remaining.Value);
+            ReminderDaysText = days.ToString(CultureInfo.CurrentCulture);
+            ReminderDaysCaption = remaining.Value < 0 ? (days == 1 ? "giorno di ritardo" : "giorni di ritardo")
+                : (days == 1 ? "giorno rimasto" : "giorni rimasti");
+            ReminderProgress = _validityDays > 0 ? Math.Min(1.0, Math.Max(0.0, 1.0 - (double)remaining.Value / _validityDays)) : 1.0;
+        }
+        else
+        {
+            ReminderProgress = 0;
+        }
+
+        ReminderProgressColor = state.Status switch
+        {
+            ReminderStatus.Expired => AppPalette.StrengthWeak,
+            ReminderStatus.DueSoon => AppPalette.StrengthFair,
+            ReminderStatus.Ok => AppPalette.StrengthGood,
+            _ => AppPalette.Accent,
+        };
+
         LastChangeText = last.HasValue
             ? "Ultimo cambio: " + last.Value.ToString("d", CultureInfo.CurrentCulture)
             : "Nessun cambio registrato";
@@ -1207,55 +1478,16 @@ public class MainViewModel : ObservableObject
 
     public bool HistoryAvailable { get; }
 
-    public bool HistoryEnabled
-    {
-        get => _historyEnabled;
-        set
-        {
-            if (value == _historyEnabled)
-            {
-                return;
-            }
-
-            if (!HistoryAvailable)
-            {
-                OnPropertyChanged();
-                return;
-            }
-
-            if (!value && _history.Entries.Count > 0)
-            {
-                // Lo storico esistente verrebbe cancellato: serve conferma. Intanto l'interruttore torna com'era.
-                OnPropertyChanged();
-                RunSafe(DisableHistoryAsync);
-                return;
-            }
-
-            _historyEnabled = value;
-            OnPropertyChanged();
-            SaveSettings();
-            RefreshHistory();
-        }
-    }
-
     public ObservableCollection<HistoryEntryItem> HistoryEntries { get; }
+
+    /// <summary>Quante delle voci disponibili sono occupate, per esempio «7 di 20 password conservate».</summary>
+    public string HistoryUsageText => _history.Entries.Count + " di " + PasswordHistory.MaxEntries + " password conservate";
+
+    public double HistoryUsage => (double)_history.Entries.Count / PasswordHistory.MaxEntries;
 
     public bool HasHistory => _history.Entries.Count > 0;
 
     public string HistoryHeader => _history.Entries.Count > 0 ? "Storico (" + _history.Entries.Count + ")" : "Storico";
-
-    private async Task DisableHistoryAsync()
-    {
-        if (!await _dialogs.ConfirmAsync("Disattivando lo storico, le password conservate vengono cancellate. Continuare?", "Storico"))
-        {
-            return;
-        }
-
-        _historyEnabled = false;
-        ClearHistoryEntries();
-        OnPropertyChanged(nameof(HistoryEnabled));
-        SaveSettings();
-    }
 
     /// <summary>Chiede quale proposta è stata usata come nuova password e la registra nello storico.</summary>
     private async Task MarkChangedAsync()
@@ -1281,13 +1513,21 @@ public class MainViewModel : ObservableObject
             }
         }
 
+        // Regola aziendale: la nuova password non può essere una delle ultime 20 (confronto identico).
+        var duplicate = chosen == null ? null : _history.Find(chosen.Text);
+        if (duplicate != null)
+        {
+            StatusMessage = "Questa password coincide con la #" + duplicate.Number + " dello storico (" + duplicate.DateText + "): scegli un'altra proposta.";
+            return;
+        }
+
         var today = DateTime.Today;
         _settings.LastChangeDate = today;
 
         string message;
         if (_historyEnabled)
         {
-            var entry = _history.Add(chosen?.Text, chosen?.Mode ?? _mode, today);
+            var entry = _history.Add(chosen?.Text, chosen?.Mode ?? _mode, today, DateTime.UtcNow);
             SaveHistory();
             RefreshHistory();
             message = chosen == null
@@ -1307,18 +1547,20 @@ public class MainViewModel : ObservableObject
 
     private async Task ClearHistoryAsync()
     {
-        if (!await _dialogs.ConfirmAsync("Cancellare tutto lo storico delle password?", "Storico"))
+        if (!await _dialogs.ConfirmAsync("Azzerando lo storico l'app non potrà più controllare che la nuova password sia diversa dalle ultime 20 usate. "
+                                         + "Fallo solo se cambi azienda o account. Azzerare lo storico?", "Azzera storico"))
         {
             return;
         }
 
         ClearHistoryEntries();
-        StatusMessage = "Storico cancellato.";
+        StatusMessage = SyncActive ? "Storico azzerato: l'altro dispositivo lo azzererà alla prossima sincronizzazione." : "Storico azzerato.";
+        _ = AutoSyncAsync();
     }
 
     private void ClearHistoryEntries()
     {
-        _history.Clear();
+        _history.Reset(DateTime.UtcNow);   // l'azzeramento viaggia con la sincronizzazione
         SaveHistory();
         RefreshHistory();
     }
@@ -1328,31 +1570,26 @@ public class MainViewModel : ObservableObject
         HistoryEntries.Clear();
         foreach (var entry in _history.Entries)
         {
-            HistoryEntries.Add(new HistoryEntryItem(entry, CopyHistoryEntry, item => RunSafe(() => DeleteHistoryEntryAsync(item))));
+            HistoryEntries.Add(new HistoryEntryItem(entry, CopyHistoryEntry, HistoryEntries.Count == 0));
         }
 
+        OnPropertyChanged(nameof(HistoryUsageText));
+        OnPropertyChanged(nameof(HistoryUsage));
         OnPropertyChanged(nameof(HasHistory));
         OnPropertyChanged(nameof(HistoryHeader));
     }
 
     private void CopyHistoryEntry(HistoryEntryItem entry)
     {
-        StatusMessage = _clipboard.Copy(entry.Password)
-            ? "Password " + entry.Title + " copiata: verrà cancellata dagli appunti tra " + (int)_clipboard.ClearAfter.TotalSeconds + " secondi."
-            : "Impossibile accedere agli appunti: riprova.";
-    }
-
-    private async Task DeleteHistoryEntryAsync(HistoryEntryItem entry)
-    {
-        if (!await _dialogs.ConfirmAsync("Eliminare dallo storico la voce " + entry.Title + " del " + entry.DateText + "?", "Storico"))
+        var copied = _clipboard.Copy(entry.Password);
+        if (copied)
         {
-            return;
+            entry.ShowCopied();
         }
 
-        _history.Remove(entry.Number);
-        SaveHistory();
-        RefreshHistory();
-        StatusMessage = "Voce " + entry.Title + " eliminata.";
+        StatusMessage = copied
+            ? "Password " + entry.Title + " copiata: verrà cancellata dagli appunti tra " + (int)_clipboard.ClearAfter.TotalSeconds + " secondi."
+            : "Impossibile accedere agli appunti: riprova.";
     }
 
     private void SaveHistory()
@@ -1364,7 +1601,7 @@ public class MainViewModel : ObservableObject
 
         try
         {
-            if (_history.Entries.Count == 0)
+            if (_history.Entries.Count == 0 && _history.ResetUtcText == null)
             {
                 _historyStore.Delete();
             }
@@ -1418,9 +1655,9 @@ public class MainViewModel : ObservableObject
         _settings.RequireDigit = _requireDigit;
         _settings.RequireSpecial = _requireSpecial;
         _settings.AvoidAmbiguous = _avoidAmbiguous;
-        _settings.HistoryEnabled = _historyEnabled;
         _settings.LockEnabled = _lockEnabled;
         _settings.LockGraceSeconds = _lockGraceSeconds;
+        _settings.SyncIntervalSeconds = _syncIntervalSeconds;
         _settings.WordSource = _wordSource;
         _settings.CustomWordsPath = _customWordsPath;
         _settings.ReminderEnabled = _reminderEnabled;

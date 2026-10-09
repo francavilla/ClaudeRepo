@@ -1,6 +1,8 @@
 using System;
 using System.ComponentModel;
+using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Input;
 using PasswordGen.ViewModels;
 
 namespace PasswordGen
@@ -13,7 +15,27 @@ namespace PasswordGen
             InitializeComponent();
             FitToWorkArea();
             Loaded += OnLoaded;
-            Activated += (s, e) => Lock?.Activated();
+            Activated += (s, e) =>
+            {
+                Lock?.Activated();
+                var vm = DataContext as MainViewModel;
+                if (vm != null)
+                {
+                    var ignored = vm.SyncIfIdleAsync(TimeSpan.FromSeconds(5));
+                }
+            };
+
+            // A finestra aperta si controlla con l'intervallo scelto in Impostazioni (15 secondi di base) se l'altro dispositivo ha cambiato qualcosa (per esempio azzerato lo storico).
+            var syncTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+            syncTimer.Tick += (s, e) =>
+            {
+                var vm = DataContext as MainViewModel;
+                if (vm != null)
+                {
+                    var ignored = vm.SyncIfIdleAsync(vm.SyncInterval);
+                }
+            };
+            syncTimer.Start();
             Deactivated += (s, e) => Lock?.Deactivated();
         }
 
@@ -44,6 +66,11 @@ namespace PasswordGen
                     {
                         PreviousBox.Password = string.Empty;
                         vm.ClearSensitive();
+                        UnlockBox.Clear();
+                        if (vm.Lock.HasCredential)
+                        {
+                            Dispatcher.BeginInvoke(new Action(() => UnlockBox.Focus()));
+                        }
                     }
                 }
             };
@@ -51,6 +78,42 @@ namespace PasswordGen
 
             await vm.Lock.StartAsync();
             await vm.AutoSyncAsync();
+        }
+
+        private async void OnUnlockWithSecret(object sender, RoutedEventArgs e)
+        {
+            await TryUnlockWithSecretAsync();
+        }
+
+        private async void OnUnlockBoxKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                e.Handled = true;
+                await TryUnlockWithSecretAsync();
+            }
+        }
+
+        private async Task TryUnlockWithSecretAsync()
+        {
+            var lockController = Lock;
+            if (lockController == null)
+            {
+                return;
+            }
+
+            var secret = UnlockBox.Password;
+            UnlockBox.Clear();
+            if (secret.Length == 0)
+            {
+                return;
+            }
+
+            await lockController.TryUnlockWithSecretAsync(secret);
+            if (lockController.IsLocked)
+            {
+                UnlockBox.Focus();
+            }
         }
 
         /// <summary>Se la dimensione predefinita supera l'area utile dello schermo, la finestra viene ridotta.</summary>

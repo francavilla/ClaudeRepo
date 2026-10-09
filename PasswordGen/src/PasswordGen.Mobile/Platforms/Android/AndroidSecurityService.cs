@@ -3,6 +3,7 @@ using Android.Content;
 using Android.Hardware.Biometrics;
 using Android.OS;
 using Android.Views;
+using System.Runtime.Versioning;
 using Microsoft.Maui.ApplicationModel;
 
 namespace PasswordGen.Mobile.Services;
@@ -68,18 +69,15 @@ public sealed class AndroidSecurityService : ISecurityService
         {
             try
             {
-                var builder = new BiometricPrompt.Builder(activity)
-                    .SetTitle(title)
-                    .SetSubtitle(subtitle)
-                    .SetNegativeButton("Usa PIN o password", activity.MainExecutor, new CredentialClickListener(UseCredential));
-
-                // Dal Android 11 si dichiara che qui si accettano solo i dati biometrici: il PIN è il pulsante sopra.
-                if (OperatingSystem.IsAndroidVersionAtLeast(30))
+                // Il controllo è qui, dentro la funzione: l'analisi del compilatore non lo "vede" se sta fuori.
+                if (OperatingSystem.IsAndroidVersionAtLeast(28))
                 {
-                    builder.SetAllowedAuthenticators(BiometricWeak);
+                    ShowBiometricPrompt(activity, title, subtitle, result, UseCredential);
                 }
-
-                builder.Build().Authenticate(new CancellationSignal(), activity.MainExecutor, new BiometricResultCallback(result, UseCredential));
+                else
+                {
+                    UseCredential();
+                }
             }
             catch (Exception)
             {
@@ -91,12 +89,33 @@ public sealed class AndroidSecurityService : ISecurityService
         return result.Task;
     }
 
+    /// <summary>Finestra di sistema per impronta o volto: esiste solo da Android 9 (livello 28).</summary>
+    [SupportedOSPlatform("android28.0")]
+    private static void ShowBiometricPrompt(Activity activity, string title, string subtitle,
+        TaskCompletionSource<AuthenticationOutcome> result, Action useCredential)
+    {
+        var builder = new BiometricPrompt.Builder(activity)
+            .SetTitle(title)
+            .SetSubtitle(subtitle)
+            .SetNegativeButton("Usa PIN o password", activity.MainExecutor, new CredentialClickListener(useCredential));
+
+        // Dal Android 11 si dichiara che qui si accettano solo i dati biometrici: il PIN è il pulsante sopra.
+        if (OperatingSystem.IsAndroidVersionAtLeast(30))
+        {
+            builder.SetAllowedAuthenticators(BiometricWeak);
+        }
+
+        builder.Build().Authenticate(new CancellationSignal(), activity.MainExecutor, new BiometricResultCallback(result, useCredential));
+    }
+
     public Task<AuthenticationOutcome> AuthenticateWithDeviceCredentialAsync(string title, string subtitle)
     {
         var result = new TaskCompletionSource<AuthenticationOutcome>();
         var activity = Platform.CurrentActivity;
         var keyguard = Android.App.Application.Context.GetSystemService(Context.KeyguardService) as KeyguardManager;
+#pragma warning disable CA1422 // obsoleta dal livello 29, ma è l'unica schermata di sistema per il PIN del telefono che funziona da Android 7 a oggi
         var intent = keyguard?.CreateConfirmDeviceCredentialIntent(title, subtitle);
+#pragma warning restore CA1422
         if (activity == null || intent == null)
         {
             result.TrySetResult(AuthenticationOutcome.Failed("il telefono non ha un PIN, una sequenza o una password impostati"));
@@ -176,6 +195,7 @@ internal sealed class CredentialClickListener : Java.Lang.Object, IDialogInterfa
     }
 }
 
+[SupportedOSPlatform("android28.0")]
 internal sealed class BiometricResultCallback : BiometricPrompt.AuthenticationCallback
 {
     private const int NegativeButton = 13;

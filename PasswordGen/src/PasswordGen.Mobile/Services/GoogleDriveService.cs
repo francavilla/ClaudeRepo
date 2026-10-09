@@ -33,6 +33,8 @@ public sealed class GoogleDriveService : IGoogleDriveService
 
     public string Address => "google-drive:";
 
+    public bool IsConfigured => true;
+
     public bool IsSignedIn => _tokens != null && _tokens.IsSignedIn;
 
     public async Task<string> SignInAsync()

@@ -15,12 +15,50 @@ namespace PasswordGen.ViewModels
         private readonly HistoryEntry _entry;
         private bool _isRevealed;
 
-        public HistoryEntryViewModel(HistoryEntry entry, Action<HistoryEntryViewModel> copy, Action<HistoryEntryViewModel> delete)
+        public HistoryEntryViewModel(HistoryEntry entry, Action<HistoryEntryViewModel> copy, bool isCurrent)
         {
             _entry = entry;
+            IsCurrent = isCurrent;
             ToggleCommand = new RelayCommand(() => IsRevealed = !IsRevealed, () => _entry.HasPassword);
             CopyCommand = new RelayCommand(() => copy(this), () => _entry.HasPassword);
-            DeleteCommand = new RelayCommand(() => delete(this));
+        }
+
+        /// <summary>La voce più recente: la password in uso.</summary>
+        public bool IsCurrent { get; private set; }
+
+        private string _copyText = "Copia";
+        private int _copyVersion;
+
+        /// <summary>Testo del pulsante: diventa «Copiata» per un paio di secondi dopo la copia.</summary>
+        public string CopyText
+        {
+            get { return _copyText; }
+            private set { SetProperty(ref _copyText, value); }
+        }
+
+        public void ShowCopied()
+        {
+            CopyText = "Copiata \u2713";
+            var application = System.Windows.Application.Current;
+            if (application == null)
+            {
+                return;
+            }
+
+            var version = ++_copyVersion;
+            var timer = new System.Windows.Threading.DispatcherTimer(System.Windows.Threading.DispatcherPriority.Background, application.Dispatcher)
+            {
+                Interval = System.TimeSpan.FromSeconds(2)
+            };
+            timer.Tick += (s, e) =>
+            {
+                timer.Stop();
+                if (version == _copyVersion)
+                {
+                    CopyText = "Copia";
+                }
+            };
+            timer.Start();
         }
 
         public int Number
@@ -111,6 +149,5 @@ namespace PasswordGen.ViewModels
 
         public ICommand CopyCommand { get; private set; }
 
-        public ICommand DeleteCommand { get; private set; }
     }
 }

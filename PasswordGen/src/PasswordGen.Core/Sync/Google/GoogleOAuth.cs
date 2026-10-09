@@ -62,13 +62,20 @@ namespace PasswordGen.Core.Sync.Google
         private readonly string _clientId;
         private readonly string _redirectUri;
         private readonly Func<DateTime> _utcNow;
+        private readonly string _clientSecret;
 
-        public GoogleOAuthClient(HttpClient http, string clientId, string redirectUri, Func<DateTime> utcNow = null)
+        /// <param name="redirectUri">Indirizzo di ritorno predefinito (si può cambiare a ogni accesso: su Windows la porta locale cambia).</param>
+        /// <param name="clientSecret">
+        /// Chiave del client: i client «App desktop» di Google la richiedono, anche se per le app installate non è considerata riservata.
+        /// Per i client Android non serve (null).
+        /// </param>
+        public GoogleOAuthClient(HttpClient http, string clientId, string redirectUri, Func<DateTime> utcNow = null, string clientSecret = null)
         {
             _http = http;
             _clientId = clientId;
             _redirectUri = redirectUri;
             _utcNow = utcNow ?? (() => DateTime.UtcNow);
+            _clientSecret = clientSecret;
         }
 
         public static PkceChallenge CreatePkce()
@@ -85,12 +92,12 @@ namespace PasswordGen.Core.Sync.Google
             }
         }
 
-        public Uri BuildAuthorizationUri(PkceChallenge pkce)
+        public Uri BuildAuthorizationUri(PkceChallenge pkce, string redirectUri = null)
         {
             var query = new[]
             {
                 Pair("client_id", _clientId),
-                Pair("redirect_uri", _redirectUri),
+                Pair("redirect_uri", redirectUri ?? _redirectUri),
                 Pair("response_type", "code"),
                 Pair("scope", DriveFileScope),
                 Pair("code_challenge", pkce.Challenge),
@@ -103,7 +110,7 @@ namespace PasswordGen.Core.Sync.Google
             return new Uri(AuthEndpoint + "?" + string.Join("&", query));
         }
 
-        public async Task<GoogleTokens> ExchangeCodeAsync(string code, string verifier)
+        public async Task<GoogleTokens> ExchangeCodeAsync(string code, string verifier, string redirectUri = null)
         {
             return await PostAsync(new Dictionary<string, string>
             {
@@ -111,8 +118,8 @@ namespace PasswordGen.Core.Sync.Google
                 { "code", code },
                 { "code_verifier", verifier },
                 { "grant_type", "authorization_code" },
-                { "redirect_uri", _redirectUri }
-            });
+                { "redirect_uri", redirectUri ?? _redirectUri }
+            }, false);
         }
 
         /// <exception cref="GoogleAuthException">Il rinnovo è stato rifiutato: serve un nuovo accesso.</exception>
@@ -123,11 +130,16 @@ namespace PasswordGen.Core.Sync.Google
                 { "client_id", _clientId },
                 { "refresh_token", refreshToken },
                 { "grant_type", "refresh_token" }
-            });
+            }, true);
         }
 
-        private async Task<GoogleTokens> PostAsync(Dictionary<string, string> form)
+        private async Task<GoogleTokens> PostAsync(Dictionary<string, string> form, bool isRefresh)
         {
+            if (!string.IsNullOrEmpty(_clientSecret))
+            {
+                form["client_secret"] = _clientSecret;
+            }
+
             using (var response = await _http.PostAsync(TokenEndpoint, new FormUrlEncodedContent(form)).ConfigureAwait(false))
             {
                 var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -146,7 +158,9 @@ namespace PasswordGen.Core.Sync.Google
 
                 if (!response.IsSuccessStatusCode || parsed == null || string.IsNullOrEmpty(parsed.AccessToken))
                 {
-                    if (parsed != null && (parsed.Error == "invalid_grant" || parsed.Error == "invalid_client" || parsed.Error == "unauthorized_client"))
+                    // Solo il rinnovo rifiutato significa «accesso scaduto o revocato»; allo scambio del codice un rifiuto ha un'altra causa
+                    // (client o chiave non validi, codice scaduto, indirizzo di ritorno diverso): si riporta il motivo di Google così com'è.
+                    if (isRefresh && parsed != null && (parsed.Error == "invalid_grant" || parsed.Error == "invalid_client" || parsed.Error == "unauthorized_client"))
                     {
                         throw new GoogleAuthException("L'accesso a Google è scaduto o è stato revocato: accedi di nuovo.");
                     }

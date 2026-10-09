@@ -13,12 +13,40 @@ public sealed class HistoryEntryItem : ObservableObject
     private readonly HistoryEntry _entry;
     private bool _isRevealed;
 
-    public HistoryEntryItem(HistoryEntry entry, Action<HistoryEntryItem> copy, Action<HistoryEntryItem> delete)
+    public HistoryEntryItem(HistoryEntry entry, Action<HistoryEntryItem> copy, bool isCurrent)
     {
         _entry = entry;
+        IsCurrent = isCurrent;
         ToggleCommand = new Command(() => IsRevealed = !IsRevealed, () => _entry.HasPassword);
         CopyCommand = new Command(() => copy(this), () => _entry.HasPassword);
-        DeleteCommand = new Command(() => delete(this));
+    }
+
+    /// <summary>La voce più recente: la password in uso.</summary>
+    public bool IsCurrent { get; }
+
+    public bool IsNotCurrent => !IsCurrent;
+
+    private string _copyText = "Copia";
+    private int _copyVersion;
+
+    /// <summary>Testo del pulsante: diventa «Copiata» per un paio di secondi dopo la copia.</summary>
+    public string CopyText
+    {
+        get => _copyText;
+        private set => SetProperty(ref _copyText, value);
+    }
+
+    public void ShowCopied()
+    {
+        CopyText = "Copiata \u2713";
+        var version = ++_copyVersion;
+        Application.Current?.Dispatcher?.DispatchDelayed(TimeSpan.FromSeconds(2), () =>
+        {
+            if (version == _copyVersion)
+            {
+                CopyText = "Copia";
+            }
+        });
     }
 
     public int Number => _entry.Number;
@@ -78,6 +106,4 @@ public sealed class HistoryEntryItem : ObservableObject
     public ICommand ToggleCommand { get; }
 
     public ICommand CopyCommand { get; }
-
-    public ICommand DeleteCommand { get; }
 }

@@ -5,7 +5,8 @@
 - **`Progetti_Claude` è congelato** allo stato di DesktopAppTemplate 4.2.2 (commit `b2d2eb3`): non aggiungervi altro.
 - DesktopAppTemplate riparte dalla versione **1.0.0** (equivalente alla 4.2.2); le versioni 1.0.0 – 4.2.2 del changelog sono la cronologia interna dello sviluppo precedente.
 - PasswordGen riparte dalla versione **1.0.0** (equivalente alla 1.9.1, release `passwordgen-v1.9.1` congelata); le versioni 1.0.0 – 1.9.1 del changelog sono la cronologia interna precedente.
-  Il codice di versione Android delle release è `100000 + major*10000 + minor*100 + patch`.
+  Il codice di versione Android (`ApplicationVersion`) è `(major*10000 + minor*100 + patch)*1000 + n`, con n = 999 nelle release e il numero del run (max 998) nelle build di prova della CI:
+  deve solo crescere, altrimenti Android rifiuta l'aggiornamento come «downgrade». Le release 1.0.0-1.3.0 usano il vecchio schema `100000 + major*10000 + minor*100 + patch` (più basso, quindi compatibile).
 
 ## Versioni (obbligatorio a ogni modifica)
 Ogni modifica a un'applicazione del repository deve aggiornare il suo numero di versione:

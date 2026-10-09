@@ -1,3 +1,4 @@
+using Microsoft.Maui.Dispatching;
 using Microsoft.Maui.Storage;
 using PasswordGen.Core.Generation;
 using PasswordGen.Core.History;
@@ -20,6 +21,7 @@ public partial class App : Application
     protected override Window CreateWindow(IActivationState activationState)
     {
         // Composition root: dipendenze create a mano, l'app è piccola e non serve un container DI.
+        AppPalette.Apply(Resources, RequestedTheme == AppTheme.Dark);   // tema chiaro o scuro, come il telefono
         var words = WordList.LoadItalian();
         var generator = new PasswordGenerator(new SecureRandom(), words);
         var settings = new SettingsStore(Path.Combine(FileSystem.AppDataDirectory, "settings.json"));
@@ -55,9 +57,22 @@ public partial class App : Application
             new GoogleDriveService(key == null ? null : new SyncPassphraseStore(Path.Combine(FileSystem.AppDataDirectory, "google.key"), new AesHmacProtector(key))));
         viewModel.RestoreReminder();
 
+        // Cambio di tema a app aperta: palette nuova e colori calcolati dal codice.
+        RequestedThemeChanged += (sender, args) =>
+        {
+            AppPalette.Apply(Resources, args.RequestedTheme == AppTheme.Dark);
+            viewModel.RefreshTheme();
+        };
+
         tabs = new TabbedPage();
+        tabs.CurrentPageChanged += (sender, args) => viewModel.ClearStatus();   // il messaggio riguarda la scheda precedente
+        tabs.SetDynamicResource(VisualElement.BackgroundColorProperty, "PageBg");
+        tabs.SetDynamicResource(TabbedPage.BarBackgroundColorProperty, "CardBg");
+        tabs.SetDynamicResource(TabbedPage.SelectedTabColorProperty, "Accent");
+        tabs.SetDynamicResource(TabbedPage.UnselectedTabColorProperty, "Muted");
         tabs.Children.Add(new MainPage(viewModel));
         tabs.Children.Add(new HistoryPage(viewModel));
+        tabs.Children.Add(new SettingsPage(viewModel));
 
         // All'avvio l'app parte bloccata (se il blocco è attivo): la schermata di blocco compare appena la pagina è visibile.
         var started = false;
@@ -78,7 +93,17 @@ public partial class App : Application
             viewModel.ClearSensitive();
             appLock.Backgrounded();
         };
-        window.Resumed += (sender, args) => appLock.Resumed();
+        window.Resumed += (sender, args) =>
+        {
+            appLock.Resumed();
+            _ = viewModel.SyncIfIdleAsync(TimeSpan.FromSeconds(5));
+        };
+
+        // Con l'app in primo piano si controlla con l'intervallo scelto in Impostazioni (15 secondi di base) se l'altro dispositivo ha cambiato qualcosa (per esempio azzerato lo storico).
+        var syncTimer = Dispatcher.CreateTimer();
+        syncTimer.Interval = TimeSpan.FromSeconds(5);
+        syncTimer.Tick += (sender, args) => _ = viewModel.SyncIfIdleAsync(viewModel.SyncInterval);
+        syncTimer.Start();
         return window;
     }
 }

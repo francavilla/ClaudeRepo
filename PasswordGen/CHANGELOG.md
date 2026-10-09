@@ -4,6 +4,190 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [2.6.0] - 2026-10-09
+
+### Aggiunto
+- **Conferma visiva della copia**: dopo aver toccato «Copia» (proposte e cronologia) il pulsante diventa «Copiata ✓» per un paio di secondi. Windows e Android.
+- Windows: le schede «Genera» e «Impostazioni» hanno un'icona.
+
+## [2.5.1] - 2026-10-09
+
+### Corretto
+- **La barra di stato non resta più ferma sull'ultimo messaggio** (per esempio «Proposte generate» anche cambiando scheda). Il messaggio sparisce dopo 15 secondi e, su Android, anche quando si cambia scheda.
+
+## [2.5.0] - 2026-10-09
+
+### Modificato
+- **Cronologia e Impostazioni con la nuova veste (terzo passo), su Windows e Android.**
+  - **Cronologia a linea del tempo**: ogni voce ha un punto sulla linea, quella più recente ha il punto blu e l'etichetta «In uso». In cima compare quante delle 20 voci sono occupate («7 di 20 password conservate») con una barra.
+  - **Impostazioni a sezioni comprimibili**: ogni sezione ha un titolo (con icona su Windows) e si apre o si chiude toccandone l'intestazione; all'apertura è aperta solo la prima (la lunghezza delle password), le altre sono chiuse.
+  - **Azioni che cancellano o disattivano** (azzera storico, disattiva la sincronizzazione, rimuovi PIN/password) in rosso su Windows, come già su Android.
+  - Nessuna modifica di funzionamento.
+
+## [2.4.0] - 2026-10-09
+
+### Modificato
+- **Nuova schermata «Genera» (secondo passo della veste grafica), su Windows e Android.**
+  - La **prima proposta è in primo piano**: password grande, **barra di robustezza colorata** (rossa, gialla o verde, in base ai bit di entropia) e pulsante «Copia» ben visibile. Le altre proposte sono più compatte.
+  - Il **promemoria mostra i giorni alla scadenza** in grande, con una barra di avanzamento che cambia colore (verde, giallo, rosso); se non c'è una data di cambio compare il solo messaggio.
+  - Il **tipo di password è un selettore a segmenti** («Parole», «Sillabe», «Caratteri») con, sotto, la descrizione e l'esempio del tipo scelto.
+  - Nessuna modifica di funzionamento.
+
+## [2.3.0] - 2026-10-09
+
+### Modificato
+- **Tema chiaro e scuro, stile moderno e sobrio (primo passo della nuova veste grafica).** Le due app seguono il tema del sistema: Windows (anche se lo cambi mentre l'app è aperta) e Android.
+  - Palette comune: sfondi in grigio-blu, schede staccate dallo sfondo, un solo colore d'accento (blu) e verde, giallo e rosso solo per lo stato.
+  - Windows: caselle di testo, elenchi a discesa e schede ridisegnati con i colori della palette (campi con angoli arrotondati, scheda attiva sottolineata); finestre di dialogo coerenti col tema.
+  - Android: tutti i colori delle schermate passano dalla palette; testi, campi, barra delle schede e colori calcolati dal codice (promemoria, tipo di password, robustezza) seguono il tema.
+  - Nessuna modifica di funzionamento. Restano chiari alcuni elementi di sistema (per esempio le barre di scorrimento di Windows).
+
+## [2.2.0] - 2026-10-09
+
+### Aggiunto
+- **Intervallo di controllo della sincronizzazione.** In «Impostazioni», nella card della sincronizzazione, si sceglie ogni quanto, ad app aperta, controllare se l'altro dispositivo ha cambiato qualcosa:
+  15 o 30 secondi, 1, 2, 5 o 10 minuti. Di base 15 secondi. Vale per Windows e Android; dove non si può controllare il file in modo leggero (documento scelto su Android) la sincronizzazione completa resta al massimo ogni due minuti.
+
+## [2.1.2] - 2026-10-09
+
+### Corretto
+- **Storico: l'ordine è sempre dalla password più recente.** Prima, nello stesso giorno, l'ordine delle voci arrivate dall'altro dispositivo dipendeva da chi le aveva già. Ora si ordina per giorno e, a parità di giorno, per momento di registrazione
+  (le voci vecchie, senza momento registrato, vengono dopo). Vale per Windows e Android.
+
+## [2.1.1] - 2026-10-09
+
+### Modificato
+- **Le modifiche dell'altro dispositivo arrivano in pochi secondi.** Ad app aperta, ogni 15 secondi l'app controlla con una richiesta leggera (checksum e data del file su Google Drive, senza scaricarlo) se il file è cambiato,
+  e sincronizza solo in quel caso; lo stesso controllo avviene quando l'app torna in primo piano. Per il documento scelto su Android, dove l'impronta non è disponibile, la sincronizzazione completa resta al massimo ogni due minuti.
+  Prima si controllava ogni due minuti e bisognava aspettare o riavviare.
+
+## [2.1.0] - 2026-10-09
+
+### Aggiunto
+- **Sincronizzazione ad app aperta.** Oltre che all'avvio e dopo un cambio, l'app sincronizza quando torna in primo piano e, a finestra aperta, ogni due minuti: le modifiche fatte sull'altro dispositivo arrivano senza riavviare.
+
+### Corretto
+- **«Azzera storico» ora si propaga all'altro dispositivo.** Prima la sincronizzazione, che unisce senza perdere nulla, faceva tornare le voci azzerate. Ora l'azzeramento è un marcatore con la data nel file di scambio:
+  le voci registrate prima vengono eliminate su tutti i dispositivi e non risorgono; quelle registrate dopo si conservano. Le voci vecchie, senza data di registrazione, sono considerate precedenti.
+- Lo storico azzerato non cancella più il file locale: ne resta il marcatore, che serve a sincronizzare.
+
+## [2.0.1] - 2026-10-09
+
+### Modificato
+- Tolta la card «Verifica una password» (Windows e Android): il controllo sulle ultime 20 password è nel generatore, che scarta le proposte uguali o troppo simili a quelle dello storico.
+  «Ho cambiato la password» continua a rifiutare una proposta identica a una dello storico.
+
+## [2.0.0] - 2026-10-09
+
+### Modificato
+- **Nuova versione maggiore, uguale per l'app Windows e per quella Android.** Il cambiamento di comportamento che la giustifica è la regola aziendale delle ultime 20 password
+  (descritta nella 1.7.0): lo storico è sempre attivo, non si può disattivare né cancellare voce per voce, e la nuova password non può essere identica a una delle ultime 20.
+- Raccoglie anche le modifiche delle versioni 1.5.1 – 1.7.0 qui sotto (schede «Genera» e «Impostazioni», tipo di password con riquadri su Android, pulsante del blocco chiaro).
+  Quelle versioni non sono state pubblicate come release.
+- Il codice di versione Android passa a 20000000 + n (con n = 999 nelle release): continua a crescere, quindi l'aggiornamento dalle versioni precedenti è accettato.
+
+## [1.7.0] - 2026-10-09
+
+### Aggiunto
+- **Regola aziendale delle ultime 20 password.** La nuova password non può essere identica (maiuscole e minuscole contano) a una delle ultime 20 usate: «Ho cambiato la password» rifiuta una proposta già presente nello storico.
+- **Verifica una password** (scheda «Genera», Windows e Android): scrivi una password e l'app dice se rispetta le regole della policy e se è già tra le ultime 20. Resta solo in memoria.
+- **Azzera storico** con avviso: l'unico modo per svuotare lo storico, pensato per chi cambia azienda o account.
+
+### Modificato
+- Lo storico conserva le **ultime 20** password (prima 12) ed è **sempre attivo**: tolti l'interruttore «Conserva le password scelte», «Cancella tutto lo storico» e l'eliminazione della singola voce, che avrebbero reso inaffidabile il controllo.
+  Lo storico già salvato resta valido. La sincronizzazione non richiede più di attivare lo storico.
+
+## [1.6.2] - 2026-10-09
+
+### Corretto
+- **Android: il pulsante del blocco in «Impostazioni» era ancora troncato («Imposta un PIN o una»).** L'etichetta è ora più corta: «Imposta PIN o password» oppure, se già impostato, «Cambia PIN o password» (stesso testo su Windows).
+
+## [1.6.1] - 2026-10-09
+
+### Corretto
+- **Android: le voci del tipo di password mostravano «Microsoft.Maui.Controls.VerticalStackLayout» al posto del testo.** I pulsanti di opzione di MAUI non gestiscono un contenuto composto;
+  le tre voci sono ora riquadri da toccare, con titolo ed esempio, il cerchio pieno (●) e lo sfondo evidenziato sulla voce scelta.
+
+## [1.6.0] - 2026-10-09
+
+### Modificato
+- **Le impostazioni sono in una scheda a parte, «Impostazioni».** La scheda «Genera» si occupa solo di generare e mostrare le password:
+  - Windows: «Genera» contiene il tipo di password (con gli esempi), la password attuale facoltativa, le proposte e la cronologia; in «Impostazioni» ci sono lunghezza,
+    numero di proposte, parole, regole della policy, blocco dell'app, promemoria, storico e sincronizzazione.
+  - Android: nasce la terza scheda «Impostazioni» (accanto a «Genera» e alla cronologia) con le stesse sezioni.
+- Gli avvisi (promemoria, attiva il blocco, scelta della proposta usata) restano visibili in alto da qualsiasi scheda.
+
+## [1.5.3] - 2026-10-09
+
+### Modificato
+- **Pulsante del blocco chiaro e non più troncato.** Su Android l'etichetta «Imposta o cambia PIN/password» era tagliata a «Imposta o» dallo spazio ristretto.
+  Ora il pulsante occupa tutta la larghezza e dice «Imposta un PIN o una password dell'app» oppure, se già impostato, «Cambia PIN o password dell'app»
+  (stesso testo anche nell'app Windows).
+
+## [1.5.2] - 2026-10-09
+
+### Modificato
+- **Android: la scelta del tipo di password è ora evidente.** Al posto del menu a tendina (che sembrava una semplice riga di testo) ci sono tre voci con il pulsante di opzione,
+  ciascuna con un esempio: «Parole italiane (consigliata)», «Sillabe pronunciabili» e «Caratteri casuali», come nell'app Windows. La voce scelta ha il cerchio pieno.
+
+## [1.5.1] - 2026-10-09
+
+### Corretto
+- Le note della release Windows e il README dicevano «nessuna connessione di rete»: non è più vero se si attiva la sincronizzazione su Google Drive. Ora dicono che la rete
+  serve solo per quella funzione facoltativa. Nessuna modifica al programma.
+
+## [1.5.0] - 2026-10-09
+
+### Aggiunto
+- **App Windows: sincronizzazione direttamente su Google Drive**, come su Android. In «Sincronizzazione e backup» → «Imposta...» → «Il mio Google Drive» si apre il browser,
+  si accede con l'account Google e l'app usa il file cifrato `PasswordGen-sync.pgx` nel Drive (ambito `drive.file`: vede solo i file creati dall'app). L'app non vede mai
+  la password di Google; il token di rinnovo è cifrato con DPAPI (`%AppData%\PasswordGen\google.key`). Il ritorno dal browser arriva a un piccolo server locale su 127.0.0.1
+  (porta libera, una sola richiesta). Se l'accesso scade o viene revocato, «Sincronizza ora» lo rifà.
+- **Richiede un client OAuth «App desktop»** di Google Cloud: l'ID client è nel progetto (`GoogleDesktopClientId`), la chiave arriva in compilazione dal secret
+  `GOOGLE_DESKTOP_CLIENT_SECRET` della CI. Senza, l'opzione dice che Google Drive non è configurato e resta la sincronizzazione con un file.
+- `PasswordGen.Core`: `LoopbackReceiver`, interfaccia `IGoogleDriveService` condivisa tra le due app, chiave del client e indirizzo di ritorno variabile in `GoogleOAuthClient` (con test).
+- Test del ViewModel Windows sulla sincronizzazione su Drive (accesso, file nuovo ed esistente, due PC, accesso scaduto, disattivazione).
+
+### Modificato
+- «Imposta...» chiede prima dove sincronizzare (Google Drive o un file).
+- Gli errori di Google Drive riportano anche il motivo scritto da Google (per esempio API non abilitata o ambito non concesso).
+
+## [1.4.0] - 2026-10-08
+
+### Aggiunto
+- **App Windows: PIN o password dell'app**, come su Android. Attivando il blocco si sceglie tra Windows Hello, un PIN (4-12 cifre) e una password dell'app (6-64 caratteri).
+  La schermata di blocco ha la casella del PIN/password e il pulsante «Sblocca con Windows Hello»; dopo 5 errori scatta un'**attesa crescente**
+  (30 secondi, 1, 2, 4 minuti... fino a un'ora) che sopravvive alla chiusura dell'app e ha il conto alla rovescia. Del PIN/password si conserva solo un hash
+  (PBKDF2-SHA256, 150.000 iterazioni) in `%AppData%\PasswordGen\lock.dat`, cifrato con DPAPI.
+- Il blocco ora si può usare **anche sui PC senza Windows Hello**, con un PIN o una password dell'app.
+- Pulsanti «Imposta o cambia PIN/password» e «Rimuovi PIN/password» nella card del blocco; disattivare il blocco, cambiare o togliere il PIN chiede di
+  confermare l'identità (con Windows Hello, o con il PIN/password se Hello non c'è).
+- Test del ViewModel Windows sul blocco: attivazione con Hello, PIN o password, sblocco, attesa crescente, disattivazione, cambio e rimozione.
+
+### Corretto
+- Windows: una finestra di dialogo dell'app (scelta di un file, PIN, conferme) non fa più scattare il blocco quando il tempo scelto è «Subito».
+
+### Modificato
+- Build più pulita: tolti gli ultimi avvisi del compilatore Android (`OpenableColumns` obsoleta, `CreateConfirmDeviceCredentialIntent`) e dell'azione `upload-artifact` (Node.js 24).
+- Le due app hanno ora le **stesse funzioni**: restano solo le differenze della piattaforma (impronta e Google Drive diretto su Android; Windows Hello e avvio con Windows su Windows).
+- Card «Blocco dell'app» e schermata di blocco di Windows riscritte per le tre modalità di sblocco.
+
+## [1.3.2] - 2026-10-08
+
+### Modificato
+- **Android:** le chiamate alla finestra di impronta/volto (`BiometricPrompt`, disponibile da Android 9) sono ora dichiarate come tali nel codice: spariscono gli avvisi
+  del compilatore (CA1416) dalla build. Il comportamento non cambia: sotto Android 9 l'app propone direttamente il PIN.
+- **Workflow di GitHub:** `checkout`, `setup-dotnet` e `setup-java` passano alla versione 5, che usa Node.js 24 (spariscono gli avvisi «Node.js 20 is deprecated»).
+
+## [1.3.1] - 2026-10-08
+
+### Corretto
+- **Android: l'aggiornamento a volte veniva rifiutato** e bisognava disinstallare e reinstallare. Le build di prova della CI avevano come codice di versione
+  il numero del run (piccolo), le release un numero molto più grande: installare una build di prova sopra una release sembrava un «downgrade» ad Android.
+  Ora il codice è `versione*1000 + n` (999 nelle release, il numero del run nelle prove): le release sono sempre più alte delle prove della stessa versione
+  e ogni versione nuova supera tutte le precedenti. Vale per le build da questa versione in poi: **la prima volta** sopra la 1.3.0 si installa normalmente
+  (il nuovo codice è molto più alto del vecchio).
+
 ## [1.3.0] - 2026-10-08
 
 ### Aggiunto

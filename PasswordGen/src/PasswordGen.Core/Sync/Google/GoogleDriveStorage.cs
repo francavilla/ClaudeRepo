@@ -17,10 +17,31 @@ namespace PasswordGen.Core.Sync.Google
     }
 
     [DataContract]
+    internal sealed class DriveErrorDetail
+    {
+        [DataMember(Name = "reason")] public string Reason { get; set; }
+    }
+
+    [DataContract]
+    internal sealed class DriveErrorBody
+    {
+        [DataMember(Name = "message")] public string Message { get; set; }
+        [DataMember(Name = "errors")] public List<DriveErrorDetail> Errors { get; set; }
+    }
+
+    [DataContract]
+    internal sealed class DriveErrorResponse
+    {
+        [DataMember(Name = "error")] public DriveErrorBody Error { get; set; }
+    }
+
+    [DataContract]
     internal sealed class DriveFile
     {
         [DataMember(Name = "id")] public string Id { get; set; }
         [DataMember(Name = "name")] public string Name { get; set; }
+        [DataMember(Name = "md5Checksum")] public string Md5Checksum { get; set; }
+        [DataMember(Name = "modifiedTime")] public string ModifiedTime { get; set; }
     }
 
     /// <summary>
@@ -28,7 +49,7 @@ namespace PasswordGen.Core.Sync.Google
     /// i file che ha creato lei: il file lo crea l'app, e può poi essere letto anche dal Drive del computer come un normale file.
     /// Le chiamate sono sincrone: vanno eseguite fuori dal thread dell'interfaccia (lo fa <see cref="SyncEngine.RunAsync"/>).
     /// </summary>
-    public sealed class GoogleDriveStorage : ISyncStorage
+    public sealed class GoogleDriveStorage : ISyncStorage, IChangeProbe
     {
         public const string DefaultFileName = "PasswordGen-sync.pgx";
 
@@ -89,6 +110,29 @@ namespace PasswordGen.Core.Sync.Google
             }
         }
 
+        /// <summary>Un'unica richiesta leggera: identificativo, checksum e data di modifica del file (senza scaricarlo).</summary>
+        public string Probe()
+        {
+            var query = "name='" + _fileName.Replace("'", "\\'") + "' and trashed=false";
+            var url = FilesUrl + "?q=" + Uri.EscapeDataString(query) + "&fields=files(id,md5Checksum,modifiedTime)&pageSize=1";
+            using (var response = Send(() => new HttpRequestMessage(HttpMethod.Get, url)))
+            {
+                EnsureSuccess(response, "controllo del file");
+                var body = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(body)))
+                {
+                    var list = (DriveFileList)new DataContractJsonSerializer(typeof(DriveFileList)).ReadObject(stream);
+                    if (list == null || list.Files == null || list.Files.Count == 0)
+                    {
+                        return null;
+                    }
+
+                    var file = list.Files[0];
+                    return file.Id + ":" + file.Md5Checksum + ":" + file.ModifiedTime;
+                }
+            }
+        }
+
         private string FindFileId()
         {
             var query = "name='" + _fileName.Replace("'", "\\'") + "' and trashed=false";
@@ -138,17 +182,54 @@ namespace PasswordGen.Core.Sync.Google
                 return;
             }
 
+            var detail = ReadGoogleError(response);
+
             if (response.StatusCode == HttpStatusCode.Unauthorized)
             {
-                throw new GoogleAuthException("Google ha rifiutato l'accesso: accedi di nuovo.");
+                throw new GoogleAuthException("Google ha rifiutato l'accesso: accedi di nuovo." + detail);
             }
 
             if (response.StatusCode == HttpStatusCode.Forbidden)
             {
-                throw new IOException("Google Drive non permette l'operazione (" + what + "): controlla di aver consentito l'accesso ai file di Drive.");
+                throw new IOException("Google Drive non permette l'operazione (" + what + "): controlla di aver consentito l'accesso ai file di Drive e che l'API di Drive sia abilitata nel progetto." + detail);
             }
 
-            throw new IOException("Google Drive: errore nella " + what + " (HTTP " + (int)response.StatusCode + ").");
+            throw new IOException("Google Drive: errore nella " + what + " (HTTP " + (int)response.StatusCode + ")." + detail);
+        }
+
+        /// <summary>Il motivo scritto da Google nella risposta d'errore (JSON), per capire cosa non va; vuoto se non c'è.</summary>
+        private static string ReadGoogleError(HttpResponseMessage response)
+        {
+            try
+            {
+                var body = response.Content == null ? null : response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                if (string.IsNullOrWhiteSpace(body))
+                {
+                    return string.Empty;
+                }
+
+                using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(body)))
+                {
+                    var parsed = (DriveErrorResponse)new DataContractJsonSerializer(typeof(DriveErrorResponse)).ReadObject(stream);
+                    if (parsed == null || parsed.Error == null)
+                    {
+                        return string.Empty;
+                    }
+
+                    var reason = parsed.Error.Errors != null && parsed.Error.Errors.Count > 0 ? parsed.Error.Errors[0].Reason : null;
+                    var text = parsed.Error.Message;
+                    if (string.IsNullOrEmpty(text) && string.IsNullOrEmpty(reason))
+                    {
+                        return string.Empty;
+                    }
+
+                    return " Google: " + text + (string.IsNullOrEmpty(reason) ? string.Empty : " [" + reason + "]");
+                }
+            }
+            catch (Exception)
+            {
+                return string.Empty;
+            }
         }
     }
 }
