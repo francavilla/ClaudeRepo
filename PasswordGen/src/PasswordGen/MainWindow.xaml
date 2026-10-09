@@ -246,7 +246,7 @@
                             <ComboBox ItemsSource="{Binding LockGraceNames}" SelectedIndex="{Binding LockGraceIndex, Mode=TwoWay}" Padding="6,4" />
                             <TextBlock Style="{StaticResource Muted}" Text="{Binding CredentialText}" Margin="0,10,0,0" TextWrapping="Wrap" />
                             <WrapPanel Margin="0,6,0,0">
-                                <Button Style="{StaticResource GhostButton}" Command="{Binding SetCredentialCommand}" Content="Imposta o cambia PIN/password"
+                                <Button Style="{StaticResource GhostButton}" Command="{Binding SetCredentialCommand}" Content="{Binding SetCredentialText}"
                                         Margin="0,0,8,6" />
                                 <Button Style="{StaticResource GhostButton}" Command="{Binding RemoveCredentialCommand}" Content="Rimuovi PIN/password"
                                         Margin="0,0,8,6" />

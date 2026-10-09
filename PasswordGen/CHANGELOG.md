@@ -4,6 +4,13 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.5.3] - 2026-10-09
+
+### Modificato
+- **Pulsante del blocco chiaro e non più troncato.** Su Android l'etichetta «Imposta o cambia PIN/password» era tagliata a «Imposta o» dallo spazio ristretto.
+  Ora il pulsante occupa tutta la larghezza e dice «Imposta un PIN o una password dell'app» oppure, se già impostato, «Cambia PIN o password dell'app»
+  (stesso testo anche nell'app Windows).
+
 ## [1.5.2] - 2026-10-09
 
 ### Modificato

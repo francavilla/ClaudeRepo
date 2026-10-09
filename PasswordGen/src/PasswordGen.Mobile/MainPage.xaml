@@ -204,12 +204,10 @@
                         <Picker ItemsSource="{Binding LockGraceNames}" SelectedIndex="{Binding LockGraceIndex, Mode=TwoWay}"
                                 IsEnabled="{Binding LockAvailable}" />
                         <Label Text="{Binding CredentialText}" Style="{StaticResource MutedText}" Margin="0,4,0,0" />
-                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
-                            <Button Text="Imposta o cambia PIN/password" Command="{Binding SetCredentialCommand}" IsEnabled="{Binding CanSetCredential}"
-                                    BackgroundColor="White" TextColor="{StaticResource Accent}" BorderColor="#CBD5E1" BorderWidth="1" FontSize="12" />
-                            <Button Grid.Column="1" Text="Rimuovi PIN/password" Command="{Binding RemoveCredentialCommand}" IsVisible="{Binding HasCredential}"
-                                    BackgroundColor="White" TextColor="#DC2626" BorderColor="#FECACA" BorderWidth="1" FontSize="12" />
-                        </Grid>
+                        <Button Text="{Binding SetCredentialText}" Command="{Binding SetCredentialCommand}" IsEnabled="{Binding CanSetCredential}"
+                                BackgroundColor="White" TextColor="{StaticResource Accent}" BorderColor="#CBD5E1" BorderWidth="1" />
+                        <Button Text="Rimuovi PIN/password" Command="{Binding RemoveCredentialCommand}" IsVisible="{Binding HasCredential}"
+                                BackgroundColor="White" TextColor="#DC2626" BorderColor="#FECACA" BorderWidth="1" />
                         <Button Text="Blocca adesso" Command="{Binding LockNowCommand}" IsEnabled="{Binding CanLockNow}"
                                 BackgroundColor="White" TextColor="{StaticResource Accent}" BorderColor="#CBD5E1" BorderWidth="1" />
                         <Label Text="{Binding LockHint}" Style="{StaticResource MutedText}" />

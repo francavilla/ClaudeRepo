@@ -815,6 +815,9 @@ public class MainViewModel : ObservableObject
 
     public bool HasCredential => _lock.HasCredential;
 
+    /// <summary>«Imposta» se non c'è ancora un PIN o una password dell'app, «Cambia» se c'è già.</summary>
+    public string SetCredentialText => _lock.HasCredential ? "Cambia PIN o password dell'app" : "Imposta un PIN o una password dell'app";
+
     public bool CanSetCredential => _lockEnabled && _lock.CredentialsSupported;
 
     public ICommand SetCredentialCommand => new Command(() => RunSafe(SetCredentialAsync));
@@ -1002,6 +1005,7 @@ public class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(CanSetCredential));
         OnPropertyChanged(nameof(HasCredential));
         OnPropertyChanged(nameof(CredentialText));
+        OnPropertyChanged(nameof(SetCredentialText));
         OnPropertyChanged(nameof(ShowLockHint));
     }
 
