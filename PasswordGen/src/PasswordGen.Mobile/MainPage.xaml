@@ -5,12 +5,12 @@
              x:Class="PasswordGen.Mobile.MainPage"
              x:DataType="vm:MainViewModel"
              Title="Genera"
-             BackgroundColor="#F1F5F9">
+             BackgroundColor="{DynamicResource PageBg}">
 
     <Grid RowDefinitions="Auto,*,Auto">
 
         <!-- Intestazione -->
-        <VerticalStackLayout Grid.Row="0" BackgroundColor="{StaticResource Header}" Padding="18,14" Spacing="2">
+        <VerticalStackLayout Grid.Row="0" BackgroundColor="{DynamicResource Header}" Padding="18,14" Spacing="2">
             <Label Text="{Binding Title}" TextColor="White" FontSize="22" FontAttributes="Bold" />
             <Label Text="Password casuali, sicure e facili da ricordare. Tutto resta sul telefono."
                    TextColor="#CCFFFFFF" FontSize="12" />
@@ -20,31 +20,31 @@
             <VerticalStackLayout Padding="14" Spacing="12">
 
                 <!-- Suggerimento: attiva il blocco -->
-                <Border BackgroundColor="#FEF3C7" Stroke="#FDE68A" StrokeThickness="1" Padding="14" IsVisible="{Binding ShowLockHint}">
+                <Border BackgroundColor="{DynamicResource WarnBg}" Stroke="{DynamicResource WarnBorder}" StrokeThickness="1" Padding="14" IsVisible="{Binding ShowLockHint}">
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="12" />
                     </Border.StrokeShape>
                     <VerticalStackLayout Spacing="8">
                         <Label Text="Proteggi PasswordGen con impronta, volto o PIN: chi prende il telefono non potrà vedere lo storico delle password."
-                               TextColor="#0F172A" />
+                               TextColor="{DynamicResource TextPrimary}" />
                         <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
                             <Button Text="Attiva il blocco" Command="{Binding EnableLockFromHintCommand}" Style="{StaticResource PrimaryButton}" />
                             <Button Grid.Column="1" Text="Non ora" Command="{Binding DismissLockHintCommand}"
-                                    BackgroundColor="White" TextColor="{StaticResource Accent}" BorderColor="#CBD5E1" BorderWidth="1" />
+                                    BackgroundColor="{DynamicResource CardBg}" TextColor="{DynamicResource Accent}" BorderColor="{DynamicResource BorderStrong}" BorderWidth="1" />
                         </Grid>
                     </VerticalStackLayout>
                 </Border>
 
                 <!-- Promemoria -->
-                <Border BackgroundColor="{Binding ReminderBackground}" Stroke="#E2E8F0" StrokeThickness="1" Padding="14">
+                <Border BackgroundColor="{Binding ReminderBackground}" Stroke="{DynamicResource Border}" StrokeThickness="1" Padding="14">
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="12" />
                     </Border.StrokeShape>
                     <VerticalStackLayout Spacing="8">
-                        <Label Text="{Binding ReminderMessage}" FontAttributes="Bold" TextColor="#0F172A" />
+                        <Label Text="{Binding ReminderMessage}" FontAttributes="Bold" TextColor="{DynamicResource TextPrimary}" />
                         <Label Text="{Binding LastChangeText}" Style="{StaticResource MutedText}" />
                         <Button Text="Ho cambiato la password" Command="{Binding MarkChangedCommand}"
-                                BackgroundColor="White" TextColor="{StaticResource Accent}" BorderColor="#CBD5E1" BorderWidth="1" />
+                                BackgroundColor="{DynamicResource CardBg}" TextColor="{DynamicResource Accent}" BorderColor="{DynamicResource BorderStrong}" BorderWidth="1" />
                     </VerticalStackLayout>
                 </Border>
 
@@ -65,7 +65,7 @@
                                         </HorizontalStackLayout>
                                     </VerticalStackLayout>
                                     <Button Grid.Column="1" Text="Copia" Command="{Binding CopyCommand}" VerticalOptions="Center"
-                                            BackgroundColor="White" TextColor="{StaticResource Accent}" BorderColor="#CBD5E1" BorderWidth="1" />
+                                            BackgroundColor="{DynamicResource CardBg}" TextColor="{DynamicResource Accent}" BorderColor="{DynamicResource BorderStrong}" BorderWidth="1" />
                                 </Grid>
                             </Border>
                         </DataTemplate>
@@ -78,7 +78,7 @@
                         <Label Text="Tipo di password" Style="{StaticResource CardTitle}" />
                         <Label Text="Tocca una voce per scegliere come generare le password. Lunghezze e regole sono in «Impostazioni»." Style="{StaticResource MutedText}" />
 
-                        <Border Stroke="#CBD5E1" StrokeThickness="1" Padding="10,8" BackgroundColor="{Binding PassphraseBackground}">
+                        <Border Stroke="{DynamicResource BorderStrong}" StrokeThickness="1" Padding="10,8" BackgroundColor="{Binding PassphraseBackground}">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="10" />
                             </Border.StrokeShape>
@@ -86,14 +86,14 @@
                                 <TapGestureRecognizer Command="{Binding SelectModeCommand}" CommandParameter="0" />
                             </Border.GestureRecognizers>
                             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                                <Label Text="{Binding PassphraseMarker}" TextColor="{StaticResource Accent}" FontSize="22" VerticalOptions="Center" />
+                                <Label Text="{Binding PassphraseMarker}" TextColor="{DynamicResource Accent}" FontSize="22" VerticalOptions="Center" />
                                 <VerticalStackLayout Grid.Column="1" Spacing="2">
-                                    <Label Text="Parole italiane (consigliata)" FontAttributes="Bold" TextColor="#0F172A" />
+                                    <Label Text="Parole italiane (consigliata)" FontAttributes="Bold" TextColor="{DynamicResource TextPrimary}" />
                                     <Label Text="Lampo-Cavallo-Nebbia-Fiume47!" FontFamily="monospace" Style="{StaticResource MutedText}" />
                                 </VerticalStackLayout>
                             </Grid>
                         </Border>
-                        <Border Stroke="#CBD5E1" StrokeThickness="1" Padding="10,8" BackgroundColor="{Binding SyllablesBackground}">
+                        <Border Stroke="{DynamicResource BorderStrong}" StrokeThickness="1" Padding="10,8" BackgroundColor="{Binding SyllablesBackground}">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="10" />
                             </Border.StrokeShape>
@@ -101,14 +101,14 @@
                                 <TapGestureRecognizer Command="{Binding SelectModeCommand}" CommandParameter="1" />
                             </Border.GestureRecognizers>
                             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                                <Label Text="{Binding SyllablesMarker}" TextColor="{StaticResource Accent}" FontSize="22" VerticalOptions="Center" />
+                                <Label Text="{Binding SyllablesMarker}" TextColor="{DynamicResource Accent}" FontSize="22" VerticalOptions="Center" />
                                 <VerticalStackLayout Grid.Column="1" Spacing="2">
-                                    <Label Text="Sillabe pronunciabili" FontAttributes="Bold" TextColor="#0F172A" />
+                                    <Label Text="Sillabe pronunciabili" FontAttributes="Bold" TextColor="{DynamicResource TextPrimary}" />
                                     <Label Text="Bamelo-Tirusa-Pevono83=" FontFamily="monospace" Style="{StaticResource MutedText}" />
                                 </VerticalStackLayout>
                             </Grid>
                         </Border>
-                        <Border Stroke="#CBD5E1" StrokeThickness="1" Padding="10,8" BackgroundColor="{Binding RandomBackground}">
+                        <Border Stroke="{DynamicResource BorderStrong}" StrokeThickness="1" Padding="10,8" BackgroundColor="{Binding RandomBackground}">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="10" />
                             </Border.StrokeShape>
@@ -116,9 +116,9 @@
                                 <TapGestureRecognizer Command="{Binding SelectModeCommand}" CommandParameter="2" />
                             </Border.GestureRecognizers>
                             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                                <Label Text="{Binding RandomMarker}" TextColor="{StaticResource Accent}" FontSize="22" VerticalOptions="Center" />
+                                <Label Text="{Binding RandomMarker}" TextColor="{DynamicResource Accent}" FontSize="22" VerticalOptions="Center" />
                                 <VerticalStackLayout Grid.Column="1" Spacing="2">
-                                    <Label Text="Caratteri casuali" FontAttributes="Bold" TextColor="#0F172A" />
+                                    <Label Text="Caratteri casuali" FontAttributes="Bold" TextColor="{DynamicResource TextPrimary}" />
                                     <Label Text="k7Q#mP2v!xR4tw9N" FontFamily="monospace" Style="{StaticResource MutedText}" />
                                 </VerticalStackLayout>
                             </Grid>
@@ -141,7 +141,7 @@
         </ScrollView>
 
         <!-- Stato -->
-        <Border Grid.Row="2" Background="White" Stroke="#E2E8F0" StrokeThickness="1" Padding="14,8">
+        <Border Grid.Row="2" Background="{DynamicResource CardBg}" Stroke="{DynamicResource Border}" StrokeThickness="1" Padding="14,8">
             <Label Text="{Binding StatusMessage}" Style="{StaticResource MutedText}" LineBreakMode="TailTruncation" />
         </Border>
     </Grid>

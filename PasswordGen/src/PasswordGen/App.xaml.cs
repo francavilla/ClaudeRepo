@@ -26,6 +26,7 @@ namespace PasswordGen
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
+            ThemeManager.Apply();   // palette chiara o scura, come il tema di Windows
             DispatcherUnhandledException += OnDispatcherUnhandledException;
 
             var store = new SettingsStore(SettingsStore.DefaultPath);

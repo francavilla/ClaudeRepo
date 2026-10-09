@@ -21,6 +21,7 @@ public partial class App : Application
     protected override Window CreateWindow(IActivationState activationState)
     {
         // Composition root: dipendenze create a mano, l'app è piccola e non serve un container DI.
+        AppPalette.Apply(Resources, RequestedTheme == AppTheme.Dark);   // tema chiaro o scuro, come il telefono
         var words = WordList.LoadItalian();
         var generator = new PasswordGenerator(new SecureRandom(), words);
         var settings = new SettingsStore(Path.Combine(FileSystem.AppDataDirectory, "settings.json"));
@@ -56,7 +57,18 @@ public partial class App : Application
             new GoogleDriveService(key == null ? null : new SyncPassphraseStore(Path.Combine(FileSystem.AppDataDirectory, "google.key"), new AesHmacProtector(key))));
         viewModel.RestoreReminder();
 
+        // Cambio di tema a app aperta: palette nuova e colori calcolati dal codice.
+        RequestedThemeChanged += (sender, args) =>
+        {
+            AppPalette.Apply(Resources, args.RequestedTheme == AppTheme.Dark);
+            viewModel.RefreshTheme();
+        };
+
         tabs = new TabbedPage();
+        tabs.SetDynamicResource(VisualElement.BackgroundColorProperty, "PageBg");
+        tabs.SetDynamicResource(TabbedPage.BarBackgroundColorProperty, "CardBg");
+        tabs.SetDynamicResource(TabbedPage.SelectedTabColorProperty, "Accent");
+        tabs.SetDynamicResource(TabbedPage.UnselectedTabColorProperty, "Muted");
         tabs.Children.Add(new MainPage(viewModel));
         tabs.Children.Add(new HistoryPage(viewModel));
         tabs.Children.Add(new SettingsPage(viewModel));

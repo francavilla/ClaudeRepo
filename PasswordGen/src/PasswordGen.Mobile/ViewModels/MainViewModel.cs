@@ -194,6 +194,15 @@ public class MainViewModel : ObservableObject
     // Le tre voci sono riquadri da toccare (non RadioButton: con un contenuto composto MAUI mostrava il nome del tipo); il cerchio pieno e lo sfondo indicano la scelta.
     public ICommand SelectModeCommand => new Command<string>(index => ModeIndex = int.Parse(index));
 
+    /// <summary>Da chiamare quando il telefono passa dal tema chiaro a quello scuro (o viceversa): ricalcola i colori scelti dal codice.</summary>
+    public void RefreshTheme()
+    {
+        OnPropertyChanged(nameof(PassphraseBackground));
+        OnPropertyChanged(nameof(SyllablesBackground));
+        OnPropertyChanged(nameof(RandomBackground));
+        RefreshReminder();
+    }
+
     public string PassphraseMarker => _mode == GenerationMode.Passphrase ? "●" : "○";
 
     public string SyllablesMarker => _mode == GenerationMode.Syllables ? "●" : "○";
@@ -208,7 +217,7 @@ public class MainViewModel : ObservableObject
 
     private Color ModeBackground(GenerationMode mode)
     {
-        return _mode == mode ? Color.FromArgb("#E0E7FF") : Colors.White;
+        return _mode == mode ? AppPalette.SelectedBackground : AppPalette.CardBackground;
     }
 
     public bool IsPassphrase
@@ -1336,13 +1345,13 @@ public class MainViewModel : ObservableObject
         var state = ChangeReminder.Evaluate(_reminderEnabled, last, _validityDays, _settings.WarnDays, DateTime.Today);
 
         ReminderMessage = state.Message;
-        ReminderBackground = Color.FromArgb(state.Status switch
+        ReminderBackground = state.Status switch
         {
-            ReminderStatus.Expired => "#FEE2E2",
-            ReminderStatus.DueSoon => "#FEF3C7",
-            ReminderStatus.Ok => "#DCFCE7",
-            _ => "#DBEAFE",
-        });
+            ReminderStatus.Expired => AppPalette.ReminderExpired,
+            ReminderStatus.DueSoon => AppPalette.ReminderDueSoon,
+            ReminderStatus.Ok => AppPalette.ReminderOk,
+            _ => AppPalette.ReminderInfo,
+        };
         LastChangeText = last.HasValue
             ? "Ultimo cambio: " + last.Value.ToString("d", CultureInfo.CurrentCulture)
             : "Nessun cambio registrato";

@@ -4,6 +4,15 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [2.3.0] - 2026-10-09
+
+### Modificato
+- **Tema chiaro e scuro, stile moderno e sobrio (primo passo della nuova veste grafica).** Le due app seguono il tema del sistema: Windows (anche se lo cambi mentre l'app è aperta) e Android.
+  - Palette comune: sfondi in grigio-blu, schede staccate dallo sfondo, un solo colore d'accento (blu) e verde, giallo e rosso solo per lo stato.
+  - Windows: caselle di testo, elenchi a discesa e schede ridisegnati con i colori della palette (campi con angoli arrotondati, scheda attiva sottolineata); finestre di dialogo coerenti col tema.
+  - Android: tutti i colori delle schermate passano dalla palette; testi, campi, barra delle schede e colori calcolati dal codice (promemoria, tipo di password, robustezza) seguono il tema.
+  - Nessuna modifica di funzionamento. Restano chiari alcuni elementi di sistema (per esempio le barre di scorrimento di Windows).
+
 ## [2.2.0] - 2026-10-09
 
 ### Aggiunto

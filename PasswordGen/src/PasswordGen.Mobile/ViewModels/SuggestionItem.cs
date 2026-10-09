@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Windows.Input;
 using Microsoft.Maui.Graphics;
 using PasswordGen.Core.Generation;
+using PasswordGen.Mobile.Services;
 
 namespace PasswordGen.Mobile.ViewModels;
 
@@ -16,9 +17,9 @@ public sealed class SuggestionItem
         BitsText = ((int)Math.Floor(password.EntropyBits)).ToString(CultureInfo.CurrentCulture) + " bit";
         LevelColor = password.Level switch
         {
-            StrengthLevel.Weak => Color.FromArgb("#DC2626"),
-            StrengthLevel.Fair => Color.FromArgb("#B45309"),
-            _ => Color.FromArgb("#15803D"),
+            StrengthLevel.Weak => AppPalette.StrengthWeak,
+            StrengthLevel.Fair => AppPalette.StrengthFair,
+            _ => AppPalette.StrengthGood,
         };
         CopyCommand = copyCommand;
     }

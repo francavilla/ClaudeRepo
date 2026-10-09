@@ -4,8 +4,8 @@
         xmlns:vm="clr-namespace:PasswordGen.ViewModels"
         Title="{Binding WindowTitle}" Icon="Assets/PasswordGen.ico" Width="1060" Height="800" MinWidth="900" MinHeight="640"
         WindowStartupLocation="CenterScreen"
-        Background="{StaticResource WindowBrush}"
-        Foreground="{StaticResource TextBrush}"
+        Background="{DynamicResource WindowBrush}"
+        Foreground="{DynamicResource TextBrush}"
         FontFamily="Segoe UI" FontSize="13"
         TextOptions.TextFormattingMode="Display"
         UseLayoutRounding="True">
@@ -17,7 +17,7 @@
     <Grid>
     <DockPanel x:Name="MainContent">
         <!-- ============================================================ Intestazione -->
-        <Border DockPanel.Dock="Top" Background="{StaticResource HeaderBrush}" Padding="24,14">
+        <Border DockPanel.Dock="Top" Background="{DynamicResource HeaderBrush}" Padding="24,14">
             <DockPanel>
                 <Border DockPanel.Dock="Left" Width="46" Height="46" CornerRadius="12" Background="#33FFFFFF">
                     <TextBlock Style="{StaticResource Icon}" Text="&#xE72E;" FontSize="22" Foreground="White" HorizontalAlignment="Center" />
@@ -36,30 +36,30 @@
         </Border>
 
         <!-- ============================================================ Barra di stato -->
-        <Border DockPanel.Dock="Bottom" Background="{StaticResource CardBrush}" BorderBrush="{StaticResource BorderBrush}"
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0" Padding="24,8">
-            <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis" />
+            <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis" />
         </Border>
 
         <!-- ============================================================ Promemoria -->
         <Border DockPanel.Dock="Top" Padding="24,10">
             <Border.Style>
                 <Style TargetType="Border">
-                    <Setter Property="Background" Value="{StaticResource InfoSoftBrush}" />
-                    <Setter Property="BorderBrush" Value="{StaticResource InfoBorderBrush}" />
+                    <Setter Property="Background" Value="{DynamicResource InfoSoftBrush}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource InfoBorderBrush}" />
                     <Setter Property="BorderThickness" Value="0,0,0,1" />
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding ReminderLevel}" Value="Ok">
-                            <Setter Property="Background" Value="{StaticResource SuccessSoftBrush}" />
-                            <Setter Property="BorderBrush" Value="{StaticResource SuccessBorderBrush}" />
+                            <Setter Property="Background" Value="{DynamicResource SuccessSoftBrush}" />
+                            <Setter Property="BorderBrush" Value="{DynamicResource SuccessBorderBrush}" />
                         </DataTrigger>
                         <DataTrigger Binding="{Binding ReminderLevel}" Value="Warn">
-                            <Setter Property="Background" Value="{StaticResource WarningSoftBrush}" />
-                            <Setter Property="BorderBrush" Value="{StaticResource WarningBorderBrush}" />
+                            <Setter Property="Background" Value="{DynamicResource WarningSoftBrush}" />
+                            <Setter Property="BorderBrush" Value="{DynamicResource WarningBorderBrush}" />
                         </DataTrigger>
                         <DataTrigger Binding="{Binding ReminderLevel}" Value="Error">
-                            <Setter Property="Background" Value="{StaticResource ErrorSoftBrush}" />
-                            <Setter Property="BorderBrush" Value="{StaticResource ErrorBorderBrush}" />
+                            <Setter Property="Background" Value="{DynamicResource ErrorSoftBrush}" />
+                            <Setter Property="BorderBrush" Value="{DynamicResource ErrorBorderBrush}" />
                         </DataTrigger>
                     </Style.Triggers>
                 </Style>
@@ -82,8 +82,8 @@
         </Border>
 
         <!-- ============================================================ Suggerimento: attiva il blocco -->
-        <Border DockPanel.Dock="Top" Padding="24,10" Background="{StaticResource WarningSoftBrush}"
-                BorderBrush="{StaticResource WarningBorderBrush}" BorderThickness="0,0,0,1"
+        <Border DockPanel.Dock="Top" Padding="24,10" Background="{DynamicResource WarningSoftBrush}"
+                BorderBrush="{DynamicResource WarningBorderBrush}" BorderThickness="0,0,0,1"
                 Visibility="{Binding ShowLockHint, Converter={StaticResource BoolToVisibility}}">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
@@ -96,8 +96,8 @@
         </Border>
 
         <!-- ============================================================ Quale proposta hai usato? -->
-        <Border DockPanel.Dock="Top" Padding="24,10" Background="{StaticResource AccentSoftBrush}"
-                BorderBrush="{StaticResource InfoBorderBrush}" BorderThickness="0,0,0,1"
+        <Border DockPanel.Dock="Top" Padding="24,10" Background="{DynamicResource AccentSoftBrush}"
+                BorderBrush="{DynamicResource InfoBorderBrush}" BorderThickness="0,0,0,1"
                 Visibility="{Binding IsChoosing, Converter={StaticResource BoolToVisibility}}">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
@@ -190,7 +190,7 @@
                         <ItemsControl ItemsSource="{Binding Suggestions}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type vm:SuggestionViewModel}">
-                                    <Border Background="{StaticResource SubtleBrush}" BorderBrush="{StaticResource BorderBrush}"
+                                    <Border Background="{DynamicResource SubtleBrush}" BorderBrush="{DynamicResource BorderBrush}"
                                             BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,8">
                                         <DockPanel>
                                             <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Command="{Binding CopyCommand}"
@@ -208,13 +208,13 @@
                                                     <TextBlock Text="{Binding LevelText}" FontWeight="SemiBold" FontSize="12">
                                                         <TextBlock.Style>
                                                             <Style TargetType="TextBlock">
-                                                                <Setter Property="Foreground" Value="{StaticResource SuccessBrush}" />
+                                                                <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
                                                                 <Style.Triggers>
                                                                     <DataTrigger Binding="{Binding Level}" Value="Weak">
-                                                                        <Setter Property="Foreground" Value="{StaticResource ErrorBrush}" />
+                                                                        <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}" />
                                                                     </DataTrigger>
                                                                     <DataTrigger Binding="{Binding Level}" Value="Fair">
-                                                                        <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
+                                                                        <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
                                                                     </DataTrigger>
                                                                 </Style.Triggers>
                                                             </Style>
@@ -243,7 +243,7 @@
                             <ItemsControl ItemsSource="{Binding HistoryEntries}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type vm:HistoryEntryViewModel}">
-                                        <Border Background="{StaticResource SubtleBrush}" BorderBrush="{StaticResource BorderBrush}"
+                                        <Border Background="{DynamicResource SubtleBrush}" BorderBrush="{DynamicResource BorderBrush}"
                                                 BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,8">
                                             <DockPanel>
                                                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
@@ -338,10 +338,10 @@
                                          IsEnabled="{Binding HasCustomWords}" IsChecked="{Binding IsCustomOnlyWords, Mode=TwoWay}" />
 
                             <TextBlock Style="{StaticResource Muted}" Text="{Binding CustomFileSummary}" Margin="0,6,0,0" />
-                            <Border Background="{StaticResource WarningSoftBrush}" BorderBrush="{StaticResource WarningBorderBrush}"
+                            <Border Background="{DynamicResource WarningSoftBrush}" BorderBrush="{DynamicResource WarningBorderBrush}"
                                     BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,8,0,0"
                                     Visibility="{Binding HasWordWarning, Converter={StaticResource BoolToVisibility}}">
-                                <TextBlock Text="{Binding WordWarning}" TextWrapping="Wrap" Foreground="{StaticResource WarningBrush}" FontSize="12" />
+                                <TextBlock Text="{Binding WordWarning}" TextWrapping="Wrap" Foreground="{DynamicResource WarningBrush}" FontSize="12" />
                             </Border>
 
                             <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
@@ -446,7 +446,7 @@
     </DockPanel>
 
     <!-- Schermata di blocco: copre tutto finché l'utente non si autentica (Windows Hello o PIN/password dell'app) -->
-    <Border Background="{StaticResource HeaderBrush}"
+    <Border Background="{DynamicResource HeaderBrush}"
             Visibility="{Binding Lock.IsLocked, Converter={StaticResource BoolToVisibility}}">
         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="460">
             <TextBlock Style="{StaticResource Icon}" Text="&#xE72E;" FontSize="56" Foreground="White" HorizontalAlignment="Center" />

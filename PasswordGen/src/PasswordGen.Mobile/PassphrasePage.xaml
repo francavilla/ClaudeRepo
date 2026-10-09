@@ -2,18 +2,18 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="PasswordGen.Mobile.PassphrasePage"
-             BackgroundColor="#F1F5F9">
+             BackgroundColor="{DynamicResource PageBg}">
 
     <ScrollView>
         <VerticalStackLayout Padding="24" Spacing="12" VerticalOptions="Center">
-            <Label x:Name="TitleLabel" FontSize="22" FontAttributes="Bold" TextColor="#0F172A" />
+            <Label x:Name="TitleLabel" FontSize="22" FontAttributes="Bold" TextColor="{DynamicResource TextPrimary}" />
             <Label x:Name="HintLabel" Style="{StaticResource MutedText}" />
             <Entry x:Name="FirstEntry" IsPassword="True" Placeholder="Frase segreta" />
             <Entry x:Name="SecondEntry" IsPassword="True" Placeholder="Ripeti la frase segreta" Completed="OnOkClicked" />
-            <Label x:Name="ErrorLabel" TextColor="#DC2626" FontSize="12" IsVisible="False" />
+            <Label x:Name="ErrorLabel" TextColor="{DynamicResource Danger}" FontSize="12" IsVisible="False" />
             <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,8,0,0">
-                <Button Text="Annulla" Clicked="OnCancelClicked" BackgroundColor="White" TextColor="{StaticResource Accent}"
-                        BorderColor="#CBD5E1" BorderWidth="1" />
+                <Button Text="Annulla" Clicked="OnCancelClicked" BackgroundColor="{DynamicResource CardBg}" TextColor="{DynamicResource Accent}"
+                        BorderColor="{DynamicResource BorderStrong}" BorderWidth="1" />
                 <Button Grid.Column="1" Text="OK" Clicked="OnOkClicked" Style="{StaticResource PrimaryButton}" />
             </Grid>
         </VerticalStackLayout>

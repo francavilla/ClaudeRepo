@@ -5,11 +5,11 @@
              x:Class="PasswordGen.Mobile.HistoryPage"
              x:DataType="vm:MainViewModel"
              Title="{Binding HistoryHeader}"
-             BackgroundColor="#F1F5F9">
+             BackgroundColor="{DynamicResource PageBg}">
 
     <Grid RowDefinitions="Auto,*,Auto">
 
-        <VerticalStackLayout Grid.Row="0" BackgroundColor="{StaticResource Header}" Padding="18,14" Spacing="2">
+        <VerticalStackLayout Grid.Row="0" BackgroundColor="{DynamicResource Header}" Padding="18,14" Spacing="2">
             <Label Text="Storico delle password" TextColor="White" FontSize="22" FontAttributes="Bold" />
             <Label Text="Le ultime 20 password che hai usato, cifrate con una chiave del Keystore di Android."
                    TextColor="#CCFFFFFF" FontSize="12" />
@@ -24,7 +24,7 @@
                         <Label Style="{StaticResource MutedText}"
                                Text="Con «Ho cambiato la password» scegli quale proposta hai usato e viene salvata qui (ultime 20). La nuova password non può essere identica a una di quelle e le proposte evitano anche le loro varianti. Lo storico è sempre attivo e le singole voci non si possono eliminare." />
                         <Button Text="Azzera storico..." Command="{Binding ClearHistoryCommand}"
-                                BackgroundColor="White" TextColor="#DC2626" BorderColor="#FECACA" BorderWidth="1" />
+                                BackgroundColor="{DynamicResource CardBg}" TextColor="{DynamicResource Danger}" BorderColor="{DynamicResource DangerBorder}" BorderWidth="1" />
                     </VerticalStackLayout>
                 </Border>
 
@@ -45,9 +45,9 @@
                                            LineBreakMode="CharacterWrap" />
                                     <Grid ColumnDefinitions="*,*" ColumnSpacing="6">
                                         <Button Grid.Column="0" Text="{Binding ToggleText}" Command="{Binding ToggleCommand}"
-                                                BackgroundColor="White" TextColor="{StaticResource Accent}" BorderColor="#CBD5E1" BorderWidth="1" />
+                                                BackgroundColor="{DynamicResource CardBg}" TextColor="{DynamicResource Accent}" BorderColor="{DynamicResource BorderStrong}" BorderWidth="1" />
                                         <Button Grid.Column="1" Text="Copia" Command="{Binding CopyCommand}"
-                                                BackgroundColor="White" TextColor="{StaticResource Accent}" BorderColor="#CBD5E1" BorderWidth="1" />
+                                                BackgroundColor="{DynamicResource CardBg}" TextColor="{DynamicResource Accent}" BorderColor="{DynamicResource BorderStrong}" BorderWidth="1" />
                                     </Grid>
                                 </VerticalStackLayout>
                             </Border>
@@ -57,7 +57,7 @@
             </VerticalStackLayout>
         </ScrollView>
 
-        <Border Grid.Row="2" Background="White" Stroke="#E2E8F0" StrokeThickness="1" Padding="14,8">
+        <Border Grid.Row="2" Background="{DynamicResource CardBg}" Stroke="{DynamicResource Border}" StrokeThickness="1" Padding="14,8">
             <Label Text="{Binding StatusMessage}" Style="{StaticResource MutedText}" LineBreakMode="TailTruncation" />
         </Border>
     </Grid>

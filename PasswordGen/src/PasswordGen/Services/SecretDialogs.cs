@@ -128,12 +128,12 @@ namespace PasswordGen.Services
 
         private static TextBlock ErrorText()
         {
-            return new TextBlock { Foreground = System.Windows.Media.Brushes.Firebrick, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8) };
+            return new TextBlock { Foreground = System.Windows.Media.Brushes.IndianRed, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8) };
         }
 
         private static Window CreateWindow(string title, UIElement content)
         {
-            return new Window
+            var window = new Window
             {
                 Title = title,
                 Content = content,
@@ -144,6 +144,8 @@ namespace PasswordGen.Services
                 ShowInTaskbar = false,
                 Owner = Application.Current == null ? null : Application.Current.MainWindow
             };
+            ThemeManager.Style(window);
+            return window;
         }
     }
 }
