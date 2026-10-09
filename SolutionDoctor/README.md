@@ -6,6 +6,12 @@ Si usa a riga di comando (anche in CI) oppure con un'interfaccia grafica WPF.
 
 Risponde alla domanda più difficile di un refactoring: *da dove comincio, e in che ordine?*
 
+## Download
+
+Dalle [release](../../releases) (tag `solutiondoctor-vX.Y.Z`): `SolutionDoctor-App-vX.Y.Z.zip` (interfaccia) e
+`SolutionDoctor-Cli-vX.Y.Z.zip` (riga di comando). Servono Windows 10/11 e il .NET 8
+(Desktop Runtime per l'interfaccia); si estrae lo zip e si avvia l'eseguibile, senza installazione.
+
 ## Interfaccia grafica
 
 `SolutionDoctor.App.exe` (Windows, richiede il [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0)).

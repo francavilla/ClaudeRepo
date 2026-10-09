@@ -30,6 +30,12 @@ Più modifiche nella stessa richiesta = un solo incremento di versione.
 - Il workflow `.github/workflows/release-exebuilder.yml` verifica la versione, esegue i test, compila su Windows
   e crea la release GitHub con lo zip e le note prese dal `CHANGELOG.md`.
 
+- Le release di SolutionDoctor sono **una sola**, con due zip (interfaccia e riga di comando): workflow `Release SolutionDoctor`
+  (`.github/workflows/release-solutiondoctor.yml`), tag `solutiondoctor-vX.Y.Z` (il prefisso evita il conflitto con i tag `vX.Y.Z` di ExeBuilder),
+  file `SolutionDoctor-App-vX.Y.Z.zip` e `SolutionDoctor-Cli-vX.Y.Z.zip`, note prese dal `CHANGELOG.md`.
+  Avvio manuale su `main` (rifiuta altri rami) o tag uguale a `<Version>`; con `dry_run` costruisce e impacchetta senza creare tag né release (prova, da qualsiasi ramo).
+  Richiedono il .NET 8 (Desktop Runtime per l'interfaccia).
+
 - Le release di PasswordGen sono **due, separate** (stessa versione di `PasswordGen/Directory.Build.props`, ma tag, titolo e file propri):
   - Windows: workflow `Release PasswordGen Desktop` (`.github/workflows/release-passwordgen-desktop.yml`), tag `passwordgen-desktop-vX.Y.Z`, zip `PasswordGen-Desktop-vX.Y.Z.zip`;
   - Android: workflow `Release PasswordGen Android` (`.github/workflows/release-passwordgen-android.yml`), tag `passwordgen-android-vX.Y.Z`, APK `PasswordGen-Android-vX.Y.Z.apk`.

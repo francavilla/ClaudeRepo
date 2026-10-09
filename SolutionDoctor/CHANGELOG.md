@@ -21,6 +21,8 @@ Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Bui
 - Test di contratto XAML ↔ ViewModel: binding, risorse (anche l'ordine di definizione), gestori di evento, `x:Static`,
   voci della solution; poiché il XAML si compila solo su Windows, rilevano in anticipo gli errori che altrimenti
   emergerebbero a runtime.
+- Workflow `Release SolutionDoctor` (tag `solutiondoctor-vX.Y.Z`): test, build su Windows e release GitHub con due zip,
+  interfaccia e riga di comando, e note prese dal CHANGELOG; modalità `dry_run` per provarlo senza pubblicare.
 - Solution di esempio `samples/LegacyDemo` (WinForms legacy, volutamente non compilabile) per provare lo strumento
   e come banco di prova della CI.
 - Script `tools/make_icon.py` (Python + Pillow) e icona dell'applicazione.
