@@ -73,7 +73,7 @@
                                         <Grid ColumnDefinitions="*,*" ColumnSpacing="6">
                                             <Button Grid.Column="0" Text="{Binding ToggleText}" Command="{Binding ToggleCommand}"
                                                     BackgroundColor="{DynamicResource CardBg}" TextColor="{DynamicResource Accent}" BorderColor="{DynamicResource BorderStrong}" BorderWidth="1" />
-                                            <Button Grid.Column="1" Text="Copia" Command="{Binding CopyCommand}"
+                                            <Button Grid.Column="1" Text="{Binding CopyText}" Command="{Binding CopyCommand}"
                                                     BackgroundColor="{DynamicResource CardBg}" TextColor="{DynamicResource Accent}" BorderColor="{DynamicResource BorderStrong}" BorderWidth="1" />
                                         </Grid>
                                     </VerticalStackLayout>

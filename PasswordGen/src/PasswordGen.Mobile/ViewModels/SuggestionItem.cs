@@ -7,7 +7,7 @@ using PasswordGen.Mobile.Services;
 namespace PasswordGen.Mobile.ViewModels;
 
 /// <summary>Una proposta di password mostrata nell'elenco.</summary>
-public sealed class SuggestionItem
+public sealed class SuggestionItem : ObservableObject
 {
     public SuggestionItem(GeneratedPassword password, ICommand copyCommand, bool isPrimary)
     {
@@ -24,6 +24,29 @@ public sealed class SuggestionItem
             _ => AppPalette.StrengthGood,
         };
         CopyCommand = copyCommand;
+    }
+
+    private string _copyText = "Copia";
+    private int _copyVersion;
+
+    /// <summary>Testo del pulsante: diventa «Copiata» per un paio di secondi dopo la copia.</summary>
+    public string CopyText
+    {
+        get => _copyText;
+        private set => SetProperty(ref _copyText, value);
+    }
+
+    public void ShowCopied()
+    {
+        CopyText = "Copiata \u2713";
+        var version = ++_copyVersion;
+        Application.Current?.Dispatcher?.DispatchDelayed(TimeSpan.FromSeconds(2), () =>
+        {
+            if (version == _copyVersion)
+            {
+                CopyText = "Copia";
+            }
+        });
     }
 
     /// <summary>La prima proposta della serie: si mostra in grande.</summary>

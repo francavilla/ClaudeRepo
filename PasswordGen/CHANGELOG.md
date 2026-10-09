@@ -4,6 +4,12 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [2.6.0] - 2026-10-09
+
+### Aggiunto
+- **Conferma visiva della copia**: dopo aver toccato «Copia» (proposte e cronologia) il pulsante diventa «Copiata ✓» per un paio di secondi. Windows e Android.
+- Windows: le schede «Genera» e «Impostazioni» hanno un'icona.
+
 ## [2.5.1] - 2026-10-09
 
 ### Corretto

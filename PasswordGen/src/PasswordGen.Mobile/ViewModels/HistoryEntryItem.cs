@@ -26,6 +26,29 @@ public sealed class HistoryEntryItem : ObservableObject
 
     public bool IsNotCurrent => !IsCurrent;
 
+    private string _copyText = "Copia";
+    private int _copyVersion;
+
+    /// <summary>Testo del pulsante: diventa «Copiata» per un paio di secondi dopo la copia.</summary>
+    public string CopyText
+    {
+        get => _copyText;
+        private set => SetProperty(ref _copyText, value);
+    }
+
+    public void ShowCopied()
+    {
+        CopyText = "Copiata \u2713";
+        var version = ++_copyVersion;
+        Application.Current?.Dispatcher?.DispatchDelayed(TimeSpan.FromSeconds(2), () =>
+        {
+            if (version == _copyVersion)
+            {
+                CopyText = "Copia";
+            }
+        });
+    }
+
     public int Number => _entry.Number;
 
     public string Title => "#" + _entry.Number;

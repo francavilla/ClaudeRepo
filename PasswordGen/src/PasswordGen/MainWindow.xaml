@@ -142,7 +142,13 @@
         <TabControl Margin="24,12,24,12" BorderThickness="0" Padding="0,12,0,0" Background="Transparent">
 
             <!-- Genera: tipo di password, proposte e cronologia -->
-            <TabItem Header="Genera">
+            <TabItem>
+            <TabItem.Header>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Style="{StaticResource Icon}" Text="&#xE72C;" Margin="0,0,8,0" />
+                    <TextBlock Text="Genera" />
+                </StackPanel>
+            </TabItem.Header>
             <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="370" />
@@ -233,7 +239,7 @@
                                                     <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Command="{Binding CopyCommand}">
                                                         <StackPanel Orientation="Horizontal">
                                                             <TextBlock Style="{StaticResource Icon}" Text="&#xE8C8;" Margin="0,0,8,0" />
-                                                            <TextBlock Text="Copia" />
+                                                            <TextBlock Text="{Binding CopyText}" />
                                                         </StackPanel>
                                                     </Button>
                                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -266,7 +272,7 @@
                                                         VerticalAlignment="Center" Margin="12,0,0,0">
                                                     <StackPanel Orientation="Horizontal">
                                                         <TextBlock Style="{StaticResource Icon}" Text="&#xE8C8;" Margin="0,0,8,0" />
-                                                        <TextBlock Text="Copia" />
+                                                        <TextBlock Text="{Binding CopyText}" />
                                                     </StackPanel>
                                                 </Button>
                                                 <StackPanel>
@@ -342,7 +348,7 @@
                                                 <DockPanel>
                                                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
                                                         <Button Style="{StaticResource GhostButton}" Command="{Binding ToggleCommand}" Content="{Binding ToggleText}" />
-                                                        <Button Style="{StaticResource GhostButton}" Command="{Binding CopyCommand}" Content="Copia" Margin="6,0,0,0" />
+                                                        <Button Style="{StaticResource GhostButton}" Command="{Binding CopyCommand}" Content="{Binding CopyText}" Margin="6,0,0,0" />
                                                     </StackPanel>
                                                     <StackPanel>
                                                         <StackPanel Orientation="Horizontal">
@@ -373,7 +379,13 @@
             </TabItem>
 
             <!-- Impostazioni -->
-            <TabItem Header="Impostazioni">
+            <TabItem>
+            <TabItem.Header>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Style="{StaticResource Icon}" Text="&#xE713;" Margin="0,0,8,0" />
+                    <TextBlock Text="Impostazioni" />
+                </StackPanel>
+            </TabItem.Header>
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <Grid>
                     <Grid.ColumnDefinitions>

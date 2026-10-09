@@ -458,7 +458,13 @@ public class MainViewModel : ObservableObject
 
     private void Copy(SuggestionItem suggestion)
     {
-        StatusMessage = _clipboard.Copy(suggestion.Text)
+        var copied = _clipboard.Copy(suggestion.Text);
+        if (copied)
+        {
+            suggestion.ShowCopied();
+        }
+
+        StatusMessage = copied
             ? "Copiata negli appunti: verrà cancellata tra " + (int)_clipboard.ClearAfter.TotalSeconds + " secondi."
             : "Impossibile accedere agli appunti: riprova.";
     }
@@ -1575,7 +1581,13 @@ public class MainViewModel : ObservableObject
 
     private void CopyHistoryEntry(HistoryEntryItem entry)
     {
-        StatusMessage = _clipboard.Copy(entry.Password)
+        var copied = _clipboard.Copy(entry.Password);
+        if (copied)
+        {
+            entry.ShowCopied();
+        }
+
+        StatusMessage = copied
             ? "Password " + entry.Title + " copiata: verrà cancellata dagli appunti tra " + (int)_clipboard.ClearAfter.TotalSeconds + " secondi."
             : "Impossibile accedere agli appunti: riprova.";
     }

@@ -1611,7 +1611,13 @@ namespace PasswordGen.ViewModels
 
         private void CopyHistoryEntry(HistoryEntryViewModel entry)
         {
-            StatusMessage = _clipboard.Copy(entry.Password)
+            var copied = _clipboard.Copy(entry.Password);
+            if (copied)
+            {
+                entry.ShowCopied();
+            }
+
+            StatusMessage = copied
                 ? "Password #" + entry.Number + " copiata: verrà cancellata dagli appunti tra " + (int)_clipboard.ClearAfter.TotalSeconds + " secondi."
                 : "Impossibile accedere agli appunti: riprova.";
         }
@@ -1711,7 +1717,13 @@ namespace PasswordGen.ViewModels
         private void Copy(SuggestionViewModel suggestion)
         {
             _lastCopied = suggestion;
-            StatusMessage = _clipboard.Copy(suggestion.Text)
+            var copied = _clipboard.Copy(suggestion.Text);
+            if (copied)
+            {
+                suggestion.ShowCopied();
+            }
+
+            StatusMessage = copied
                 ? "Copiata negli appunti: verrà cancellata tra " + (int)_clipboard.ClearAfter.TotalSeconds + " secondi."
                 : "Impossibile accedere agli appunti: riprova.";
         }

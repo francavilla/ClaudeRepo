@@ -81,7 +81,7 @@
                                                 <Label Text="{Binding LevelText}" TextColor="{Binding LevelColor}" FontAttributes="Bold" FontSize="13" />
                                                 <Label Text="{Binding BitsText}" Style="{StaticResource MutedText}" VerticalOptions="Center" />
                                             </HorizontalStackLayout>
-                                            <Button Grid.Column="1" Text="Copia" Command="{Binding CopyCommand}" Style="{StaticResource PrimaryButton}" />
+                                            <Button Grid.Column="1" Text="{Binding CopyText}" Command="{Binding CopyCommand}" Style="{StaticResource PrimaryButton}" />
                                         </Grid>
                                     </VerticalStackLayout>
                                 </Border>
@@ -96,7 +96,7 @@
                                                 <Label Text="{Binding BitsText}" Style="{StaticResource MutedText}" />
                                             </HorizontalStackLayout>
                                         </VerticalStackLayout>
-                                        <Button Grid.Column="1" Text="Copia" Command="{Binding CopyCommand}" VerticalOptions="Center"
+                                        <Button Grid.Column="1" Text="{Binding CopyText}" Command="{Binding CopyCommand}" VerticalOptions="Center"
                                                 BackgroundColor="{DynamicResource CardBg}" TextColor="{DynamicResource Accent}" BorderColor="{DynamicResource BorderStrong}" BorderWidth="1" />
                                     </Grid>
                                 </Border>
