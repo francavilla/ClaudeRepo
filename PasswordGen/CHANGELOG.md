@@ -4,6 +4,16 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [2.1.0] - 2026-10-09
+
+### Aggiunto
+- **Sincronizzazione ad app aperta.** Oltre che all'avvio e dopo un cambio, l'app sincronizza quando torna in primo piano e, a finestra aperta, ogni due minuti: le modifiche fatte sull'altro dispositivo arrivano senza riavviare.
+
+### Corretto
+- **«Azzera storico» ora si propaga all'altro dispositivo.** Prima la sincronizzazione, che unisce senza perdere nulla, faceva tornare le voci azzerate. Ora l'azzeramento è un marcatore con la data nel file di scambio:
+  le voci registrate prima vengono eliminate su tutti i dispositivi e non risorgono; quelle registrate dopo si conservano. Le voci vecchie, senza data di registrazione, sono considerate precedenti.
+- Lo storico azzerato non cancella più il file locale: ne resta il marcatore, che serve a sincronizzare.
+
 ## [2.0.1] - 2026-10-09
 
 ### Modificato

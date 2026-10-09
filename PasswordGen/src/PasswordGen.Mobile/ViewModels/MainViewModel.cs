@@ -611,12 +611,31 @@ public class MainViewModel : ObservableObject
         }
     }
 
+    private DateTime _lastBackgroundSync = DateTime.MinValue;
+
+    /// <summary>
+    /// Sincronizza in silenzio se l'ultima sincronizzazione di questo tipo risale ad almeno <paramref name="minimumInterval"/> fa:
+    /// serve quando l'app torna in primo piano e a intervalli regolari, così le modifiche fatte sull'altro dispositivo
+    /// (per esempio l'azzeramento dello storico) arrivano senza riavviare l'app.
+    /// </summary>
+    public async Task SyncIfIdleAsync(TimeSpan minimumInterval)
+    {
+        if (!SyncActive || _syncBusy || DateTime.UtcNow - _lastBackgroundSync < minimumInterval)
+        {
+            return;
+        }
+
+        _lastBackgroundSync = DateTime.UtcNow;
+        await AutoSyncAsync();
+    }
+
     private async Task<bool> RunSyncAsync(string address, string passphrase)
     {
         SetSyncBusy(true);
         try
         {
             SaveSettings();   // porta nelle impostazioni i valori correnti (per esempio la durata della password)
+            var hadHistoryBefore = _history.Entries.Count > 0;
             var result = await SyncEngine.RunAsync(OpenStorage(address), passphrase, _history, _settings, DateTime.UtcNow);
             if (!result.Succeeded)
             {
@@ -629,13 +648,16 @@ public class MainViewModel : ObservableObject
                 return false;
             }
 
+            var hadHistory = _history.Entries.Count > 0;
             _validityDays = _settings.ValidityDays;
             OnPropertyChanged(nameof(ValidityDays));
             SaveHistory();
             RefreshHistory();
             RefreshReminder();
             SaveSettings();
-            StatusMessage = result.EntriesAdded > 0
+            StatusMessage = hadHistoryBefore && !hadHistory
+                ? "Sincronizzato: lo storico è stato azzerato dall'altro dispositivo."
+                : result.EntriesAdded > 0
                 ? "Sincronizzato: " + result.EntriesAdded + (result.EntriesAdded == 1 ? " voce nuova" : " voci nuove") + " dall'altro dispositivo."
                 : "Sincronizzato: tutto era già aggiornato.";
             return true;
@@ -1313,7 +1335,7 @@ public class MainViewModel : ObservableObject
         string message;
         if (_historyEnabled)
         {
-            var entry = _history.Add(chosen?.Text, chosen?.Mode ?? _mode, today);
+            var entry = _history.Add(chosen?.Text, chosen?.Mode ?? _mode, today, DateTime.UtcNow);
             SaveHistory();
             RefreshHistory();
             message = chosen == null
@@ -1340,12 +1362,13 @@ public class MainViewModel : ObservableObject
         }
 
         ClearHistoryEntries();
-        StatusMessage = "Storico azzerato.";
+        StatusMessage = SyncActive ? "Storico azzerato: l'altro dispositivo lo azzererà alla prossima sincronizzazione." : "Storico azzerato.";
+        _ = AutoSyncAsync();
     }
 
     private void ClearHistoryEntries()
     {
-        _history.Clear();
+        _history.Reset(DateTime.UtcNow);   // l'azzeramento viaggia con la sincronizzazione
         SaveHistory();
         RefreshHistory();
     }
@@ -1378,7 +1401,7 @@ public class MainViewModel : ObservableObject
 
         try
         {
-            if (_history.Entries.Count == 0)
+            if (_history.Entries.Count == 0 && _history.ResetUtcText == null)
             {
                 _historyStore.Delete();
             }

@@ -29,12 +29,13 @@ namespace PasswordGen.Core.Sync
             {
                 ModifiedUtcText = modifiedUtcText,
                 LastChangeDateText = settings.LastChangeDateText,
-                ValidityDays = settings.ValidityDays
+                ValidityDays = settings.ValidityDays,
+                HistoryResetUtcText = history.ResetUtcText
             };
 
             foreach (var entry in history.Entries)
             {
-                data.Entries.Add(new ExchangeEntry { DateText = entry.DateText, Mode = entry.Mode, Password = entry.Password ?? string.Empty });
+                data.Entries.Add(new ExchangeEntry { DateText = entry.DateText, Mode = entry.Mode, Password = entry.Password ?? string.Empty, AddedUtcText = entry.AddedUtcText });
             }
 
             return data;
@@ -56,6 +57,7 @@ namespace PasswordGen.Core.Sync
         public static MergeSummary Merge(ExchangeData incoming, PasswordHistory history, AppSettings settings, bool preferIncomingValidity)
         {
             var summary = new MergeSummary();
+            history.ApplyReset(incoming.HistoryResetUtcText);
             summary.EntriesAdded = history.Merge(incoming.Entries.Select(ToHistoryEntry));
 
             DateTime parsed;
@@ -110,7 +112,7 @@ namespace PasswordGen.Core.Sync
 
         private static HistoryEntry ToHistoryEntry(ExchangeEntry entry)
         {
-            return new HistoryEntry { DateText = entry.DateText, Mode = entry.Mode, Password = entry.Password };
+            return new HistoryEntry { DateText = entry.DateText, Mode = entry.Mode, Password = entry.Password, AddedUtcText = entry.AddedUtcText };
         }
     }
 

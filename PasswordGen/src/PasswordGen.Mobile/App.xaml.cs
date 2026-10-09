@@ -1,3 +1,4 @@
+using Microsoft.Maui.Dispatching;
 using Microsoft.Maui.Storage;
 using PasswordGen.Core.Generation;
 using PasswordGen.Core.History;
@@ -79,7 +80,17 @@ public partial class App : Application
             viewModel.ClearSensitive();
             appLock.Backgrounded();
         };
-        window.Resumed += (sender, args) => appLock.Resumed();
+        window.Resumed += (sender, args) =>
+        {
+            appLock.Resumed();
+            _ = viewModel.SyncIfIdleAsync(TimeSpan.FromSeconds(20));
+        };
+
+        // Con l'app in primo piano si controlla ogni due minuti se l'altro dispositivo ha cambiato qualcosa (per esempio azzerato lo storico).
+        var syncTimer = Dispatcher.CreateTimer();
+        syncTimer.Interval = TimeSpan.FromMinutes(2);
+        syncTimer.Tick += (sender, args) => _ = viewModel.SyncIfIdleAsync(TimeSpan.FromSeconds(60));
+        syncTimer.Start();
         return window;
     }
 }

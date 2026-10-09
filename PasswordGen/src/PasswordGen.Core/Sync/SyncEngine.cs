@@ -116,6 +116,7 @@ namespace PasswordGen.Core.Sync
             var result = await Task.Run(() => Run(storage, passphrase, historyCopy, settingsCopy, nowUtc, iterations));
             if (result.Succeeded)
             {
+                history.ApplyReset(historyCopy.ResetUtcText);
                 history.Merge(historyCopy.Entries);
 
                 var changed = settingsCopy.LastChangeDate;

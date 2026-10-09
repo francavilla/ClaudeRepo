@@ -15,7 +15,27 @@ namespace PasswordGen
             InitializeComponent();
             FitToWorkArea();
             Loaded += OnLoaded;
-            Activated += (s, e) => Lock?.Activated();
+            Activated += (s, e) =>
+            {
+                Lock?.Activated();
+                var vm = DataContext as MainViewModel;
+                if (vm != null)
+                {
+                    var ignored = vm.SyncIfIdleAsync(TimeSpan.FromSeconds(20));
+                }
+            };
+
+            // A finestra aperta si controlla ogni due minuti se l'altro dispositivo ha cambiato qualcosa (per esempio azzerato lo storico).
+            var syncTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(2) };
+            syncTimer.Tick += (s, e) =>
+            {
+                var vm = DataContext as MainViewModel;
+                if (vm != null)
+                {
+                    var ignored = vm.SyncIfIdleAsync(TimeSpan.FromSeconds(60));
+                }
+            };
+            syncTimer.Start();
             Deactivated += (s, e) => Lock?.Deactivated();
         }
 

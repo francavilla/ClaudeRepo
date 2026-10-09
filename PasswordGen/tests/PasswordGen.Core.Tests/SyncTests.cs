@@ -240,6 +240,90 @@ namespace PasswordGen.Core.Tests
             Assert.Equal(new DateTime(2026, 1, 26).ToString("yyyy-MM-dd"), history.Entries[0].DateText);
         }
 
+        // ---- azzeramento dello storico condiviso ----
+
+        [Fact]
+        public void Azzeramento_SiPropagaAIlAltroDispositivo_EleVociVecchieNonTornano()
+        {
+            var storage = new MemoryStorage();
+            var a = HistoryWith("2026-09-01|Aaaa-1111-bbbb!", "2026-09-02|Cccc-2222-dddd!");
+            var b = HistoryWith("2026-09-01|Aaaa-1111-bbbb!", "2026-09-02|Cccc-2222-dddd!");
+            var settingsA = new AppSettings();
+            var settingsB = new AppSettings();
+            SyncEngine.Run(storage, Phrase, a, settingsA, Now, Fast);
+            SyncEngine.Run(storage, Phrase, b, settingsB, Now.AddMinutes(1), Fast);
+
+            a.Reset(Now.AddMinutes(2));
+            SyncEngine.Run(storage, Phrase, a, settingsA, Now.AddMinutes(2), Fast);
+            SyncEngine.Run(storage, Phrase, b, settingsB, Now.AddMinutes(3), Fast);
+
+            Assert.Empty(a.Entries);
+            Assert.Empty(b.Entries);
+            Assert.NotNull(b.ResetUtcText);
+
+            // Un terzo dispositivo rimasto indietro con le voci vecchie non le fa risorgere.
+            var c = HistoryWith("2026-09-01|Aaaa-1111-bbbb!");
+            SyncEngine.Run(storage, Phrase, c, new AppSettings(), Now.AddMinutes(4), Fast);
+            Assert.Empty(c.Entries);
+            SyncEngine.Run(storage, Phrase, a, settingsA, Now.AddMinutes(5), Fast);
+            Assert.Empty(a.Entries);
+        }
+
+        [Fact]
+        public void Azzeramento_LeVociRegistrateDopoRestano_ESiPropagano()
+        {
+            var storage = new MemoryStorage();
+            var a = new PasswordHistory();
+            var b = new PasswordHistory();
+            a.Add("Vecchia-1111-aaaa!", GenerationMode.Passphrase, new DateTime(2026, 9, 1), Now.AddMinutes(-30));
+            SyncEngine.Run(storage, Phrase, a, new AppSettings(), Now, Fast);
+            SyncEngine.Run(storage, Phrase, b, new AppSettings(), Now, Fast);
+            Assert.Single(b.Entries);
+
+            a.Reset(Now.AddMinutes(10));
+            SyncEngine.Run(storage, Phrase, a, new AppSettings(), Now.AddMinutes(10), Fast);
+            b.Add("Nuova-2222-bbbb!", GenerationMode.Passphrase, new DateTime(2026, 10, 8), Now.AddMinutes(11));   // dopo l'azzeramento, prima di sincronizzare
+            SyncEngine.Run(storage, Phrase, b, new AppSettings(), Now.AddMinutes(12), Fast);
+            SyncEngine.Run(storage, Phrase, a, new AppSettings(), Now.AddMinutes(13), Fast);
+
+            Assert.Single(b.Entries);
+            Assert.Equal("Nuova-2222-bbbb!", b.Entries[0].Password);
+            Assert.Single(a.Entries);
+            Assert.Equal("Nuova-2222-bbbb!", a.Entries[0].Password);
+        }
+
+        [Fact]
+        public async System.Threading.Tasks.Task Azzeramento_FunzionaAncheConLaSincronizzazioneAsincrona()
+        {
+            var storage = new MemoryStorage();
+            var a = HistoryWith("2026-09-01|Aaaa-1111-bbbb!");
+            var b = HistoryWith("2026-09-01|Aaaa-1111-bbbb!");
+            await SyncEngine.RunAsync(storage, Phrase, a, new AppSettings(), Now, Fast);
+            await SyncEngine.RunAsync(storage, Phrase, b, new AppSettings(), Now.AddMinutes(1), Fast);
+
+            a.Reset(Now.AddMinutes(2));
+            await SyncEngine.RunAsync(storage, Phrase, a, new AppSettings(), Now.AddMinutes(2), Fast);
+            await SyncEngine.RunAsync(storage, Phrase, b, new AppSettings(), Now.AddMinutes(3), Fast);
+
+            Assert.Empty(b.Entries);
+        }
+
+        [Fact]
+        public void Azzeramento_ResistePersistenzaESerializzazione()
+        {
+            var history = HistoryWith("2026-09-01|Aaaa-1111-bbbb!");
+            history.Reset(Now);
+
+            var path = Path.Combine(_directory, "h.dat");
+            Directory.CreateDirectory(_directory);
+            var store = new HistoryStore(path, new XorProtector());
+            store.Save(history);
+            var loaded = store.Load();
+
+            Assert.Empty(loaded.Entries);
+            Assert.Equal(history.ResetUtcText, loaded.ResetUtcText);
+        }
+
         [Fact]
         public void Merge_NumeriProgressiviNuoviENonRiutilizzati()
         {
