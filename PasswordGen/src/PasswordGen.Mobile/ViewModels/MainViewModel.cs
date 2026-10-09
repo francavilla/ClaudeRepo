@@ -842,7 +842,7 @@ public class MainViewModel : ObservableObject
     public bool HasCredential => _lock.HasCredential;
 
     /// <summary>«Imposta» se non c'è ancora un PIN o una password dell'app, «Cambia» se c'è già.</summary>
-    public string SetCredentialText => _lock.HasCredential ? "Cambia PIN o password dell'app" : "Imposta un PIN o una password dell'app";
+    public string SetCredentialText => _lock.HasCredential ? "Cambia PIN o password" : "Imposta PIN o password";
 
     public bool CanSetCredential => _lockEnabled && _lock.CredentialsSupported;
 

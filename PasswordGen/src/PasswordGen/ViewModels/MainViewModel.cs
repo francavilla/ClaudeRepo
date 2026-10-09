@@ -1242,7 +1242,7 @@ namespace PasswordGen.ViewModels
         /// <summary>«Imposta» se non c'è ancora un PIN o una password dell'app, «Cambia» se c'è già.</summary>
         public string SetCredentialText
         {
-            get { return _lock.HasCredential ? "Cambia PIN o password dell'app" : "Imposta un PIN o una password dell'app"; }
+            get { return _lock.HasCredential ? "Cambia PIN o password" : "Imposta PIN o password"; }
         }
 
         public string CredentialText

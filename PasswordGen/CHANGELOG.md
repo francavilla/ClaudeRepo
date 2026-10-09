@@ -4,6 +4,11 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.6.2] - 2026-10-09
+
+### Corretto
+- **Android: il pulsante del blocco in «Impostazioni» era ancora troncato («Imposta un PIN o una»).** L'etichetta è ora più corta: «Imposta PIN o password» oppure, se già impostato, «Cambia PIN o password» (stesso testo su Windows).
+
 ## [1.6.1] - 2026-10-09
 
 ### Corretto
