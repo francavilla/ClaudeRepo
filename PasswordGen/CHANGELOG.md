@@ -4,6 +4,11 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [2.5.1] - 2026-10-09
+
+### Corretto
+- **La barra di stato non resta più ferma sull'ultimo messaggio** (per esempio «Proposte generate» anche cambiando scheda). Il messaggio sparisce dopo 15 secondi e, su Android, anche quando si cambia scheda.
+
 ## [2.5.0] - 2026-10-09
 
 ### Modificato

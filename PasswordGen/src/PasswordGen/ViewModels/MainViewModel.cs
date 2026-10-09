@@ -199,8 +199,38 @@ namespace PasswordGen.ViewModels
         public string StatusMessage
         {
             get { return _statusMessage; }
-            private set { SetProperty(ref _statusMessage, value); }
+            private set
+            {
+                if (!SetProperty(ref _statusMessage, value) || string.IsNullOrEmpty(value))
+                {
+                    return;
+                }
+
+                // Il messaggio resta visibile per un po', poi la barra si svuota (altrimenti «Proposte generate» resterebbe per sempre).
+                var application = Application.Current;
+                if (application == null)
+                {
+                    return;
+                }
+
+                var version = ++_statusVersion;
+                var timer = new System.Windows.Threading.DispatcherTimer(System.Windows.Threading.DispatcherPriority.Background, application.Dispatcher)
+                {
+                    Interval = TimeSpan.FromSeconds(15)
+                };
+                timer.Tick += (s, e) =>
+                {
+                    timer.Stop();
+                    if (version == _statusVersion)
+                    {
+                        StatusMessage = string.Empty;
+                    }
+                };
+                timer.Start();
+            }
         }
+
+        private int _statusVersion;
 
         // ------------------------------------------------------------ Tipo di password
 

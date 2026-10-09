@@ -65,6 +65,7 @@ public partial class App : Application
         };
 
         tabs = new TabbedPage();
+        tabs.CurrentPageChanged += (sender, args) => viewModel.ClearStatus();   // il messaggio riguarda la scheda precedente
         tabs.SetDynamicResource(VisualElement.BackgroundColorProperty, "PageBg");
         tabs.SetDynamicResource(TabbedPage.BarBackgroundColorProperty, "CardBg");
         tabs.SetDynamicResource(TabbedPage.SelectedTabColorProperty, "Accent");

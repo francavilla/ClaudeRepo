@@ -165,7 +165,33 @@ public class MainViewModel : ObservableObject
     public string StatusMessage
     {
         get => _statusMessage;
-        private set => SetProperty(ref _statusMessage, value);
+        private set
+        {
+            if (!SetProperty(ref _statusMessage, value) || string.IsNullOrEmpty(value))
+            {
+                return;
+            }
+
+            // Il messaggio resta visibile per un po', poi la barra si svuota (altrimenti «Proposte generate» resterebbe per sempre).
+            var version = ++_statusVersion;
+            Application.Current?.Dispatcher?.DispatchDelayed(TimeSpan.FromSeconds(StatusSeconds), () =>
+            {
+                if (version == _statusVersion)
+                {
+                    StatusMessage = string.Empty;
+                }
+            });
+        }
+    }
+
+    private const int StatusSeconds = 15;
+    private int _statusVersion;
+
+    /// <summary>Svuota la barra di stato (per esempio quando si cambia scheda).</summary>
+    public void ClearStatus()
+    {
+        _statusVersion++;
+        StatusMessage = string.Empty;
     }
 
     // ---------------------------------------------------------------- Tipo di password
