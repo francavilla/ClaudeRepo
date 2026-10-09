@@ -4,6 +4,12 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.6.1] - 2026-10-09
+
+### Corretto
+- **Android: le voci del tipo di password mostravano «Microsoft.Maui.Controls.VerticalStackLayout» al posto del testo.** I pulsanti di opzione di MAUI non gestiscono un contenuto composto;
+  le tre voci sono ora riquadri da toccare, con titolo ed esempio, il cerchio pieno (●) e lo sfondo evidenziato sulla voce scelta.
+
 ## [1.6.0] - 2026-10-09
 
 ### Modificato

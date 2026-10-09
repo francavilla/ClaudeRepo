@@ -179,11 +179,37 @@ public class MainViewModel : ObservableObject
             OnPropertyChanged(nameof(IsPassphrase));
             OnPropertyChanged(nameof(IsSyllables));
             OnPropertyChanged(nameof(IsRandom));
+            OnPropertyChanged(nameof(PassphraseMarker));
+            OnPropertyChanged(nameof(SyllablesMarker));
+            OnPropertyChanged(nameof(RandomMarker));
+            OnPropertyChanged(nameof(PassphraseBackground));
+            OnPropertyChanged(nameof(SyllablesBackground));
+            OnPropertyChanged(nameof(RandomBackground));
             Generate();
         }
     }
 
     // Le tre voci di scelta sono pulsanti di opzione: l'impostazione a «vero» cambia il tipo; l'«falso» (quando un'altra voce viene scelta) si ignora.
+    // Le tre voci sono riquadri da toccare (non RadioButton: con un contenuto composto MAUI mostrava il nome del tipo); il cerchio pieno e lo sfondo indicano la scelta.
+    public ICommand SelectModeCommand => new Command<string>(index => ModeIndex = int.Parse(index));
+
+    public string PassphraseMarker => _mode == GenerationMode.Passphrase ? "●" : "○";
+
+    public string SyllablesMarker => _mode == GenerationMode.Syllables ? "●" : "○";
+
+    public string RandomMarker => _mode == GenerationMode.Random ? "●" : "○";
+
+    public Color PassphraseBackground => ModeBackground(GenerationMode.Passphrase);
+
+    public Color SyllablesBackground => ModeBackground(GenerationMode.Syllables);
+
+    public Color RandomBackground => ModeBackground(GenerationMode.Random);
+
+    private Color ModeBackground(GenerationMode mode)
+    {
+        return _mode == mode ? Color.FromArgb("#E0E7FF") : Colors.White;
+    }
+
     public bool IsPassphrase
     {
         get => _mode == GenerationMode.Passphrase;

@@ -78,33 +78,51 @@
                         <Label Text="Tipo di password" Style="{StaticResource CardTitle}" />
                         <Label Text="Tocca una voce per scegliere come generare le password. Lunghezze e regole sono in «Impostazioni»." Style="{StaticResource MutedText}" />
 
-                        <RadioButton GroupName="Mode" IsChecked="{Binding IsPassphrase, Mode=TwoWay}"
-                                     BorderColor="#CBD5E1" BorderWidth="1" CornerRadius="10" Padding="8,6">
-                            <RadioButton.Content>
-                                <VerticalStackLayout Spacing="2">
+                        <Border Stroke="#CBD5E1" StrokeThickness="1" Padding="10,8" BackgroundColor="{Binding PassphraseBackground}">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="10" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding SelectModeCommand}" CommandParameter="0" />
+                            </Border.GestureRecognizers>
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                <Label Text="{Binding PassphraseMarker}" TextColor="{StaticResource Accent}" FontSize="22" VerticalOptions="Center" />
+                                <VerticalStackLayout Grid.Column="1" Spacing="2">
                                     <Label Text="Parole italiane (consigliata)" FontAttributes="Bold" TextColor="#0F172A" />
                                     <Label Text="Lampo-Cavallo-Nebbia-Fiume47!" FontFamily="monospace" Style="{StaticResource MutedText}" />
                                 </VerticalStackLayout>
-                            </RadioButton.Content>
-                        </RadioButton>
-                        <RadioButton GroupName="Mode" IsChecked="{Binding IsSyllables, Mode=TwoWay}"
-                                     BorderColor="#CBD5E1" BorderWidth="1" CornerRadius="10" Padding="8,6">
-                            <RadioButton.Content>
-                                <VerticalStackLayout Spacing="2">
+                            </Grid>
+                        </Border>
+                        <Border Stroke="#CBD5E1" StrokeThickness="1" Padding="10,8" BackgroundColor="{Binding SyllablesBackground}">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="10" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding SelectModeCommand}" CommandParameter="1" />
+                            </Border.GestureRecognizers>
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                <Label Text="{Binding SyllablesMarker}" TextColor="{StaticResource Accent}" FontSize="22" VerticalOptions="Center" />
+                                <VerticalStackLayout Grid.Column="1" Spacing="2">
                                     <Label Text="Sillabe pronunciabili" FontAttributes="Bold" TextColor="#0F172A" />
                                     <Label Text="Bamelo-Tirusa-Pevono83=" FontFamily="monospace" Style="{StaticResource MutedText}" />
                                 </VerticalStackLayout>
-                            </RadioButton.Content>
-                        </RadioButton>
-                        <RadioButton GroupName="Mode" IsChecked="{Binding IsRandom, Mode=TwoWay}"
-                                     BorderColor="#CBD5E1" BorderWidth="1" CornerRadius="10" Padding="8,6">
-                            <RadioButton.Content>
-                                <VerticalStackLayout Spacing="2">
+                            </Grid>
+                        </Border>
+                        <Border Stroke="#CBD5E1" StrokeThickness="1" Padding="10,8" BackgroundColor="{Binding RandomBackground}">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="10" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding SelectModeCommand}" CommandParameter="2" />
+                            </Border.GestureRecognizers>
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                <Label Text="{Binding RandomMarker}" TextColor="{StaticResource Accent}" FontSize="22" VerticalOptions="Center" />
+                                <VerticalStackLayout Grid.Column="1" Spacing="2">
                                     <Label Text="Caratteri casuali" FontAttributes="Bold" TextColor="#0F172A" />
                                     <Label Text="k7Q#mP2v!xR4tw9N" FontFamily="monospace" Style="{StaticResource MutedText}" />
                                 </VerticalStackLayout>
-                            </RadioButton.Content>
-                        </RadioButton>
+                            </Grid>
+                        </Border>
                     </VerticalStackLayout>
                 </Border>
 
