@@ -183,11 +183,42 @@ public class MainViewModel : ObservableObject
         }
     }
 
-    public bool IsPassphrase => _mode == GenerationMode.Passphrase;
+    // Le tre voci di scelta sono pulsanti di opzione: l'impostazione a «vero» cambia il tipo; l'«falso» (quando un'altra voce viene scelta) si ignora.
+    public bool IsPassphrase
+    {
+        get => _mode == GenerationMode.Passphrase;
+        set
+        {
+            if (value)
+            {
+                ModeIndex = (int)GenerationMode.Passphrase;
+            }
+        }
+    }
 
-    public bool IsSyllables => _mode == GenerationMode.Syllables;
+    public bool IsSyllables
+    {
+        get => _mode == GenerationMode.Syllables;
+        set
+        {
+            if (value)
+            {
+                ModeIndex = (int)GenerationMode.Syllables;
+            }
+        }
+    }
 
-    public bool IsRandom => _mode == GenerationMode.Random;
+    public bool IsRandom
+    {
+        get => _mode == GenerationMode.Random;
+        set
+        {
+            if (value)
+            {
+                ModeIndex = (int)GenerationMode.Random;
+            }
+        }
+    }
 
     // Gli slider lavorano con double: i valori sono sempre arrotondati a interi.
     public double WordCount

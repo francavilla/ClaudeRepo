@@ -76,7 +76,35 @@
                 <Border Style="{StaticResource Card}">
                     <VerticalStackLayout Spacing="8">
                         <Label Text="Tipo di password" Style="{StaticResource CardTitle}" />
-                        <Picker ItemsSource="{Binding ModeNames}" SelectedIndex="{Binding ModeIndex, Mode=TwoWay}" />
+                        <Label Text="Tocca una voce per scegliere come generare le password." Style="{StaticResource MutedText}" />
+
+                        <RadioButton GroupName="Mode" IsChecked="{Binding IsPassphrase, Mode=TwoWay}"
+                                     BorderColor="#CBD5E1" BorderWidth="1" CornerRadius="10" Padding="8,6">
+                            <RadioButton.Content>
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="Parole italiane (consigliata)" FontAttributes="Bold" TextColor="#0F172A" />
+                                    <Label Text="Lampo-Cavallo-Nebbia-Fiume47!" FontFamily="monospace" Style="{StaticResource MutedText}" />
+                                </VerticalStackLayout>
+                            </RadioButton.Content>
+                        </RadioButton>
+                        <RadioButton GroupName="Mode" IsChecked="{Binding IsSyllables, Mode=TwoWay}"
+                                     BorderColor="#CBD5E1" BorderWidth="1" CornerRadius="10" Padding="8,6">
+                            <RadioButton.Content>
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="Sillabe pronunciabili" FontAttributes="Bold" TextColor="#0F172A" />
+                                    <Label Text="Bamelo-Tirusa-Pevono83=" FontFamily="monospace" Style="{StaticResource MutedText}" />
+                                </VerticalStackLayout>
+                            </RadioButton.Content>
+                        </RadioButton>
+                        <RadioButton GroupName="Mode" IsChecked="{Binding IsRandom, Mode=TwoWay}"
+                                     BorderColor="#CBD5E1" BorderWidth="1" CornerRadius="10" Padding="8,6">
+                            <RadioButton.Content>
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="Caratteri casuali" FontAttributes="Bold" TextColor="#0F172A" />
+                                    <Label Text="k7Q#mP2v!xR4tw9N" FontFamily="monospace" Style="{StaticResource MutedText}" />
+                                </VerticalStackLayout>
+                            </RadioButton.Content>
+                        </RadioButton>
 
                         <VerticalStackLayout IsVisible="{Binding IsPassphrase}">
                             <Label Text="{Binding WordCount, StringFormat='Numero di parole: {0:0}'}" />

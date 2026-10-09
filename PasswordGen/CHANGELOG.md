@@ -4,6 +4,12 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.5.2] - 2026-10-09
+
+### Modificato
+- **Android: la scelta del tipo di password è ora evidente.** Al posto del menu a tendina (che sembrava una semplice riga di testo) ci sono tre voci con il pulsante di opzione,
+  ciascuna con un esempio: «Parole italiane (consigliata)», «Sillabe pronunciabili» e «Caratteri casuali», come nell'app Windows. La voce scelta ha il cerchio pieno.
+
 ## [1.5.1] - 2026-10-09
 
 ### Corretto
