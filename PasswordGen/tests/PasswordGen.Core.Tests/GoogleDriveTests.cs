@@ -415,7 +415,7 @@ namespace PasswordGen.Core.Tests
 
             Assert.Equal(second, rig.Storage.Read());
             Assert.Contains(rig.Google.Calls, c => c.StartsWith("PATCH ") && c.Contains("/upload/drive/v3/files/file-1"));
-            Assert.Single(rig.Google.Calls.Where(c => c.StartsWith("POST ") && c.Contains("/upload/drive/v3/files")));
+            Assert.Single(rig.Google.Calls, c => c.StartsWith("POST ") && c.Contains("/upload/drive/v3/files"));
         }
 
         [Fact]
