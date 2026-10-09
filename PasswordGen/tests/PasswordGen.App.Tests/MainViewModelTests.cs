@@ -51,7 +51,7 @@ namespace PasswordGen.App.Tests
 
         // ---- finte dipendenze ----
 
-        private sealed class FakeDialogs : IDialogService
+        internal sealed class FakeDialogs : IDialogService
         {
             public bool ConfirmAnswer = true;
             public string SaveFilePath;
@@ -91,7 +91,7 @@ namespace PasswordGen.App.Tests
             public string AskSecret(string title, string message) { return ExistingSecret; }
         }
 
-        private sealed class FakeClipboard : ISecretClipboard
+        internal sealed class FakeClipboard : ISecretClipboard
         {
             public TimeSpan ClearAfter { get { return TimeSpan.FromSeconds(30); } }
             public event EventHandler Cleared { add { } remove { } }
@@ -99,13 +99,13 @@ namespace PasswordGen.App.Tests
             public void ClearIfPending() { }
         }
 
-        private sealed class FakeStartup : IStartupRegistration
+        internal sealed class FakeStartup : IStartupRegistration
         {
             public bool IsEnabled { get { return false; } }
             public void SetEnabled(bool enabled) { }
         }
 
-        private sealed class FakeHello : IWindowsHello
+        internal sealed class FakeHello : IWindowsHello
         {
             public bool Available = true;
             public bool AuthenticationSucceeds = true;
@@ -123,13 +123,13 @@ namespace PasswordGen.App.Tests
             }
         }
 
-        private sealed class XorProtector : ISecretProtector
+        internal sealed class XorProtector : ISecretProtector
         {
             public byte[] Protect(byte[] data) { return data.Select(b => (byte)(b ^ 0x5A)).ToArray(); }
             public byte[] Unprotect(byte[] data) { return data.Select(b => (byte)(b ^ 0x5A)).ToArray(); }
         }
 
-        private sealed class MemoryStorage : ISyncStorage
+        internal sealed class MemoryStorage : ISyncStorage
         {
             public byte[] Data;
 
@@ -139,7 +139,7 @@ namespace PasswordGen.App.Tests
         }
 
         /// <summary>Google Drive finto: si può condividere lo stesso «file» tra due finti dispositivi.</summary>
-        private sealed class FakeDrive : IGoogleDriveService
+        internal sealed class FakeDrive : IGoogleDriveService
         {
             public bool Configured = true;
             public bool SignedIn;
@@ -172,7 +172,7 @@ namespace PasswordGen.App.Tests
             }
         }
 
-        private sealed class Harness
+        internal sealed class Harness
         {
             public MainViewModel ViewModel;
             public FakeDialogs Dialogs;
@@ -185,7 +185,7 @@ namespace PasswordGen.App.Tests
             public LockCredentialManager Credentials;
         }
 
-        private Harness CreateViewModel(string name, AppSettings initial = null, bool helloAvailable = true, FakeDrive drive = null)
+        internal Harness CreateViewModel(string name, AppSettings initial = null, bool helloAvailable = true, FakeDrive drive = null)
         {
             var folder = Path.Combine(_directory, name);
             Directory.CreateDirectory(folder);

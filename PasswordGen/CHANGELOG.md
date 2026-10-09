@@ -4,6 +4,14 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [2.8.2] - 2026-10-09
+
+### Modificato
+- Windows: nessuna novità per chi usa l'app. Nei test automatici, la finestra principale viene ora aperta davvero con un ViewModel reale: il test visita ogni scheda, apre ogni sezione, prova ogni tipo di password
+  (parole, sillabe, caratteri) e il cambio password con proposte, titolo e cronologia, poi segnala qualsiasi errore di binding o risorsa mancante che WPF scrive nel registro di diagnostica
+  (proprietà inesistente, associazione in due direzioni su una proprietà di sola lettura, risorsa non trovata). Verifica anche che la palette chiara e quella scura definiscano le stesse risorse.
+  Errori come quello della 2.8.1 vengono così fermati dalla CI prima della release.
+
 ## [2.8.1] - 2026-10-09
 
 ### Corretto
