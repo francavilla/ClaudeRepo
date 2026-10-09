@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using SolutionDoctor.Core.Inventory;
 using SolutionDoctor.Core.Model;
 
@@ -12,12 +13,13 @@ namespace SolutionDoctor.Core.Analysis
     {
         private static readonly string[] IgnoredDirectories = { "bin", "obj" };
 
-        public static void Scan(ProjectInfo project, string rootDirectory, List<Finding> findings, List<UiClassInfo> uiClasses)
+        public static void Scan(ProjectInfo project, string rootDirectory, List<Finding> findings, List<UiClassInfo> uiClasses, CancellationToken cancellationToken)
         {
             var parts = new List<ClassPart>();
 
             foreach (var file in EnumerateSources(project.Directory))
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var analysis = CodeSmellDetector.AnalyzeSource(File.ReadAllText(file), PathUtil.Relative(rootDirectory, file));
                 foreach (var finding in analysis.Findings)
                 {

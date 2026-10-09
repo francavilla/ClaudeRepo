@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Logica dell'interfaccia grafica, senza dipendenze da WPF: ViewModel, comandi, righe da mostrare e servizi astratti.
+    Così è compilabile e testabile ovunque (anche su Linux); la finestra WPF in SolutionDoctor.App è solo XAML e collante.
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>SolutionDoctor.Presentation</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SolutionDoctor.Core\SolutionDoctor.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="SolutionDoctor.Presentation.Tests" />
+  </ItemGroup>
+
+</Project>

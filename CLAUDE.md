@@ -30,27 +30,32 @@ Più modifiche nella stessa richiesta = un solo incremento di versione.
 - Il workflow `.github/workflows/release-exebuilder.yml` verifica la versione, esegue i test, compila su Windows
   e crea la release GitHub con lo zip e le note prese dal `CHANGELOG.md`.
 
+- Le release di SolutionDoctor sono **una sola**, con due zip (interfaccia e riga di comando): workflow `Release SolutionDoctor`
+  (`.github/workflows/release-solutiondoctor.yml`), tag `solutiondoctor-vX.Y.Z` (il prefisso evita il conflitto con i tag `vX.Y.Z` di ExeBuilder),
+  file `SolutionDoctor-App-vX.Y.Z.zip` e `SolutionDoctor-Cli-vX.Y.Z.zip`, note prese dal `CHANGELOG.md`.
+  Avvio manuale su `main` (rifiuta altri rami) o tag uguale a `<Version>`; con `dry_run` costruisce e impacchetta senza creare tag né release (prova, da qualsiasi ramo).
+  Richiedono il .NET 8 (Desktop Runtime per l'interfaccia). La 1.0.0 (solo CLI) ha un unico zip `SolutionDoctor-v1.0.0.zip`; dalla 1.1.0 gli zip sono due.
+
 - Le release di PasswordGen sono **due, separate** (stessa versione di `PasswordGen/Directory.Build.props`, ma tag, titolo e file propri):
   - Windows: workflow `Release PasswordGen Desktop` (`.github/workflows/release-passwordgen-desktop.yml`), tag `passwordgen-desktop-vX.Y.Z`, zip `PasswordGen-Desktop-vX.Y.Z.zip`;
   - Android: workflow `Release PasswordGen Android` (`.github/workflows/release-passwordgen-android.yml`), tag `passwordgen-android-vX.Y.Z`, APK `PasswordGen-Android-vX.Y.Z.apk`.
   Stesso funzionamento delle altre release (avvio manuale su `main` o tag uguale a `<Version>`). Se non si precisa, «crea la release» vale per entrambe.
   I tag `passwordgen-vX.Y.Z` sono quelli delle release vecchie, con zip e APK insieme.
 
-- Le release di SolutionDoctor si creano con il workflow `Release SolutionDoctor` (`.github/workflows/release-solutiondoctor.yml`):
-  tag `solutiondoctor-vX.Y.Z`, zip `SolutionDoctor-vX.Y.Z.zip` con la CLI pubblicata (richiede il runtime .NET 8).
-  Stesso funzionamento delle altre release (avvio manuale su `main` o tag uguale a `<Version>`).
-
 ## CI
 - `.github/workflows/ci-exebuilder.yml` compila ExeBuilder su Windows (XAML compreso) ed esegue i test
   a ogni push su `Progetti_Claude`/`main` e a ogni PR verso `main`; l'app compilata è un artifact del run (14 giorni).
-- `.github/workflows/ci-solutiondoctor.yml` fa lo stesso per SolutionDoctor (test, pubblicazione della CLI, prova su ExeBuilder).
+- `.github/workflows/ci-solutiondoctor.yml` fa lo stesso per SolutionDoctor: compila tutto (app WPF compresa), esegue i test,
+  pubblica CLI e app, prova la CLI su ExeBuilder e prova l'interfaccia (avvio e contenuto delle griglie su `SolutionDoctor/samples/LegacyDemo`).
 - Dopo ogni push controllare l'esito della CI e correggere subito eventuali errori.
 
 ## Applicazioni
 - `ExeBuilder/` — WPF .NET Framework 4.8 che compila in Release progetti e solution .NET/.NET Framework.
   La logica sta in `ExeBuilder.Core` (testata in `tests/ExeBuilder.Core.Tests`); la UI in `src/ExeBuilder` (MVVM, tema in `Themes/Theme.xaml`).
-- `SolutionDoctor/` — CLI .NET 8 che analizza solution WinForms legacy e produce un report Markdown di priorità di refactoring.
-  Logica in `SolutionDoctor.Core` (netstandard2.0, testata in `tests/SolutionDoctor.Core.Tests`); la UI WPF è prevista come passo successivo.
+- `SolutionDoctor/` — CLI e interfaccia WPF (.NET 8) che analizzano solution WinForms legacy e producono un report di priorità di refactoring.
+  Logica in `SolutionDoctor.Core` (netstandard2.0); logica della UI in `SolutionDoctor.Presentation` (netstandard2.0, senza WPF);
+  test in `tests/SolutionDoctor.Core.Tests` e `tests/SolutionDoctor.Presentation.Tests` (anche contratto XAML ↔ ViewModel).
+  `SolutionDoctor.App` (WPF, `net8.0-windows`) si compila solo su Windows: in locale su Linux testare i due progetti di test, non la `.sln`.
 
 - `DesktopAppTemplate/` — modello di solution con architettura a slice, interfaccia WPF o Windows Forms (net462, scelta con `--ui wpf|winforms`).
   Logica in `Core`/`Features`/`Infrastructure` (netstandard2.0, testata in `tests/DesktopAppTemplate.Tests`); versione in `DesktopAppTemplate/Directory.Build.props`;

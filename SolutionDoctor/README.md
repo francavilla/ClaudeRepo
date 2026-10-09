@@ -1,11 +1,39 @@
 # SolutionDoctor
 
-Strumento a riga di comando che **analizza una solution Windows Forms legacy e produce un piano di refactoring
-ordinato per priorità**. Non modifica nulla: legge i file di progetto e i sorgenti C#, e scrive un report Markdown.
+Strumento che **analizza una solution Windows Forms legacy e produce un piano di refactoring
+ordinato per priorità**. Non modifica nulla: legge i file di progetto e i sorgenti C#, e restituisce un report.
+Si usa a riga di comando (anche in CI) oppure con un'interfaccia grafica WPF.
 
 Risponde alla domanda più difficile di un refactoring: *da dove comincio, e in che ordine?*
 
-## Uso
+## Download
+
+Dalle [release](../../releases) (tag `solutiondoctor-vX.Y.Z`): `SolutionDoctor-App-vX.Y.Z.zip` (interfaccia) e
+`SolutionDoctor-Cli-vX.Y.Z.zip` (riga di comando). Servono Windows 10/11 e il .NET 8
+(Desktop Runtime per l'interfaccia); si estrae lo zip e si avvia l'eseguibile, senza installazione.
+
+## Interfaccia grafica
+
+`SolutionDoctor.App.exe` (Windows, richiede il [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0)).
+
+1. Scegli un file `.sln` o `.csproj` o una cartella con **File…** / **Cartella…**, scrivendo il percorso o
+   **trascinandolo** nella finestra. Si può anche passare il percorso come argomento: l'analisi parte subito
+   (`SolutionDoctor.App.exe "C:\Progetti\MiaApp.sln"`).
+2. Scegli se ordinare per priorità con la cronologia git (e su quanti mesi) e premi **Analizza**; **Annulla** interrompe.
+3. Il risultato ha quattro sezioni:
+   - **Da dove cominciare**: le classi per priorità; selezionandone una si vedono i suoi problemi, doppio clic apre il file;
+   - **Problemi**: tutti i problemi, filtrabili per gravità e regola e ricercabili; il dettaglio spiega come intervenire
+     e permette di aprire il file, mostrarlo nella cartella o copiarne il percorso;
+   - **Progetti**: framework, formato, pacchetti, numero di problemi;
+   - **Ordine di migrazione**: dalle dipendenze verso gli eseguibili, con avviso sui riferimenti circolari.
+4. **Salva report…** e **Copia report** producono lo stesso Markdown della riga di comando.
+
+Percorso e opzioni dell'ultima analisi sono ricordati in `%APPDATA%\SolutionDoctor\settings.txt`.
+
+Per provarla subito c'è una solution di esempio con gli smell più tipici:
+`SolutionDoctor.App.exe SolutionDoctor\samples\LegacyDemo\LegacyDemo.sln`.
+
+## Riga di comando
 
 ```
 solutiondoctor analyze <percorso> [opzioni]
@@ -79,12 +107,23 @@ I commit si contano su file e relativo `.Designer.cs`.
 
 - `src/SolutionDoctor.Core` — logica (netstandard2.0, nessuna dipendenza da UI o console), testata in
   `tests/SolutionDoctor.Core.Tests`.
+- `src/SolutionDoctor.Presentation` — logica dell'interfaccia (netstandard2.0, senza WPF): ViewModel, comandi, servizi
+  astratti; testata in `tests/SolutionDoctor.Presentation.Tests`, che contiene anche i test di contratto XAML ↔ ViewModel.
 - `src/SolutionDoctor.Cli` — riga di comando (.NET 8).
+- `src/SolutionDoctor.App` — finestra WPF (`net8.0-windows`): solo XAML, tema e collante con il sistema.
 - C# 7.3 (`LangVersion` in `Directory.Build.props`), commenti e messaggi in italiano.
 
 ```
+# su Windows: compila tutto (app WPF compresa) ed esegue i test
 dotnet test SolutionDoctor/SolutionDoctor.sln -c Release
+
+# ovunque (anche Linux): tutto tranne l'app WPF, che si compila solo su Windows
+dotnet test SolutionDoctor/tests/SolutionDoctor.Core.Tests -c Release
+dotnet test SolutionDoctor/tests/SolutionDoctor.Presentation.Tests -c Release
+
 dotnet run --project SolutionDoctor/src/SolutionDoctor.Cli -- analyze <percorso>
+dotnet run --project SolutionDoctor/src/SolutionDoctor.App          # solo Windows
 ```
 
-Per eseguire il programma serve il runtime .NET 8. Prossimo passo previsto: interfaccia WPF che riusa il Core.
+Per eseguire i programmi serve il runtime .NET 8 (per l'interfaccia, il Desktop Runtime).
+Le architetture e i compromessi sono negli ADR in `docs/adr`.

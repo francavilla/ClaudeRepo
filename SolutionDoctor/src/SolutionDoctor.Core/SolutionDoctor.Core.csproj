@@ -3,7 +3,7 @@
   <!--
     Logica dell'applicazione, senza dipendenze dalla UI né dalla console:
     inventario di solution e progetti, rilevamento degli "smell" WinForms, priorità e report.
-    Target netstandard2.0: riusabile dalla CLI (.NET 8) e, in futuro, dalla UI WPF (.NET Framework 4.8).
+    Target netstandard2.0: riusabile dalla CLI e dalla UI WPF (entrambe .NET 8) e da eventuali altri host.
   -->
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>

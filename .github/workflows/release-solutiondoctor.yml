@@ -1,8 +1,11 @@
-# Crea la release di SolutionDoctor (CLI .NET 8).
+# Crea una release di SolutionDoctor (interfaccia e riga di comando).
 # - push di un tag solutiondoctor-vX.Y.Z: il tag deve corrispondere a <Version> in SolutionDoctor/Directory.Build.props;
-# - avvio manuale (Actions → Release SolutionDoctor → Run workflow): la versione si legge da
-#   Directory.Build.props e il tag solutiondoctor-vX.Y.Z viene creato insieme alla release.
-# Compila su Windows, esegue i test e allega lo zip della CLI pubblicata.
+# - avvio manuale (Actions → Release SolutionDoctor → Run workflow, da main): la versione si legge da
+#   Directory.Build.props e il tag solutiondoctor-vX.Y.Z viene creato insieme alla release;
+# - avvio manuale con "dry_run": costruisce e impacchetta tutto come per la release, ma non crea né tag né release
+#   (gli zip restano come artifact del run); si può lanciare da qualsiasi ramo.
+# Il prefisso del tag evita il conflitto con i tag vX.Y.Z di ExeBuilder.
+# Compila su Windows (WPF .NET 8), esegue i test e allega due zip: l'interfaccia grafica e la riga di comando.
 name: Release SolutionDoctor
 
 on:
@@ -10,6 +13,11 @@ on:
     tags:
       - 'solutiondoctor-v*.*.*'
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Prova: costruisce e impacchetta senza creare tag né release'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -26,12 +34,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          fetch-depth: 0   # la cronologia git serve ai test dell'analisi della frequenza di modifica
+          fetch-depth: 0   # la cronologia git serve ai test e alla prova della CLI (frequenza di modifica)
 
       - name: Versione
         id: version
         shell: pwsh
         run: |
+          $dryRun = '${{ inputs.dry_run }}' -eq 'true'
           [xml]$props = Get-Content 'SolutionDoctor/Directory.Build.props'
           $version = ($props.Project.PropertyGroup | Where-Object { $_.Version }).Version
           if ('${{ github.ref_type }}' -eq 'tag') {
@@ -40,25 +49,41 @@ jobs:
               throw "Il tag $tagVersion non corrisponde a <Version>$version</Version> in SolutionDoctor/Directory.Build.props"
             }
           }
-          gh release view "solutiondoctor-v$version" *> $null
-          if ($LASTEXITCODE -eq 0) { throw "La release solutiondoctor-v$version esiste già: aggiornare <Version> prima di rilasciare." }
-          $global:LASTEXITCODE = 0
+          elseif (-not $dryRun -and '${{ github.ref_name }}' -ne 'main') {
+            throw "Le release si creano da main (o da un tag): ramo corrente '${{ github.ref_name }}'. Per provare usare dry_run."
+          }
+          if (-not $dryRun) {
+            gh release view "solutiondoctor-v$version" *> $null
+            if ($LASTEXITCODE -eq 0) { throw "La release solutiondoctor-v$version esiste già: aggiornare <Version> prima di rilasciare." }
+            $global:LASTEXITCODE = 0
+          }
           "version=$version" >> $env:GITHUB_OUTPUT
           "tag=solutiondoctor-v$version" >> $env:GITHUB_OUTPUT
-          Write-Host "Rilascio di SolutionDoctor $version"
+          "dry=$($dryRun.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+          Write-Host "Rilascio di SolutionDoctor $version (prova: $dryRun)"
 
+      # Compila l'intera solution, app WPF e XAML compresi, ed esegue tutti i test.
       - name: Test
         run: dotnet test SolutionDoctor/SolutionDoctor.sln -c Release
 
-      - name: Pubblica la CLI
-        run: dotnet publish SolutionDoctor/src/SolutionDoctor.Cli/SolutionDoctor.Cli.csproj -c Release -o publish/SolutionDoctor
+      - name: Build Release (riga di comando)
+        run: dotnet publish SolutionDoctor/src/SolutionDoctor.Cli/SolutionDoctor.Cli.csproj -c Release -o publish/Cli
+
+      - name: Build Release (interfaccia)
+        run: dotnet publish SolutionDoctor/src/SolutionDoctor.App/SolutionDoctor.App.csproj -c Release -o publish/App
 
       - name: Prova della CLI pubblicata (su ExeBuilder)
-        run: publish/SolutionDoctor/solutiondoctor.exe analyze ExeBuilder/ExeBuilder.sln -o solutiondoctor-prova.md
+        run: publish/Cli/solutiondoctor.exe analyze ExeBuilder/ExeBuilder.sln -o solutiondoctor-prova.md
 
-      - name: Crea lo zip
+      - name: Crea gli zip
         shell: pwsh
-        run: Compress-Archive -Path 'publish/SolutionDoctor/*' -DestinationPath 'SolutionDoctor-v${{ steps.version.outputs.version }}.zip'
+        run: |
+          foreach ($file in 'publish/Cli/solutiondoctor.exe', 'publish/App/SolutionDoctor.App.exe') {
+            if (-not (Test-Path $file)) { throw "File atteso non trovato: $file" }
+          }
+          $version = '${{ steps.version.outputs.version }}'
+          Compress-Archive -Path 'publish/App/*' -DestinationPath "SolutionDoctor-App-v$version.zip"
+          Compress-Archive -Path 'publish/Cli/*' -DestinationPath "SolutionDoctor-Cli-v$version.zip"
 
       - name: Note di rilascio dal CHANGELOG
         shell: pwsh
@@ -70,13 +95,27 @@ jobs:
           $end = [Array]::FindIndex($lines, $start + 1, [Predicate[string]]{ param($l) $l.StartsWith('## [') })
           if ($end -lt 0) { $end = $lines.Length }
           $notes = $lines[($start + 1)..($end - 1)] -join "`n"
-          $notes += "`n`n**Requisiti:** Windows con il runtime .NET 8 (o un SDK .NET 8 o successivo). Estrarre lo zip e da un prompt dei comandi eseguire ``solutiondoctor analyze <percorso della .sln>`` (aggiungere ``-o report.md`` per salvare il report su file). Per l'analisi della frequenza di modifica serve ``git`` nel PATH."
+          $notes += "`n`n**Requisiti:** Windows 10/11 e [.NET 8](https://dotnet.microsoft.com/download/dotnet/8.0) (Desktop Runtime per l'interfaccia). Per ordinare per priorità con la cronologia di modifica serve ``git`` nel PATH."
+          $notes += "`n`n**Come si usa:** ``SolutionDoctor-App-v$version.zip`` è l'interfaccia grafica: estrarre e avviare ``SolutionDoctor.App.exe``. "
+          $notes += "``SolutionDoctor-Cli-v$version.zip`` è la riga di comando: ``solutiondoctor.exe analyze <percorso> -o report.md``."
           Set-Content -Path 'release-notes.md' -Value $notes -Encoding UTF8
 
       - name: Crea la release
+        if: steps.version.outputs.dry != 'true'
         shell: pwsh
         run: |
-          gh release create '${{ steps.version.outputs.tag }}' 'SolutionDoctor-v${{ steps.version.outputs.version }}.zip' `
+          $version = '${{ steps.version.outputs.version }}'
+          gh release create '${{ steps.version.outputs.tag }}' "SolutionDoctor-App-v$version.zip" "SolutionDoctor-Cli-v$version.zip" `
             --target '${{ github.sha }}' `
-            --title 'SolutionDoctor v${{ steps.version.outputs.version }}' `
+            --title "SolutionDoctor v$version" `
             --notes-file release-notes.md
+
+      - name: Artifact della prova
+        if: steps.version.outputs.dry == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: SolutionDoctor-prova-${{ steps.version.outputs.version }}
+          path: |
+            SolutionDoctor-*.zip
+            release-notes.md
+          retention-days: 7
