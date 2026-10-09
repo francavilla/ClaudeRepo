@@ -53,6 +53,7 @@ namespace PasswordGen.Core.History
         {
             _entries = _entries ?? new List<HistoryEntry>();
             _nextNumber = Math.Max(1, _nextNumber);
+            SortNewestFirst();
             Trim();
         }
 
@@ -124,10 +125,21 @@ namespace PasswordGen.Core.History
                 added.Add(entry);
             }
 
-            // Ordinamento stabile: dal giorno più recente; a parità di giorno restano prime le voci già presenti.
-            _entries = _entries.OrderByDescending(e => e.Date ?? DateTime.MinValue).ToList();
+            SortNewestFirst();
             Trim();
             return added.Count(a => _entries.Contains(a));
+        }
+
+        /// <summary>
+        /// Dalla più recente: prima il giorno, poi a parità di giorno il momento di registrazione (le voci senza momento vengono dopo).
+        /// L'ordinamento è stabile: a parità di tutto restano prime le voci già presenti.
+        /// </summary>
+        private void SortNewestFirst()
+        {
+            _entries = _entries
+                .OrderByDescending(e => e.Date ?? DateTime.MinValue)
+                .ThenByDescending(e => ParseExchangeTime(e.AddedUtcText) ?? DateTime.MinValue)
+                .ToList();
         }
 
         /// <summary>Copia indipendente dello storico (voci e numerazione).</summary>

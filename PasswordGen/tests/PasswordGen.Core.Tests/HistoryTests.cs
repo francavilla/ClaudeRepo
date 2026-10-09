@@ -103,6 +103,24 @@ namespace PasswordGen.Core.Tests
         }
 
         [Fact]
+        public void Merge_StessoGiorno_OrdinaPerMomentoDiRegistrazione()
+        {
+            var history = new PasswordHistory();
+            history.Add("Locale-1111-aaaa!", GenerationMode.Random, Day, new DateTime(2026, 10, 8, 9, 0, 0, DateTimeKind.Utc));
+
+            history.Merge(new[]
+            {
+                new HistoryEntry { DateText = "2026-10-08", Password = "Tarda-2222-bbbb!", AddedUtcText = "2026-10-08T15:00:00Z" },
+                new HistoryEntry { DateText = "2026-10-08", Password = "Presto-3333-cccc!", AddedUtcText = "2026-10-08T07:00:00Z" },
+                new HistoryEntry { DateText = "2026-10-08", Password = "Vecchia-4444-dddd!" }
+            });
+
+            Assert.Equal(
+                new[] { "Tarda-2222-bbbb!", "Locale-1111-aaaa!", "Presto-3333-cccc!", "Vecchia-4444-dddd!" },
+                history.Entries.Select(e => e.Password).ToArray());
+        }
+
+        [Fact]
         public void Remove_NeverReusesANumber()
         {
             var history = new PasswordHistory();

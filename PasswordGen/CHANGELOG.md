@@ -4,6 +4,12 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [2.1.2] - 2026-10-09
+
+### Corretto
+- **Storico: l'ordine è sempre dalla password più recente.** Prima, nello stesso giorno, l'ordine delle voci arrivate dall'altro dispositivo dipendeva da chi le aveva già. Ora si ordina per giorno e, a parità di giorno, per momento di registrazione
+  (le voci vecchie, senza momento registrato, vengono dopo). Vale per Windows e Android.
+
 ## [2.1.1] - 2026-10-09
 
 ### Modificato
