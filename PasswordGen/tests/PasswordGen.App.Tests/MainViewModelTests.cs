@@ -26,9 +26,26 @@ namespace PasswordGen.App.Tests
 
         public void Dispose()
         {
-            if (Directory.Exists(_directory))
+            // Una sincronizzazione in secondo piano può ancora scrivere nella cartella mentre il test finisce: si riprova a cancellarla.
+            for (var attempt = 0; attempt < 10; attempt++)
             {
-                Directory.Delete(_directory, true);
+                try
+                {
+                    if (Directory.Exists(_directory))
+                    {
+                        Directory.Delete(_directory, true);
+                    }
+
+                    return;
+                }
+                catch (IOException)
+                {
+                    Thread.Sleep(200);
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    Thread.Sleep(200);
+                }
             }
         }
 
