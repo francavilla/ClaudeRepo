@@ -36,6 +36,10 @@ Più modifiche nella stessa richiesta = un solo incremento di versione.
   Stesso funzionamento delle altre release (avvio manuale su `main` o tag uguale a `<Version>`). Se non si precisa, «crea la release» vale per entrambe.
   I tag `passwordgen-vX.Y.Z` sono quelli delle release vecchie, con zip e APK insieme.
 
+- Le release di SolutionDoctor si creano con il workflow `Release SolutionDoctor` (`.github/workflows/release-solutiondoctor.yml`):
+  tag `solutiondoctor-vX.Y.Z`, zip `SolutionDoctor-vX.Y.Z.zip` con la CLI pubblicata (richiede il runtime .NET 8).
+  Stesso funzionamento delle altre release (avvio manuale su `main` o tag uguale a `<Version>`).
+
 ## CI
 - `.github/workflows/ci-exebuilder.yml` compila ExeBuilder su Windows (XAML compreso) ed esegue i test
   a ogni push su `Progetti_Claude`/`main` e a ogni PR verso `main`; l'app compilata è un artifact del run (14 giorni).
