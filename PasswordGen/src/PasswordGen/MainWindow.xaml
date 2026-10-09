@@ -83,7 +83,7 @@
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock Text="{Binding ReminderMessage}" FontWeight="SemiBold" TextWrapping="Wrap" />
                     <TextBlock Text="{Binding LastChangeText}" Style="{StaticResource Muted}" />
-                    <ProgressBar Value="{Binding ReminderProgress}" Margin="0,8,0,0" MaxWidth="420" HorizontalAlignment="Left" Width="420"
+                    <ProgressBar Value="{Binding ReminderProgress, Mode=OneWay}" Margin="0,8,0,0" MaxWidth="420" HorizontalAlignment="Left" Width="420"
                                  Visibility="{Binding HasReminderDays, Converter={StaticResource BoolToVisibility}}">
                         <ProgressBar.Style>
                             <Style TargetType="ProgressBar" BasedOn="{StaticResource SlimProgress}">
@@ -222,7 +222,7 @@
                                                 <TextBox Text="{Binding Text, Mode=OneWay}" IsReadOnly="True" BorderThickness="0"
                                                          Background="Transparent" FontFamily="{StaticResource MonoFont}"
                                                          FontSize="26" FontWeight="SemiBold" Padding="0" TextWrapping="Wrap" />
-                                                <ProgressBar Value="{Binding StrengthFraction}" Margin="0,10,0,0">
+                                                <ProgressBar Value="{Binding StrengthFraction, Mode=OneWay}" Margin="0,10,0,0">
                                                 <ProgressBar.Style>
                                                     <Style TargetType="ProgressBar" BasedOn="{StaticResource SlimProgress}">
                                                         <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
@@ -317,7 +317,7 @@
                                 <TextBlock DockPanel.Dock="Right" Style="{StaticResource Muted}" Text="{Binding HistoryUsageText}" />
                                 <TextBlock Style="{StaticResource Muted}" Text="Dalla più recente. Le password sono mascherate: mostrale o copiale solo quando servono." Margin="0,0,16,0" />
                             </DockPanel>
-                            <ProgressBar Style="{StaticResource SlimProgress}" Value="{Binding HistoryUsage}" Margin="0,8,0,0" />
+                            <ProgressBar Style="{StaticResource SlimProgress}" Value="{Binding HistoryUsage, Mode=OneWay}" Margin="0,8,0,0" />
                         </StackPanel>
                         <TextBlock DockPanel.Dock="Top" Style="{StaticResource Muted}" FontStyle="Italic"
                                    Text="Lo storico è ancora vuoto: dopo aver cambiato la password premi «Ho cambiato la password» in alto."

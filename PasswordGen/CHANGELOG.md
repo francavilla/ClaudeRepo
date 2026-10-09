@@ -4,6 +4,13 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [2.8.1] - 2026-10-09
+
+### Corretto
+- **Windows: l'app andava in errore all'apertura** («Impossibile utilizzare un'associazione TwoWay o OneWayToSource per la proprietà di sola lettura 'StrengthFraction'»). Le barre di avanzamento della nuova schermata (robustezza delle proposte, giorni alla scadenza, spazio dello storico)
+  leggevano valori in sola lettura in due direzioni; ora sono associate in una sola direzione. L'errore era presente nelle versioni Windows dalla 2.4.0 alla 2.8.0 (non Android).
+- Aggiunto un controllo automatico che cerca questo errore nel file della finestra.
+
 ## [2.8.0] - 2026-10-09
 
 ### Aggiunto
