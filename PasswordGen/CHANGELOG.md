@@ -4,6 +4,11 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [2.7.1] - 2026-10-09
+
+### Corretto
+- **Android: le etichette dei pulsanti di ogni voce della cronologia non sono più tagliate** («Mostr», «Nasco»). Con il pulsante «Titolo» in più i tre pulsanti erano troppo stretti: «Mostra/Nascondi» e «Copia» tornano affiancati e «Titolo» sta sotto, a tutta larghezza.
+
 ## [2.7.0] - 2026-10-09
 
 ### Aggiunto

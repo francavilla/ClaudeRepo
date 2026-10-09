@@ -71,14 +71,14 @@
                                         <Label Text="{Binding Label}" FontAttributes="Bold" TextColor="{DynamicResource Accent}" IsVisible="{Binding HasLabel}" />
                                         <Label Text="{Binding DisplayText}" FontFamily="monospace" FontSize="17" FontAttributes="Bold"
                                                LineBreakMode="CharacterWrap" />
-                                        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="6">
+                                        <Grid ColumnDefinitions="*,*" ColumnSpacing="6">
                                             <Button Grid.Column="0" Text="{Binding ToggleText}" Command="{Binding ToggleCommand}"
                                                     BackgroundColor="{DynamicResource CardBg}" TextColor="{DynamicResource Accent}" BorderColor="{DynamicResource BorderStrong}" BorderWidth="1" />
-                                            <Button Grid.Column="1" Text="Titolo" Command="{Binding EditLabelCommand}"
-                                                    BackgroundColor="{DynamicResource CardBg}" TextColor="{DynamicResource Accent}" BorderColor="{DynamicResource BorderStrong}" BorderWidth="1" />
-                                            <Button Grid.Column="2" Text="{Binding CopyText}" Command="{Binding CopyCommand}"
+                                            <Button Grid.Column="1" Text="{Binding CopyText}" Command="{Binding CopyCommand}"
                                                     BackgroundColor="{DynamicResource CardBg}" TextColor="{DynamicResource Accent}" BorderColor="{DynamicResource BorderStrong}" BorderWidth="1" />
                                         </Grid>
+                                        <Button Text="Titolo" Command="{Binding EditLabelCommand}"
+                                                BackgroundColor="{DynamicResource CardBg}" TextColor="{DynamicResource Accent}" BorderColor="{DynamicResource BorderStrong}" BorderWidth="1" />
                                     </VerticalStackLayout>
                                 </Border>
                             </Grid>
