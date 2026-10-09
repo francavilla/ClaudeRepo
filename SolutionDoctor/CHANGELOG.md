@@ -21,13 +21,14 @@ Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Bui
 - Test di contratto XAML ↔ ViewModel: binding, risorse (anche l'ordine di definizione), gestori di evento, `x:Static`,
   voci della solution; poiché il XAML si compila solo su Windows, rilevano in anticipo gli errori che altrimenti
   emergerebbero a runtime.
-- Workflow `Release SolutionDoctor` (tag `solutiondoctor-vX.Y.Z`): test, build su Windows e release GitHub con due zip,
-  interfaccia e riga di comando, e note prese dal CHANGELOG; modalità `dry_run` per provarlo senza pubblicare.
 - Solution di esempio `samples/LegacyDemo` (WinForms legacy, volutamente non compilabile) per provare lo strumento
   e come banco di prova della CI.
 - Script `tools/make_icon.py` (Python + Pillow) e icona dell'applicazione.
 
 ### Modificato
+- Il workflow `Release SolutionDoctor` (tag `solutiondoctor-vX.Y.Z`) pubblica ora due zip, interfaccia
+  (`SolutionDoctor-App-vX.Y.Z.zip`) e riga di comando (`SolutionDoctor-Cli-vX.Y.Z.zip`); rifiuta di rilasciare da rami diversi
+  da `main` e ha la modalità `dry_run`, che costruisce e impacchetta senza creare tag né release.
 - La CI compila anche l'app WPF (XAML compreso), ne pubblica l'artifact e la prova davvero: avvia la finestra sulla solution
   di esempio, apre le quattro sezioni tramite UI Automation e controlla righe e testi delle griglie (quindi anche i binding delle celle).
 - ADR 0002: la UI è WPF su `net8.0-windows` (non .NET Framework 4.8) con i ViewModel in una libreria separata.

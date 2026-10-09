@@ -32,7 +32,9 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0   # la cronologia git serve ai test e alla prova della CLI (frequenza di modifica)
 
       - name: Versione
         id: version
@@ -70,6 +72,9 @@ jobs:
       - name: Build Release (interfaccia)
         run: dotnet publish SolutionDoctor/src/SolutionDoctor.App/SolutionDoctor.App.csproj -c Release -o publish/App
 
+      - name: Prova della CLI pubblicata (su ExeBuilder)
+        run: publish/Cli/solutiondoctor.exe analyze ExeBuilder/ExeBuilder.sln -o solutiondoctor-prova.md
+
       - name: Crea gli zip
         shell: pwsh
         run: |
@@ -90,7 +95,7 @@ jobs:
           $end = [Array]::FindIndex($lines, $start + 1, [Predicate[string]]{ param($l) $l.StartsWith('## [') })
           if ($end -lt 0) { $end = $lines.Length }
           $notes = $lines[($start + 1)..($end - 1)] -join "`n"
-          $notes += "`n`n**Requisiti:** Windows 10/11 e [.NET 8](https://dotnet.microsoft.com/download/dotnet/8.0) (Desktop Runtime per l'interfaccia)."
+          $notes += "`n`n**Requisiti:** Windows 10/11 e [.NET 8](https://dotnet.microsoft.com/download/dotnet/8.0) (Desktop Runtime per l'interfaccia). Per ordinare per priorità con la cronologia di modifica serve ``git`` nel PATH."
           $notes += "`n`n**Come si usa:** ``SolutionDoctor-App-v$version.zip`` è l'interfaccia grafica: estrarre e avviare ``SolutionDoctor.App.exe``. "
           $notes += "``SolutionDoctor-Cli-v$version.zip`` è la riga di comando: ``solutiondoctor.exe analyze <percorso> -o report.md``."
           Set-Content -Path 'release-notes.md' -Value $notes -Encoding UTF8
