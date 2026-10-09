@@ -121,6 +121,35 @@ namespace PasswordGen.Services
             return string.IsNullOrEmpty(result) ? null : result;
         }
 
+        /// <summary>Piccola finestra per un testo breve (il titolo di una password). Null se si annulla.</summary>
+        public static string AskText(string title, string message, string initial)
+        {
+            var box = new TextBox { Margin = new Thickness(0, 0, 0, 12), Padding = new Thickness(6, 5, 6, 5), Text = initial ?? string.Empty, MaxLength = 60 };
+            var panel = new StackPanel { Margin = new Thickness(16) };
+            panel.Children.Add(new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) });
+            panel.Children.Add(box);
+
+            var ok = new Button { Content = "OK", IsDefault = true, MinWidth = 80, Margin = new Thickness(0, 0, 8, 0) };
+            var cancel = new Button { Content = "Annulla", IsCancel = true, MinWidth = 80 };
+            var row = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+            row.Children.Add(ok);
+            row.Children.Add(cancel);
+            panel.Children.Add(row);
+
+            var window = CreateWindow(title, panel);
+            string result = null;
+            ok.Click += (s, e) =>
+            {
+                result = box.Text;
+                window.DialogResult = true;
+            };
+
+            box.Focus();
+            box.SelectAll();
+            window.ShowDialog();
+            return result;
+        }
+
         private static PasswordBox NewBox()
         {
             return new PasswordBox { Margin = new Thickness(0, 0, 0, 8), Padding = new Thickness(6, 5, 6, 5) };

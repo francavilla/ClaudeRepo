@@ -704,11 +704,12 @@ namespace PasswordGen.ViewModels
                 }
 
                 ChoiceIndex = _lastCopied == null ? 0 : Suggestions.IndexOf(_lastCopied) + 1;
+                ChoiceLabel = string.Empty;
                 IsChoosing = true;
                 return;
             }
 
-            CompleteChange(null);
+            CompleteChange(null, null);
         }
 
         private void ConfirmChange()
@@ -720,10 +721,10 @@ namespace PasswordGen.ViewModels
             }
 
             IsChoosing = false;
-            CompleteChange(chosen);
+            CompleteChange(chosen, _choiceLabel);
         }
 
-        private void CompleteChange(SuggestionViewModel chosen)
+        private void CompleteChange(SuggestionViewModel chosen, string label)
         {
             // Regola aziendale: la nuova password non può essere una delle ultime 20 (confronto identico).
             var duplicate = chosen == null ? null : _history.Find(chosen.Text);
@@ -736,7 +737,7 @@ namespace PasswordGen.ViewModels
             var today = _today();
             _settings.LastChangeDate = today;
 
-            var entry = _history.Add(chosen == null ? null : chosen.Text, chosen == null ? _mode : chosen.Mode, today, DateTime.UtcNow);
+            var entry = _history.Add(chosen == null ? null : chosen.Text, chosen == null ? _mode : chosen.Mode, today, DateTime.UtcNow, chosen == null ? null : label);
             SaveHistory();
             RefreshHistory();
             StatusMessage = chosen == null
@@ -1586,6 +1587,15 @@ namespace PasswordGen.ViewModels
             private set { SetProperty(ref _isChoosing, value); }
         }
 
+        /// <summary>Titolo facoltativo da dare alla password scelta («dove la uso»).</summary>
+        public string ChoiceLabel
+        {
+            get { return _choiceLabel; }
+            set { SetProperty(ref _choiceLabel, value ?? string.Empty); }
+        }
+
+        private string _choiceLabel = string.Empty;
+
         public ObservableCollection<string> ChoiceItems { get; private set; }
 
         /// <summary>0 = nessuna proposta (solo data); n = proposta numero n.</summary>
@@ -1600,7 +1610,7 @@ namespace PasswordGen.ViewModels
             HistoryEntries.Clear();
             foreach (var entry in _history.Entries)
             {
-                HistoryEntries.Add(new HistoryEntryViewModel(entry, CopyHistoryEntry, HistoryEntries.Count == 0));
+                HistoryEntries.Add(new HistoryEntryViewModel(entry, CopyHistoryEntry, EditHistoryLabel, HistoryEntries.Count == 0));
             }
 
             OnPropertyChanged(nameof(HistoryUsageText));
@@ -1620,6 +1630,24 @@ namespace PasswordGen.ViewModels
             StatusMessage = copied
                 ? "Password #" + entry.Number + " copiata: verrà cancellata dagli appunti tra " + (int)_clipboard.ClearAfter.TotalSeconds + " secondi."
                 : "Impossibile accedere agli appunti: riprova.";
+        }
+
+        /// <summary>Aggiunge, cambia o toglie il titolo di una voce dello storico.</summary>
+        private void EditHistoryLabel(HistoryEntryViewModel entry)
+        {
+            var text = _dialogs.AskText("Titolo della password " + entry.Title, "Dove usi questa password? (facoltativo, lascia vuoto per toglierlo)", entry.Label);
+            if (text == null)
+            {
+                return;
+            }
+
+            if (_history.SetLabel(entry.Number, text, DateTime.UtcNow))
+            {
+                SaveHistory();
+                RefreshHistory();
+                StatusMessage = string.IsNullOrWhiteSpace(text) ? "Titolo tolto." : "Titolo salvato.";
+                var ignoredSync = AutoSyncAsync();
+            }
         }
 
         private void ClearHistory()

@@ -4,6 +4,14 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [2.7.0] - 2026-10-09
+
+### Aggiunto
+- **Titolo facoltativo per ricordare dove è usata una password.** Quando registri il cambio con «Ho cambiato la password» puoi scrivere un titolo (per esempio «Portale HR»); su Windows c'è un campo nel riquadro di scelta della proposta, su Android una domanda subito dopo la scelta. Si può lasciare vuoto.
+  - Il titolo compare in cronologia accanto al numero e alla data, e un pulsante «Titolo» su ogni voce lo aggiunge, lo cambia o lo toglie (testo vuoto).
+  - Viaggia con la sincronizzazione e con esporta/importa, cifrato come il resto dello storico. Se due dispositivi hanno titoli diversi per la stessa voce, vince quello scritto per ultimo. Al massimo 60 caratteri.
+  - Le voci già salvate restano senza titolo.
+
 ## [2.6.0] - 2026-10-09
 
 ### Aggiunto

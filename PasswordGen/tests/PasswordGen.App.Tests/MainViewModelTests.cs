@@ -54,6 +54,10 @@ namespace PasswordGen.App.Tests
                 return Passphrases.Count > 0 ? Passphrases.Dequeue() : null;
             }
 
+            public readonly Queue<string> Texts = new Queue<string>();
+
+            public string AskText(string title, string message, string initial) { return Texts.Count > 0 ? Texts.Dequeue() : null; }
+
             public int ChooseIndex = -1;
             public IReadOnlyList<string> ChooseOptions;
             public string NewSecret;
@@ -224,6 +228,38 @@ namespace PasswordGen.App.Tests
             Assert.True(h.ViewModel.HasHistory);
             Assert.DoesNotContain("Nessun cambio", h.ViewModel.LastChangeText);
             Assert.Equal(Today, h.Settings.Load().LastChangeDate);
+        }
+
+        [Fact]
+        public void CambioConTitolo_LoSalvaNelloStorico()
+        {
+            var h = CreateViewModel("a");
+
+            h.ViewModel.MarkChangedCommand.Execute(null);
+            h.ViewModel.ChoiceIndex = 1;
+            h.ViewModel.ChoiceLabel = "  Portale HR  ";
+            h.ViewModel.ConfirmChangeCommand.Execute(null);
+
+            Assert.Equal("Portale HR", h.History.Load().Entries[0].Label);
+            Assert.Equal("Portale HR", h.ViewModel.HistoryEntries[0].Label);
+            Assert.True(h.ViewModel.HistoryEntries[0].HasLabel);
+        }
+
+        [Fact]
+        public void ModificaTitolo_AggiungeCambiaETogliereIlTitolo()
+        {
+            var h = CreateViewModel("a");
+            RegisterChange(h.ViewModel, 1);
+            Assert.False(h.ViewModel.HistoryEntries[0].HasLabel);
+
+            h.Dialogs.Texts.Enqueue("VPN");
+            h.ViewModel.HistoryEntries[0].EditLabelCommand.Execute(null);
+            Assert.Equal("VPN", h.History.Load().Entries[0].Label);
+
+            h.Dialogs.Texts.Enqueue("");
+            h.ViewModel.HistoryEntries[0].EditLabelCommand.Execute(null);
+            Assert.False(h.ViewModel.HistoryEntries[0].HasLabel);
+            Assert.True(string.IsNullOrEmpty(h.History.Load().Entries[0].Label));
         }
 
         [Fact]

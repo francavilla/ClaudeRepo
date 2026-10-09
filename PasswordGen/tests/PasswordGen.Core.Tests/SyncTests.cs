@@ -326,6 +326,30 @@ namespace PasswordGen.Core.Tests
         }
 
         [Fact]
+        public void Titolo_ViaggiaConLaSincronizzazione_EVinceQuelloScrittoPerUltimo()
+        {
+            var storage = new MemoryStorage();
+            var a = new PasswordHistory();
+            var b = new PasswordHistory();
+            a.Add("Alfa-Beta-12!", GenerationMode.Passphrase, new DateTime(2026, 10, 8), Now, "Portale HR");
+            SyncEngine.Run(storage, Phrase, a, new AppSettings(), Now, Fast);
+            SyncEngine.Run(storage, Phrase, b, new AppSettings(), Now.AddMinutes(1), Fast);
+            Assert.Equal("Portale HR", b.Entries[0].Label);
+
+            // B cambia il titolo più tardi: arriva anche su A.
+            b.SetLabel(b.Entries[0].Number, "VPN", Now.AddMinutes(10));
+            SyncEngine.Run(storage, Phrase, b, new AppSettings(), Now.AddMinutes(10), Fast);
+            SyncEngine.Run(storage, Phrase, a, new AppSettings(), Now.AddMinutes(11), Fast);
+            Assert.Equal("VPN", a.Entries[0].Label);
+
+            // Un titolo più vecchio non sostituisce quello più recente.
+            var stale = new PasswordHistory();
+            stale.Add("Alfa-Beta-12!", GenerationMode.Passphrase, new DateTime(2026, 10, 8), Now, "Vecchio");
+            SyncEngine.Run(storage, Phrase, stale, new AppSettings(), Now.AddMinutes(12), Fast);
+            Assert.Equal("VPN", stale.Entries[0].Label);
+        }
+
+        [Fact]
         public void Azzeramento_ResistePersistenzaESerializzazione()
         {
             var history = HistoryWith("2026-09-01|Aaaa-1111-bbbb!");

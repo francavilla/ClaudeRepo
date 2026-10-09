@@ -15,13 +15,27 @@ namespace PasswordGen.ViewModels
         private readonly HistoryEntry _entry;
         private bool _isRevealed;
 
-        public HistoryEntryViewModel(HistoryEntry entry, Action<HistoryEntryViewModel> copy, bool isCurrent)
+        public HistoryEntryViewModel(HistoryEntry entry, Action<HistoryEntryViewModel> copy, Action<HistoryEntryViewModel> editLabel, bool isCurrent)
         {
             _entry = entry;
+            EditLabelCommand = new RelayCommand(() => editLabel(this));
             IsCurrent = isCurrent;
             ToggleCommand = new RelayCommand(() => IsRevealed = !IsRevealed, () => _entry.HasPassword);
             CopyCommand = new RelayCommand(() => copy(this), () => _entry.HasPassword);
         }
+
+        /// <summary>Titolo facoltativo («dove la uso»); stringa vuota se non c'è.</summary>
+        public string Label
+        {
+            get { return _entry.Label ?? string.Empty; }
+        }
+
+        public bool HasLabel
+        {
+            get { return !string.IsNullOrEmpty(_entry.Label); }
+        }
+
+        public ICommand EditLabelCommand { get; private set; }
 
         /// <summary>La voce più recente: la password in uso.</summary>
         public bool IsCurrent { get; private set; }

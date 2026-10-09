@@ -35,7 +35,7 @@ namespace PasswordGen.Core.Sync
 
             foreach (var entry in history.Entries)
             {
-                data.Entries.Add(new ExchangeEntry { DateText = entry.DateText, Mode = entry.Mode, Password = entry.Password ?? string.Empty, AddedUtcText = entry.AddedUtcText });
+                data.Entries.Add(new ExchangeEntry { DateText = entry.DateText, Mode = entry.Mode, Password = entry.Password ?? string.Empty, AddedUtcText = entry.AddedUtcText, Label = entry.Label, LabelUtcText = entry.LabelUtcText });
             }
 
             return data;
@@ -112,7 +112,7 @@ namespace PasswordGen.Core.Sync
 
         private static HistoryEntry ToHistoryEntry(ExchangeEntry entry)
         {
-            return new HistoryEntry { DateText = entry.DateText, Mode = entry.Mode, Password = entry.Password, AddedUtcText = entry.AddedUtcText };
+            return new HistoryEntry { DateText = entry.DateText, Mode = entry.Mode, Password = entry.Password, AddedUtcText = entry.AddedUtcText, Label = entry.Label, LabelUtcText = entry.LabelUtcText };
         }
     }
 

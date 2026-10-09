@@ -44,6 +44,11 @@ namespace PasswordGen.Services
             return Show(() => PassphraseDialog.Ask(title, message, confirm));
         }
 
+        public string AskText(string title, string message, string initial)
+        {
+            return Show(() => SecretDialogs.AskText(title, message, initial));
+        }
+
         public int Choose(string title, IReadOnlyList<string> options)
         {
             return Show(() => SecretDialogs.Choose(title, options));

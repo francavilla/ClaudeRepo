@@ -121,6 +121,21 @@ namespace PasswordGen.Core.Tests
         }
 
         [Fact]
+        public void Label_VieneNormalizzatoESiPuoCambiare()
+        {
+            var history = new PasswordHistory();
+            var entry = history.Add("Alfa-Beta-12!", GenerationMode.Passphrase, Day, Day, "  Portale HR  ");
+            Assert.Equal("Portale HR", entry.Label);
+
+            Assert.True(history.SetLabel(entry.Number, new string('x', 100), Day.AddMinutes(5)));
+            Assert.Equal(HistoryEntry.MaxLabelLength, entry.Label.Length);
+
+            Assert.True(history.SetLabel(entry.Number, "   ", Day.AddMinutes(6)));
+            Assert.Null(entry.Label);
+            Assert.False(history.SetLabel(999, "x", Day));
+        }
+
+        [Fact]
         public void Remove_NeverReusesANumber()
         {
             var history = new PasswordHistory();

@@ -21,6 +21,9 @@ namespace PasswordGen.Services
         /// <summary>Chiede una frase segreta (due volte se <paramref name="confirm"/>); null se l'utente annulla.</summary>
         string AskPassphrase(string title, string message, bool confirm);
 
+        /// <summary>Chiede un testo breve (per esempio il titolo di una password), con un valore iniziale; null se l'utente annulla, stringa vuota se lo svuota.</summary>
+        string AskText(string title, string message, string initial);
+
         /// <summary>Fa scegliere una voce da un elenco; restituisce l'indice, o -1 se l'utente annulla.</summary>
         int Choose(string title, IReadOnlyList<string> options);
 

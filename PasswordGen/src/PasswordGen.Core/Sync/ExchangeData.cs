@@ -18,6 +18,10 @@ namespace PasswordGen.Core.Sync
 
         /// <summary>Quando la voce è stata registrata (UTC); serve a decidere se è precedente a un azzeramento dello storico.</summary>
         [DataMember] public string AddedUtcText { get; set; }
+
+        /// <summary>Titolo facoltativo della voce e momento in cui è stato scritto (UTC).</summary>
+        [DataMember] public string Label { get; set; }
+        [DataMember] public string LabelUtcText { get; set; }
     }
 
     /// <summary>Contenuto del file di scambio: storico, data dell'ultimo cambio e durata della password.</summary>

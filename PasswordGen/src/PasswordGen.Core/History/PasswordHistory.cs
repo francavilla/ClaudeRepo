@@ -58,7 +58,7 @@ namespace PasswordGen.Core.History
         }
 
         /// <summary>Registra un cambio. Con <paramref name="password"/> nulla o vuota si registra solo la data.</summary>
-        public HistoryEntry Add(string password, GenerationMode mode, DateTime date, DateTime? addedUtc = null)
+        public HistoryEntry Add(string password, GenerationMode mode, DateTime date, DateTime? addedUtc = null, string label = null)
         {
             var entry = new HistoryEntry
             {
@@ -66,8 +66,10 @@ namespace PasswordGen.Core.History
                 DateText = date.ToString(HistoryEntry.DateFormat, CultureInfo.InvariantCulture),
                 Mode = mode,
                 Password = password ?? string.Empty,
-                AddedUtcText = addedUtc.HasValue ? ExchangeTime(addedUtc.Value) : null
+                AddedUtcText = addedUtc.HasValue ? ExchangeTime(addedUtc.Value) : null,
+                Label = NormalizeLabel(label)
             };
+            entry.LabelUtcText = entry.Label != null && addedUtc.HasValue ? entry.AddedUtcText : null;
 
             _entries.Insert(0, entry);
             Trim();
@@ -96,8 +98,10 @@ namespace PasswordGen.Core.History
 
                 var password = other.Password ?? string.Empty;
                 var date = other.DateText;
-                if (_entries.Any(e => e.DateText == date && string.Equals(e.Password ?? string.Empty, password, StringComparison.Ordinal)))
+                var same = _entries.FirstOrDefault(e => e.DateText == date && string.Equals(e.Password ?? string.Empty, password, StringComparison.Ordinal));
+                if (same != null)
                 {
+                    AdoptLabel(same, other);
                     continue;
                 }
 
@@ -119,7 +123,9 @@ namespace PasswordGen.Core.History
                     DateText = date,
                     Mode = Enum.IsDefined(typeof(GenerationMode), other.Mode) ? other.Mode : GenerationMode.Passphrase,
                     Password = password,
-                    AddedUtcText = other.AddedUtcText
+                    AddedUtcText = other.AddedUtcText,
+                    Label = NormalizeLabel(other.Label),
+                    LabelUtcText = other.LabelUtcText
                 };
                 _entries.Add(entry);
                 added.Add(entry);
@@ -148,10 +154,61 @@ namespace PasswordGen.Core.History
             var copy = new PasswordHistory { _nextNumber = _nextNumber, _resetUtcText = _resetUtcText };
             foreach (var e in _entries)
             {
-                copy._entries.Add(new HistoryEntry { Number = e.Number, DateText = e.DateText, Mode = e.Mode, Password = e.Password, AddedUtcText = e.AddedUtcText });
+                copy._entries.Add(new HistoryEntry { Number = e.Number, DateText = e.DateText, Mode = e.Mode, Password = e.Password, AddedUtcText = e.AddedUtcText, Label = e.Label, LabelUtcText = e.LabelUtcText });
             }
 
             return copy;
+        }
+
+        /// <summary>Titolo senza spazi ai bordi e al massimo di <see cref="HistoryEntry.MaxLabelLength"/> caratteri; null se vuoto.</summary>
+        public static string NormalizeLabel(string label)
+        {
+            var text = (label ?? string.Empty).Trim();
+            if (text.Length > HistoryEntry.MaxLabelLength)
+            {
+                text = text.Substring(0, HistoryEntry.MaxLabelLength).TrimEnd();
+            }
+
+            return text.Length == 0 ? null : text;
+        }
+
+        /// <summary>Imposta (o toglie, con testo vuoto) il titolo di una voce. Restituisce false se la voce non esiste.</summary>
+        public bool SetLabel(int number, string label, DateTime nowUtc)
+        {
+            var entry = _entries.FirstOrDefault(e => e.Number == number);
+            if (entry == null)
+            {
+                return false;
+            }
+
+            entry.Label = NormalizeLabel(label);
+            entry.LabelUtcText = ExchangeTime(nowUtc);
+            return true;
+        }
+
+        /// <summary>
+        /// Nella sincronizzazione vince il titolo scritto per ultimo: quello in arrivo sostituisce il nostro solo se è più recente
+        /// (oppure se non ne abbiamo uno e il suo non ha data).
+        /// </summary>
+        private static void AdoptLabel(HistoryEntry local, HistoryEntry incoming)
+        {
+            var incomingTime = ParseExchangeTime(incoming.LabelUtcText);
+            if (!incomingTime.HasValue)
+            {
+                if (string.IsNullOrEmpty(local.Label) && !string.IsNullOrEmpty(incoming.Label))
+                {
+                    local.Label = NormalizeLabel(incoming.Label);
+                }
+
+                return;
+            }
+
+            var localTime = ParseExchangeTime(local.LabelUtcText);
+            if (!localTime.HasValue || incomingTime.Value > localTime.Value)
+            {
+                local.Label = NormalizeLabel(incoming.Label);
+                local.LabelUtcText = incoming.LabelUtcText;
+            }
         }
 
         public bool Remove(int number)

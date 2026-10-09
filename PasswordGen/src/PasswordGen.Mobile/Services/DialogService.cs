@@ -15,6 +15,17 @@ public sealed class DialogService : IDialogService
         return page != null && await page.DisplayAlertAsync(title, message, "Sì", "No");
     }
 
+    public async Task<string> AskTextAsync(string title, string message, string initial)
+    {
+        var page = CurrentPage;
+        if (page == null)
+        {
+            return null;
+        }
+
+        return await page.DisplayPromptAsync(title, message, "OK", Cancel, "Es. Portale HR", 60, Keyboard.Text, initial ?? string.Empty);
+    }
+
     public async Task<int> ChooseAsync(string title, IReadOnlyList<string> options)
     {
         var page = CurrentPage;

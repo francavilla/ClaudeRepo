@@ -1513,6 +1513,13 @@ public class MainViewModel : ObservableObject
             }
         }
 
+        // Titolo facoltativo: dove la uso (annullando o lasciando vuoto non si salva nessun titolo).
+        string label = null;
+        if (chosen != null)
+        {
+            label = await _dialogs.AskTextAsync("Titolo (facoltativo)", "Dove usi questa password? Puoi lasciarlo vuoto.", string.Empty);
+        }
+
         // Regola aziendale: la nuova password non può essere una delle ultime 20 (confronto identico).
         var duplicate = chosen == null ? null : _history.Find(chosen.Text);
         if (duplicate != null)
@@ -1527,7 +1534,7 @@ public class MainViewModel : ObservableObject
         string message;
         if (_historyEnabled)
         {
-            var entry = _history.Add(chosen?.Text, chosen?.Mode ?? _mode, today, DateTime.UtcNow);
+            var entry = _history.Add(chosen?.Text, chosen?.Mode ?? _mode, today, DateTime.UtcNow, label);
             SaveHistory();
             RefreshHistory();
             message = chosen == null
@@ -1570,7 +1577,7 @@ public class MainViewModel : ObservableObject
         HistoryEntries.Clear();
         foreach (var entry in _history.Entries)
         {
-            HistoryEntries.Add(new HistoryEntryItem(entry, CopyHistoryEntry, HistoryEntries.Count == 0));
+            HistoryEntries.Add(new HistoryEntryItem(entry, CopyHistoryEntry, item => RunSafe(() => EditHistoryLabelAsync(item)), HistoryEntries.Count == 0));
         }
 
         OnPropertyChanged(nameof(HistoryUsageText));
@@ -1590,6 +1597,24 @@ public class MainViewModel : ObservableObject
         StatusMessage = copied
             ? "Password " + entry.Title + " copiata: verrà cancellata dagli appunti tra " + (int)_clipboard.ClearAfter.TotalSeconds + " secondi."
             : "Impossibile accedere agli appunti: riprova.";
+    }
+
+    /// <summary>Aggiunge, cambia o toglie il titolo di una voce dello storico.</summary>
+    private async Task EditHistoryLabelAsync(HistoryEntryItem entry)
+    {
+        var text = await _dialogs.AskTextAsync("Titolo della password " + entry.Title, "Dove usi questa password? (lascia vuoto per toglierlo)", entry.Label);
+        if (text == null)
+        {
+            return;
+        }
+
+        if (_history.SetLabel(entry.Number, text, DateTime.UtcNow))
+        {
+            SaveHistory();
+            RefreshHistory();
+            StatusMessage = string.IsNullOrWhiteSpace(text) ? "Titolo tolto." : "Titolo salvato.";
+            _ = AutoSyncAsync();
+        }
     }
 
     private void SaveHistory()
