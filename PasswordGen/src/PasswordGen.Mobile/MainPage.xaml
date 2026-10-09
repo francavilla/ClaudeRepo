@@ -137,6 +137,19 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <!-- Verifica una password -->
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Verifica una password" Style="{StaticResource CardTitle}" />
+                        <Entry IsPassword="True" Placeholder="Password da verificare" Text="{Binding CheckedPassword, Mode=TwoWay}" />
+                        <Button Text="Verifica" Command="{Binding CheckPasswordCommand}"
+                                BackgroundColor="White" TextColor="{StaticResource Accent}" BorderColor="#CBD5E1" BorderWidth="1" />
+                        <Label Text="{Binding CheckResult}" TextColor="{Binding CheckColor}" FontAttributes="Bold" IsVisible="{Binding HasCheckResult}" />
+                        <Label Style="{StaticResource MutedText}"
+                               Text="Controlla se una password rispetta le regole e non è identica a una delle ultime 20 usate. Resta solo in memoria." />
+                    </VerticalStackLayout>
+                </Border>
+
             </VerticalStackLayout>
         </ScrollView>
 

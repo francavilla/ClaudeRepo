@@ -48,6 +48,9 @@ public class MainViewModel : ObservableObject
     private bool _requireSpecial;
     private bool _avoidAmbiguous;
     private string _previousPassword = string.Empty;
+    private string _checkedPassword = string.Empty;
+    private string _checkResult = string.Empty;
+    private bool _checkOk;
     private string _statusMessage = string.Empty;
     private WordSourceMode _wordSource;
     private string _customWordsPath;
@@ -118,7 +121,7 @@ public class MainViewModel : ObservableObject
         }
 
         HistoryAvailable = historyStore != null;
-        _historyEnabled = HistoryAvailable && _settings.HistoryEnabled;
+        _historyEnabled = HistoryAvailable;   // lo storico è sempre attivo (regola aziendale delle ultime 20 password)
         _history = _historyEnabled ? historyStore.Load() : new PasswordHistory();
 
         Suggestions = new ObservableCollection<SuggestionItem>();
@@ -329,6 +332,71 @@ public class MainViewModel : ObservableObject
     }
 
     /// <summary>Password attuale (facoltativa): resta solo in memoria. Le nuove proposte la evitano.</summary>
+    public string CheckedPassword
+    {
+        get => _checkedPassword;
+        set
+        {
+            if (SetProperty(ref _checkedPassword, value ?? string.Empty))
+            {
+                CheckResult = string.Empty;
+            }
+        }
+    }
+
+    public string CheckResult
+    {
+        get => _checkResult;
+        private set
+        {
+            if (SetProperty(ref _checkResult, value ?? string.Empty))
+            {
+                OnPropertyChanged(nameof(HasCheckResult));
+            }
+        }
+    }
+
+    public bool HasCheckResult => _checkResult.Length > 0;
+
+    /// <summary>Colore del risultato: verde se la password va bene, rosso altrimenti.</summary>
+    public Color CheckColor => _checkOk ? Color.FromArgb("#15803D") : Color.FromArgb("#DC2626");
+
+    public ICommand CheckPasswordCommand => new Command(CheckPassword);
+
+    /// <summary>Regola aziendale: la nuova password deve rispettare la policy e non essere identica a una delle ultime 20 usate.</summary>
+    private void CheckPassword()
+    {
+        if (string.IsNullOrEmpty(_checkedPassword))
+        {
+            SetCheck(false, "Scrivi la password da verificare.");
+            return;
+        }
+
+        var duplicate = _history.Find(_checkedPassword);
+        var problems = BuildOptions().Policy.Validate(_checkedPassword);
+        if (duplicate != null)
+        {
+            SetCheck(false, "Non va bene: è già stata usata (#" + duplicate.Number + ", " + duplicate.DateText + "). La nuova password deve essere diversa dalle ultime "
+                            + PasswordHistory.MaxEntries + ".");
+        }
+        else if (problems.Count > 0)
+        {
+            SetCheck(false, "Non rispetta le regole: servono " + string.Join(", ", problems) + ".");
+        }
+        else
+        {
+            SetCheck(true, "Va bene: rispetta le regole e non è tra le ultime " + PasswordHistory.MaxEntries + " usate (nello storico ci sono "
+                           + _history.Passwords().Count + " password).");
+        }
+    }
+
+    private void SetCheck(bool ok, string text)
+    {
+        _checkOk = ok;
+        OnPropertyChanged(nameof(CheckColor));
+        CheckResult = text;
+    }
+
     public string PreviousPassword
     {
         get => _previousPassword;
@@ -370,7 +438,7 @@ public class MainViewModel : ObservableObject
             SyllableCount = _syllableCount,
             RandomLength = _randomLength,
             PreviousPassword = _previousPassword,
-            PreviousPasswords = _historyEnabled ? _history.Passwords() : null,
+            PreviousPasswords = _history.Passwords(),
             Policy = new PasswordPolicy
             {
                 MinLength = _minLength,
@@ -491,7 +559,7 @@ public class MainViewModel : ObservableObject
     {
         if (!_historyEnabled)
         {
-            StatusMessage = "Per sincronizzare attiva prima lo storico delle password.";
+            StatusMessage = "Per sincronizzare serve lo storico, che qui non è disponibile (manca la chiave del Keystore).";
             return;
         }
 
@@ -725,7 +793,7 @@ public class MainViewModel : ObservableObject
     {
         if (!_historyEnabled)
         {
-            StatusMessage = "Per importare attiva prima lo storico delle password.";
+            StatusMessage = "Per importare serve lo storico, che qui non è disponibile (manca la chiave del Keystore).";
             return;
         }
 
@@ -1269,55 +1337,11 @@ public class MainViewModel : ObservableObject
 
     public bool HistoryAvailable { get; }
 
-    public bool HistoryEnabled
-    {
-        get => _historyEnabled;
-        set
-        {
-            if (value == _historyEnabled)
-            {
-                return;
-            }
-
-            if (!HistoryAvailable)
-            {
-                OnPropertyChanged();
-                return;
-            }
-
-            if (!value && _history.Entries.Count > 0)
-            {
-                // Lo storico esistente verrebbe cancellato: serve conferma. Intanto l'interruttore torna com'era.
-                OnPropertyChanged();
-                RunSafe(DisableHistoryAsync);
-                return;
-            }
-
-            _historyEnabled = value;
-            OnPropertyChanged();
-            SaveSettings();
-            RefreshHistory();
-        }
-    }
-
     public ObservableCollection<HistoryEntryItem> HistoryEntries { get; }
 
     public bool HasHistory => _history.Entries.Count > 0;
 
     public string HistoryHeader => _history.Entries.Count > 0 ? "Storico (" + _history.Entries.Count + ")" : "Storico";
-
-    private async Task DisableHistoryAsync()
-    {
-        if (!await _dialogs.ConfirmAsync("Disattivando lo storico, le password conservate vengono cancellate. Continuare?", "Storico"))
-        {
-            return;
-        }
-
-        _historyEnabled = false;
-        ClearHistoryEntries();
-        OnPropertyChanged(nameof(HistoryEnabled));
-        SaveSettings();
-    }
 
     /// <summary>Chiede quale proposta è stata usata come nuova password e la registra nello storico.</summary>
     private async Task MarkChangedAsync()
@@ -1341,6 +1365,14 @@ public class MainViewModel : ObservableObject
             {
                 chosen = Suggestions[index - 1];
             }
+        }
+
+        // Regola aziendale: la nuova password non può essere una delle ultime 20 (confronto identico).
+        var duplicate = chosen == null ? null : _history.Find(chosen.Text);
+        if (duplicate != null)
+        {
+            StatusMessage = "Questa password coincide con la #" + duplicate.Number + " dello storico (" + duplicate.DateText + "): scegli un'altra proposta.";
+            return;
         }
 
         var today = DateTime.Today;
@@ -1369,13 +1401,14 @@ public class MainViewModel : ObservableObject
 
     private async Task ClearHistoryAsync()
     {
-        if (!await _dialogs.ConfirmAsync("Cancellare tutto lo storico delle password?", "Storico"))
+        if (!await _dialogs.ConfirmAsync("Azzerando lo storico l'app non potrà più controllare che la nuova password sia diversa dalle ultime 20 usate. "
+                                         + "Fallo solo se cambi azienda o account. Azzerare lo storico?", "Azzera storico"))
         {
             return;
         }
 
         ClearHistoryEntries();
-        StatusMessage = "Storico cancellato.";
+        StatusMessage = "Storico azzerato.";
     }
 
     private void ClearHistoryEntries()
@@ -1390,7 +1423,7 @@ public class MainViewModel : ObservableObject
         HistoryEntries.Clear();
         foreach (var entry in _history.Entries)
         {
-            HistoryEntries.Add(new HistoryEntryItem(entry, CopyHistoryEntry, item => RunSafe(() => DeleteHistoryEntryAsync(item))));
+            HistoryEntries.Add(new HistoryEntryItem(entry, CopyHistoryEntry));
         }
 
         OnPropertyChanged(nameof(HasHistory));
@@ -1402,19 +1435,6 @@ public class MainViewModel : ObservableObject
         StatusMessage = _clipboard.Copy(entry.Password)
             ? "Password " + entry.Title + " copiata: verrà cancellata dagli appunti tra " + (int)_clipboard.ClearAfter.TotalSeconds + " secondi."
             : "Impossibile accedere agli appunti: riprova.";
-    }
-
-    private async Task DeleteHistoryEntryAsync(HistoryEntryItem entry)
-    {
-        if (!await _dialogs.ConfirmAsync("Eliminare dallo storico la voce " + entry.Title + " del " + entry.DateText + "?", "Storico"))
-        {
-            return;
-        }
-
-        _history.Remove(entry.Number);
-        SaveHistory();
-        RefreshHistory();
-        StatusMessage = "Voce " + entry.Title + " eliminata.";
     }
 
     private void SaveHistory()
@@ -1445,6 +1465,7 @@ public class MainViewModel : ObservableObject
     public void ClearSensitive()
     {
         PreviousPassword = string.Empty;
+        CheckedPassword = string.Empty;
         foreach (var entry in HistoryEntries)
         {
             entry.IsRevealed = false;
@@ -1480,7 +1501,6 @@ public class MainViewModel : ObservableObject
         _settings.RequireDigit = _requireDigit;
         _settings.RequireSpecial = _requireSpecial;
         _settings.AvoidAmbiguous = _avoidAmbiguous;
-        _settings.HistoryEnabled = _historyEnabled;
         _settings.LockEnabled = _lockEnabled;
         _settings.LockGraceSeconds = _lockGraceSeconds;
         _settings.WordSource = _wordSource;

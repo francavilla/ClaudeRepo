@@ -49,6 +49,9 @@ namespace PasswordGen.ViewModels
         private bool _requireSpecial;
         private bool _avoidAmbiguous;
         private string _previousPassword = string.Empty;
+        private string _checkedPassword = string.Empty;
+        private string _checkResult = string.Empty;
+        private bool _checkOk;
         private WordSourceMode _wordSource;
         private string _customWordsPath;
         private WordFileResult _customWords;
@@ -56,7 +59,6 @@ namespace PasswordGen.ViewModels
         private string _wordWarning = string.Empty;
         private bool _lockEnabled;
         private int _lockGraceSeconds;
-        private bool _historyEnabled;
         private bool _isChoosing;
         private int _choiceIndex;
         private SuggestionViewModel _lastCopied;
@@ -122,8 +124,7 @@ namespace PasswordGen.ViewModels
                 SaveSettings();
                 StatusMessage = message;
             };
-            _historyEnabled = _settings.HistoryEnabled;
-            _history = _historyEnabled ? historyStore.Load() : new PasswordHistory();
+            _history = historyStore.Load();
             _reminderEnabled = _settings.ReminderEnabled;
             _validityDays = _settings.ValidityDays;
 
@@ -145,6 +146,7 @@ namespace PasswordGen.ViewModels
             LoadWordFileCommand = new RelayCommand(LoadWordFile);
             ResetWordsCommand = new RelayCommand(ResetWords, () => _customWords != null || _wordSource != WordSourceMode.Builtin);
             CancelChangeCommand = new RelayCommand(() => IsChoosing = false);
+            CheckPasswordCommand = new RelayCommand(CheckPassword);
             ClearHistoryCommand = new RelayCommand(ClearHistory, () => _history.Entries.Count > 0);
             SetupSyncCommand = new RelayCommand(() => { var ignored = SetupSyncAsync(); }, () => !_syncBusy);
             SyncNowCommand = new RelayCommand(() => { var ignored = SyncNowAsync(); }, () => SyncActive && !_syncBusy);
@@ -473,6 +475,76 @@ namespace PasswordGen.ViewModels
             set { SetProperty(ref _previousPassword, value ?? string.Empty); }
         }
 
+        /// <summary>Password da verificare (facoltativa): resta in memoria, non viene salvata.</summary>
+        public string CheckedPassword
+        {
+            get { return _checkedPassword; }
+            set
+            {
+                if (SetProperty(ref _checkedPassword, value ?? string.Empty))
+                {
+                    CheckResult = string.Empty;
+                }
+            }
+        }
+
+        public string CheckResult
+        {
+            get { return _checkResult; }
+            private set
+            {
+                if (SetProperty(ref _checkResult, value ?? string.Empty))
+                {
+                    OnPropertyChanged(nameof(HasCheckResult));
+                }
+            }
+        }
+
+        public bool HasCheckResult
+        {
+            get { return _checkResult.Length > 0; }
+        }
+
+        /// <summary>True se l'ultima password verificata va bene (colora il risultato).</summary>
+        public bool CheckOk
+        {
+            get { return _checkOk; }
+            private set { SetProperty(ref _checkOk, value); }
+        }
+
+        public ICommand CheckPasswordCommand { get; private set; }
+
+        /// <summary>Regola aziendale: la nuova password deve rispettare la policy e non essere identica a una delle ultime 20 usate.</summary>
+        private void CheckPassword()
+        {
+            if (string.IsNullOrEmpty(_checkedPassword))
+            {
+                CheckOk = false;
+                CheckResult = "Scrivi la password da verificare.";
+                return;
+            }
+
+            var duplicate = _history.Find(_checkedPassword);
+            var problems = BuildOptions().Policy.Validate(_checkedPassword);
+            if (duplicate != null)
+            {
+                CheckOk = false;
+                CheckResult = "Non va bene: è già stata usata (#" + duplicate.Number + ", " + duplicate.DateText + "). La nuova password deve essere diversa dalle ultime "
+                              + PasswordHistory.MaxEntries + ".";
+            }
+            else if (problems.Count > 0)
+            {
+                CheckOk = false;
+                CheckResult = "Non rispetta le regole: servono " + string.Join(", ", problems) + ".";
+            }
+            else
+            {
+                CheckOk = true;
+                CheckResult = "Va bene: rispetta le regole e non è tra le ultime " + PasswordHistory.MaxEntries + " usate (nello storico ci sono "
+                              + _history.Passwords().Count + " password).";
+            }
+        }
+
         private bool SetOption<T>(ref T field, T value, [System.Runtime.CompilerServices.CallerMemberName] string name = null)
         {
             if (!SetProperty(ref field, value, name))
@@ -593,7 +665,7 @@ namespace PasswordGen.ViewModels
         /// </summary>
         private void MarkChanged()
         {
-            if (_historyEnabled && Suggestions.Count > 0)
+            if (Suggestions.Count > 0)
             {
                 ChoiceItems.Clear();
                 ChoiceItems.Add("Nessuna: registra solo la data del cambio");
@@ -624,22 +696,23 @@ namespace PasswordGen.ViewModels
 
         private void CompleteChange(SuggestionViewModel chosen)
         {
+            // Regola aziendale: la nuova password non può essere una delle ultime 20 (confronto identico).
+            var duplicate = chosen == null ? null : _history.Find(chosen.Text);
+            if (duplicate != null)
+            {
+                StatusMessage = "Questa password coincide con la #" + duplicate.Number + " dello storico (" + duplicate.DateText + "): scegli un'altra proposta.";
+                return;
+            }
+
             var today = _today();
             _settings.LastChangeDate = today;
 
-            if (_historyEnabled)
-            {
-                var entry = _history.Add(chosen == null ? null : chosen.Text, chosen == null ? _mode : chosen.Mode, today);
-                SaveHistory();
-                RefreshHistory();
-                StatusMessage = chosen == null
-                    ? "Cambio registrato (#" + entry.Number + ", solo data): " + ReminderTextAfterRefresh()
-                    : "Cambio registrato nello storico come #" + entry.Number + ": " + ReminderTextAfterRefresh();
-            }
-            else
-            {
-                StatusMessage = "Cambio password registrato: " + ReminderTextAfterRefresh();
-            }
+            var entry = _history.Add(chosen == null ? null : chosen.Text, chosen == null ? _mode : chosen.Mode, today);
+            SaveHistory();
+            RefreshHistory();
+            StatusMessage = chosen == null
+                ? "Cambio registrato (#" + entry.Number + ", solo data): " + ReminderTextAfterRefresh()
+                : "Cambio registrato nello storico come #" + entry.Number + ": " + ReminderTextAfterRefresh();
 
             SaveSettings();
             var ignoredSync = AutoSyncAsync();
@@ -709,12 +782,6 @@ namespace PasswordGen.ViewModels
 
         private async Task SetupSyncAsync()
         {
-            if (!_historyEnabled)
-            {
-                StatusMessage = "Per sincronizzare attiva prima lo storico delle password.";
-                return;
-            }
-
             var choice = _dialogs.Choose("Dove sincronizzare?", new[]
             {
                 "Il mio Google Drive (accesso con l'account Google)",
@@ -842,7 +909,7 @@ namespace PasswordGen.ViewModels
         /// <summary>Sincronizza in silenzio (all'avvio e dopo un cambio): niente finestre, solo un messaggio nella barra di stato.</summary>
         public async Task AutoSyncAsync()
         {
-            if (!SyncActive || _syncBusy || !_historyEnabled)
+            if (!SyncActive || _syncBusy)
             {
                 return;
             }
@@ -963,12 +1030,6 @@ namespace PasswordGen.ViewModels
 
         private async Task ImportAsync()
         {
-            if (!_historyEnabled)
-            {
-                StatusMessage = "Per importare attiva prima lo storico delle password.";
-                return;
-            }
-
             var path = _dialogs.PickFile("Scegli il file da importare", SyncFilter);
             if (string.IsNullOrEmpty(path))
             {
@@ -1340,6 +1401,7 @@ namespace PasswordGen.ViewModels
         public void ClearSensitive()
         {
             PreviousPassword = string.Empty;
+            CheckedPassword = string.Empty;
             foreach (var entry in HistoryEntries)
             {
                 entry.Hide();
@@ -1364,35 +1426,6 @@ namespace PasswordGen.ViewModels
         }
 
         // ------------------------------------------------------------ Storico
-
-        /// <summary>Conserva le password scelte in un file cifrato per il tuo utente Windows. Disattivandolo, lo storico viene cancellato.</summary>
-        public bool HistoryEnabled
-        {
-            get { return _historyEnabled; }
-            set
-            {
-                if (value == _historyEnabled)
-                {
-                    return;
-                }
-
-                if (!value && _history.Entries.Count > 0
-                    && !_dialogs.Confirm("Disattivando lo storico, le password conservate vengono cancellate. Continuare?", "Storico"))
-                {
-                    RefreshLater(nameof(HistoryEnabled));
-                    return;
-                }
-
-                _historyEnabled = value;
-                OnPropertyChanged();
-                if (!value)
-                {
-                    ClearHistoryEntries();
-                }
-
-                SaveSettings();
-            }
-        }
 
         public ObservableCollection<HistoryEntryViewModel> HistoryEntries { get; private set; }
 
@@ -1427,7 +1460,7 @@ namespace PasswordGen.ViewModels
             HistoryEntries.Clear();
             foreach (var entry in _history.Entries)
             {
-                HistoryEntries.Add(new HistoryEntryViewModel(entry, CopyHistoryEntry, DeleteHistoryEntry));
+                HistoryEntries.Add(new HistoryEntryViewModel(entry, CopyHistoryEntry));
             }
 
             OnPropertyChanged(nameof(HasHistory));
@@ -1441,28 +1474,16 @@ namespace PasswordGen.ViewModels
                 : "Impossibile accedere agli appunti: riprova.";
         }
 
-        private void DeleteHistoryEntry(HistoryEntryViewModel entry)
-        {
-            if (!_dialogs.Confirm("Eliminare dallo storico la voce " + entry.Title + " del " + entry.DateText + "?", "Storico"))
-            {
-                return;
-            }
-
-            _history.Remove(entry.Number);
-            SaveHistory();
-            RefreshHistory();
-            StatusMessage = "Voce " + entry.Title + " eliminata.";
-        }
-
         private void ClearHistory()
         {
-            if (!_dialogs.Confirm("Cancellare tutto lo storico delle password?", "Storico"))
+            if (!_dialogs.Confirm("Azzerando lo storico l'app non potrà più controllare che la nuova password sia diversa dalle ultime 20 usate. "
+                                  + "Fallo solo se cambi azienda o account. Azzerare lo storico?", "Azzera storico"))
             {
                 return;
             }
 
             ClearHistoryEntries();
-            StatusMessage = "Storico cancellato.";
+            StatusMessage = "Storico azzerato.";
         }
 
         private void ClearHistoryEntries()
@@ -1502,7 +1523,7 @@ namespace PasswordGen.ViewModels
                 SyllableCount = _syllableCount,
                 RandomLength = _randomLength,
                 PreviousPassword = _previousPassword,
-                PreviousPasswords = _historyEnabled ? _history.Passwords() : null,
+                PreviousPasswords = _history.Passwords(),
                 Policy = new PasswordPolicy
                 {
                     MinLength = _minLength,
@@ -1568,7 +1589,6 @@ namespace PasswordGen.ViewModels
             _settings.RequireDigit = _requireDigit;
             _settings.RequireSpecial = _requireSpecial;
             _settings.AvoidAmbiguous = _avoidAmbiguous;
-            _settings.HistoryEnabled = _historyEnabled;
             _settings.LockEnabled = _lockEnabled;
             _settings.LockGraceSeconds = _lockGraceSeconds;
             _settings.WordSource = _wordSource;

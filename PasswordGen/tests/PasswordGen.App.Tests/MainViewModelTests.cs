@@ -238,15 +238,50 @@ namespace PasswordGen.App.Tests
         }
 
         [Fact]
-        public void StoricoDisattivato_ILCambioRegistraSoloLaData()
+        public void CambioConUnaPasswordGiaNelloStorico_ViengeRifiutato()
         {
-            var h = CreateViewModel("a", new AppSettings { HistoryEnabled = false });
+            var h = CreateViewModel("a");
+            RegisterChange(h.ViewModel, 1);
 
-            h.ViewModel.MarkChangedCommand.Execute(null);
+            RegisterChange(h.ViewModel, 1);   // stessa proposta: coincide con quella appena registrata
 
-            Assert.False(h.ViewModel.IsChoosing);
+            Assert.Single(h.ViewModel.HistoryEntries);
+            Assert.Contains("coincide", h.ViewModel.StatusMessage);
+        }
+
+        [Fact]
+        public void VerificaPassword_SegnalaQuellaGiaUsataEAccettaUnaNuova()
+        {
+            var h = CreateViewModel("a");
+            RegisterChange(h.ViewModel, 1);
+            var used = h.History.Load().Entries[0].Password;
+
+            h.ViewModel.CheckedPassword = used;
+            h.ViewModel.CheckPasswordCommand.Execute(null);
+            Assert.False(h.ViewModel.CheckOk);
+            Assert.Contains("già stata usata", h.ViewModel.CheckResult);
+
+            h.ViewModel.CheckedPassword = "Zebra-Quarzo-Nuvola91!";
+            h.ViewModel.CheckPasswordCommand.Execute(null);
+            Assert.True(h.ViewModel.CheckOk);
+            Assert.Contains("Va bene", h.ViewModel.CheckResult);
+
+            h.ViewModel.CheckedPassword = "corta";
+            h.ViewModel.CheckPasswordCommand.Execute(null);
+            Assert.False(h.ViewModel.CheckOk);
+            Assert.Contains("Non rispetta le regole", h.ViewModel.CheckResult);
+        }
+
+        [Fact]
+        public void AzzeraStorico_ConConfermaSvuotaLoStorico()
+        {
+            var h = CreateViewModel("a");
+            RegisterChange(h.ViewModel, 1);
+
+            h.ViewModel.ClearHistoryCommand.Execute(null);
+
             Assert.Empty(h.ViewModel.HistoryEntries);
-            Assert.Equal(Today, h.Settings.Load().LastChangeDate);
+            Assert.Empty(h.History.Load().Entries);
         }
 
         // ---- avviso per attivare il blocco ----
@@ -558,20 +593,6 @@ namespace PasswordGen.App.Tests
             Assert.Null(h.Settings.Load().SyncPath);
             Assert.True(File.Exists(file));
         }
-
-        [Fact]
-        public void SenzaStorico_LaSincronizzazioneNonParte()
-        {
-            var h = CreateViewModel("a", new AppSettings { HistoryEnabled = false });
-            h.Dialogs.SaveFilePath = Path.Combine(_directory, "drive", "sync.pgx");
-
-            h.Dialogs.ChooseIndex = 1;
-            h.ViewModel.SetupSyncCommand.Execute(null);
-            WaitFor(() => h.ViewModel.StatusMessage.Contains("storico"), "messaggio sullo storico");
-
-            Assert.False(h.ViewModel.SyncActive);
-        }
-
 
         // ---- sincronizzazione su Google Drive ----
 

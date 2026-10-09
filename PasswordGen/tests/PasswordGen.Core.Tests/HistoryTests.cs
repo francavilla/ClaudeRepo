@@ -89,6 +89,20 @@ namespace PasswordGen.Core.Tests
         }
 
         [Fact]
+        public void Find_MatchesOnlyTheIdenticalPassword()
+        {
+            var history = new PasswordHistory();
+            history.Add("Alfa-Beta-12!", GenerationMode.Passphrase, Day);
+            history.Add(null, GenerationMode.Passphrase, Day);
+
+            Assert.NotNull(history.Find("Alfa-Beta-12!"));
+            Assert.Null(history.Find("alfa-beta-12!"));
+            Assert.Null(history.Find("Alfa-Beta-12"));
+            Assert.Null(history.Find(""));
+            Assert.Equal(20, PasswordHistory.MaxEntries);
+        }
+
+        [Fact]
         public void Remove_NeverReusesANumber()
         {
             var history = new PasswordHistory();

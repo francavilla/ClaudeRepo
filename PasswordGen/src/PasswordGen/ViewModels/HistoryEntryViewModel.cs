@@ -15,12 +15,11 @@ namespace PasswordGen.ViewModels
         private readonly HistoryEntry _entry;
         private bool _isRevealed;
 
-        public HistoryEntryViewModel(HistoryEntry entry, Action<HistoryEntryViewModel> copy, Action<HistoryEntryViewModel> delete)
+        public HistoryEntryViewModel(HistoryEntry entry, Action<HistoryEntryViewModel> copy)
         {
             _entry = entry;
             ToggleCommand = new RelayCommand(() => IsRevealed = !IsRevealed, () => _entry.HasPassword);
             CopyCommand = new RelayCommand(() => copy(this), () => _entry.HasPassword);
-            DeleteCommand = new RelayCommand(() => delete(this));
         }
 
         public int Number
@@ -111,6 +110,5 @@ namespace PasswordGen.ViewModels
 
         public ICommand CopyCommand { get; private set; }
 
-        public ICommand DeleteCommand { get; private set; }
     }
 }

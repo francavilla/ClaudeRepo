@@ -230,14 +230,14 @@ namespace PasswordGen.Core.Tests
         public void Merge_RispettaIlLimiteDelloStorico_TengaLePiuRecenti()
         {
             var history = new PasswordHistory();
-            var incoming = Enumerable.Range(1, 20)
+            var incoming = Enumerable.Range(1, 25)
                 .Select(i => new HistoryEntry { DateText = new DateTime(2026, 1, 1).AddDays(i).ToString("yyyy-MM-dd"), Password = "Pw-" + i + "-abcdef!" })
                 .ToList();
 
             history.Merge(incoming);
 
             Assert.Equal(PasswordHistory.MaxEntries, history.Entries.Count);
-            Assert.Equal(new DateTime(2026, 1, 21).ToString("yyyy-MM-dd"), history.Entries[0].DateText);
+            Assert.Equal(new DateTime(2026, 1, 26).ToString("yyyy-MM-dd"), history.Entries[0].DateText);
         }
 
         [Fact]

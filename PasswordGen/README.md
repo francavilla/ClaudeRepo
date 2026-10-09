@@ -3,7 +3,7 @@
 Applicazione desktop **WPF per .NET Framework 4.8** che genera password **casuali, sicure e facili da ricordare**,
 pensata per chi deve cambiare password ogni mese per policy aziendale.
 
-Tutto avviene sul computer: il programma usa la rete solo se attivi la sincronizzazione su Google Drive (facoltativa), altrimenti non si collega a nulla. Le password non vengono salvate, salvo quelle che scegli tu di conservare nello **storico** (facoltativo, cifrato: vedi sotto).
+Tutto avviene sul computer: il programma usa la rete solo se attivi la sincronizzazione su Google Drive (facoltativa), altrimenti non si collega a nulla. Le password non vengono salvate, salvo quelle che registri nello **storico** (cifrato: vedi sotto).
 
 ## Uso
 
@@ -73,14 +73,16 @@ Nella card *Blocco dell'app* si può richiedere di sbloccare l'app all'avvio e d
 
 ## Storico delle password
 
-Facoltativo (attivo di default, si disattiva nella card *Storico delle password*). Conserva le **ultime 12** password usate,
-ciascuna con numero progressivo (#1, #2, ... mai riutilizzato), data e tipo. Nella scheda *Storico* le password sono mascherate:
-si possono mostrare, copiare (con la stessa cancellazione automatica dagli appunti) o eliminare. Le nuove proposte evitano
-le varianti di quelle dello storico.
+Sempre attivo. Conserva le **ultime 20** password usate, ciascuna con numero progressivo (#1, #2, ... mai riutilizzato), data e tipo.
+Nella scheda *Storico* le password sono mascherate: si possono mostrare o copiare (con la stessa cancellazione automatica dagli appunti);
+le singole voci non si possono eliminare. Le nuove proposte evitano le varianti di quelle dello storico.
+
+**Regola aziendale:** la nuova password non può essere identica (maiuscole e minuscole contano) a una delle ultime 20. L'app la applica quando
+registri «Ho cambiato la password» e nella card *Verifica una password*, che controlla anche le regole della policy.
 
 - Il file `%AppData%\PasswordGen\history.dat` è cifrato con **DPAPI** (ambito utente): si apre solo con lo stesso account Windows
   sullo stesso computer. Non protegge da un programma malevolo che gira con il tuo account.
-- Disattivando lo storico, o con *Cancella tutto lo storico*, il file viene eliminato.
+- *Azzera storico* (con avviso) elimina il file: serve solo se cambi azienda o account, perché poi il controllo riparte da zero.
 - Se nella scelta indichi «Nessuna», viene registrata solo la data (senza password).
 
 ## Sincronizzazione e backup

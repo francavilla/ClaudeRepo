@@ -13,12 +13,11 @@ public sealed class HistoryEntryItem : ObservableObject
     private readonly HistoryEntry _entry;
     private bool _isRevealed;
 
-    public HistoryEntryItem(HistoryEntry entry, Action<HistoryEntryItem> copy, Action<HistoryEntryItem> delete)
+    public HistoryEntryItem(HistoryEntry entry, Action<HistoryEntryItem> copy)
     {
         _entry = entry;
         ToggleCommand = new Command(() => IsRevealed = !IsRevealed, () => _entry.HasPassword);
         CopyCommand = new Command(() => copy(this), () => _entry.HasPassword);
-        DeleteCommand = new Command(() => delete(this));
     }
 
     public int Number => _entry.Number;
@@ -78,6 +77,4 @@ public sealed class HistoryEntryItem : ObservableObject
     public ICommand ToggleCommand { get; }
 
     public ICommand CopyCommand { get; }
-
-    public ICommand DeleteCommand { get; }
 }

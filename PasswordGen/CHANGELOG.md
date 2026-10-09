@@ -4,6 +4,17 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.7.0] - 2026-10-09
+
+### Aggiunto
+- **Regola aziendale delle ultime 20 password.** La nuova password non può essere identica (maiuscole e minuscole contano) a una delle ultime 20 usate: «Ho cambiato la password» rifiuta una proposta già presente nello storico.
+- **Verifica una password** (scheda «Genera», Windows e Android): scrivi una password e l'app dice se rispetta le regole della policy e se è già tra le ultime 20. Resta solo in memoria.
+- **Azzera storico** con avviso: l'unico modo per svuotare lo storico, pensato per chi cambia azienda o account.
+
+### Modificato
+- Lo storico conserva le **ultime 20** password (prima 12) ed è **sempre attivo**: tolti l'interruttore «Conserva le password scelte», «Cancella tutto lo storico» e l'eliminazione della singola voce, che avrebbero reso inaffidabile il controllo.
+  Lo storico già salvato resta valido. La sincronizzazione non richiede più di attivare lo storico.
+
 ## [1.6.2] - 2026-10-09
 
 ### Corretto

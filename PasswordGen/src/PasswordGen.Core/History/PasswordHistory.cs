@@ -14,7 +14,7 @@ namespace PasswordGen.Core.History
     [DataContract]
     public sealed class PasswordHistory
     {
-        public const int MaxEntries = 12;
+        public const int MaxEntries = 20;
 
         [DataMember(Name = "Entries")]
         private List<HistoryEntry> _entries = new List<HistoryEntry>();
@@ -131,6 +131,20 @@ namespace PasswordGen.Core.History
         {
             _entries.Clear();
             _nextNumber = 1;
+        }
+
+        /// <summary>
+        /// La voce più recente con questa stessa password (confronto identico: maiuscole e minuscole contano), oppure null.
+        /// Serve alla regola aziendale «la nuova password non può essere una delle ultime <see cref="MaxEntries"/>».
+        /// </summary>
+        public HistoryEntry Find(string password)
+        {
+            if (string.IsNullOrEmpty(password))
+            {
+                return null;
+            }
+
+            return _entries.FirstOrDefault(e => e.HasPassword && string.Equals(e.Password, password, StringComparison.Ordinal));
         }
 
         /// <summary>Le password conservate, dalla più recente: servono a evitare di riproporre varianti.</summary>
