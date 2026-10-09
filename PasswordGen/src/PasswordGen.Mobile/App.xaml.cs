@@ -58,6 +58,7 @@ public partial class App : Application
         tabs = new TabbedPage();
         tabs.Children.Add(new MainPage(viewModel));
         tabs.Children.Add(new HistoryPage(viewModel));
+        tabs.Children.Add(new SettingsPage(viewModel));
 
         // All'avvio l'app parte bloccata (se il blocco è attivo): la schermata di blocco compare appena la pagina è visibile.
         var started = false;

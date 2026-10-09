@@ -4,6 +4,15 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.6.0] - 2026-10-09
+
+### Modificato
+- **Le impostazioni sono in una scheda a parte, «Impostazioni».** La scheda «Genera» si occupa solo di generare e mostrare le password:
+  - Windows: «Genera» contiene il tipo di password (con gli esempi), la password attuale facoltativa, le proposte e la cronologia; in «Impostazioni» ci sono lunghezza,
+    numero di proposte, parole, regole della policy, blocco dell'app, promemoria, storico e sincronizzazione.
+  - Android: nasce la terza scheda «Impostazioni» (accanto a «Genera» e alla cronologia) con le stesse sezioni.
+- Gli avvisi (promemoria, attiva il blocco, scelta della proposta usata) restano visibili in alto da qualsiasi scheda.
+
 ## [1.5.3] - 2026-10-09
 
 ### Modificato

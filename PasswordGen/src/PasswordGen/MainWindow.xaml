@@ -115,14 +115,17 @@
         </Border>
 
         <!-- ============================================================ Contenuto -->
-        <Grid Margin="24,18,24,12">
+        <TabControl Margin="24,12,24,12" BorderThickness="0" Padding="0,12,0,0" Background="Transparent">
+
+            <!-- Genera: tipo di password, proposte e cronologia -->
+            <TabItem Header="Genera">
+            <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="370" />
                 <ColumnDefinition Width="20" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <!-- Opzioni -->
             <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel>
                     <Border Style="{StaticResource Card}">
@@ -148,165 +151,16 @@
                                 </StackPanel>
                             </RadioButton>
 
-                            <Separator Margin="0,10" Background="{StaticResource BorderBrush}" />
-
-                            <!-- Lunghezza: dipende dal tipo -->
-                            <StackPanel Visibility="{Binding IsPassphraseMode, Converter={StaticResource BoolToVisibility}}">
-                                <DockPanel>
-                                    <TextBlock DockPanel.Dock="Right" FontWeight="SemiBold" Text="{Binding WordCount}" />
-                                    <TextBlock Text="Numero di parole" />
-                                </DockPanel>
-                                <Slider Minimum="3" Maximum="8" Value="{Binding WordCount, Mode=TwoWay}" Margin="0,6,0,0" />
-                                <TextBlock Style="{StaticResource Muted}" Text="Più parole = più sicura. 4 sono un buon compromesso, 5 o più per le password importanti." />
-                            </StackPanel>
-                            <StackPanel Visibility="{Binding IsSyllablesMode, Converter={StaticResource BoolToVisibility}}">
-                                <DockPanel>
-                                    <TextBlock DockPanel.Dock="Right" FontWeight="SemiBold" Text="{Binding SyllableCount}" />
-                                    <TextBlock Text="Numero di sillabe" />
-                                </DockPanel>
-                                <Slider Minimum="6" Maximum="15" Value="{Binding SyllableCount, Mode=TwoWay}" Margin="0,6,0,0" />
-                                <TextBlock Style="{StaticResource Muted}" Text="Le sillabe sono raggruppate a tre per volta e separate da un simbolo." />
-                            </StackPanel>
-                            <StackPanel Visibility="{Binding IsRandomMode, Converter={StaticResource BoolToVisibility}}">
-                                <DockPanel>
-                                    <TextBlock DockPanel.Dock="Right" FontWeight="SemiBold" Text="{Binding RandomLength}" />
-                                    <TextBlock Text="Lunghezza (caratteri)" />
-                                </DockPanel>
-                                <Slider Minimum="8" Maximum="40" Value="{Binding RandomLength, Mode=TwoWay}" Margin="0,6,0,0" />
-                                <TextBlock Style="{StaticResource Muted}" Text="Difficile da ricordare: pensata per i casi in cui basta copiarla." />
-                            </StackPanel>
                         </StackPanel>
                     </Border>
-
-                    <Border Style="{StaticResource Card}"
-                            Visibility="{Binding IsPassphraseMode, Converter={StaticResource BoolToVisibility}}">
-                        <StackPanel>
-                            <TextBlock Style="{StaticResource CardTitle}" Text="Parole della passphrase" />
-                            <TextBlock Text="{Binding WordSummary}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,6" />
-
-                            <RadioButton GroupName="Words" Content="Solo la lista integrata" IsChecked="{Binding IsBuiltinWords, Mode=TwoWay}" />
-                            <RadioButton GroupName="Words" Content="Aggiungi il mio file alla lista integrata"
-                                         IsEnabled="{Binding HasCustomWords}" IsChecked="{Binding IsCombinedWords, Mode=TwoWay}" />
-                            <RadioButton GroupName="Words" Content="Solo il mio file (almeno 300 parole)"
-                                         IsEnabled="{Binding HasCustomWords}" IsChecked="{Binding IsCustomOnlyWords, Mode=TwoWay}" />
-
-                            <TextBlock Style="{StaticResource Muted}" Text="{Binding CustomFileSummary}" Margin="0,6,0,0" />
-                            <Border Background="{StaticResource WarningSoftBrush}" BorderBrush="{StaticResource WarningBorderBrush}"
-                                    BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,8,0,0"
-                                    Visibility="{Binding HasWordWarning, Converter={StaticResource BoolToVisibility}}">
-                                <TextBlock Text="{Binding WordWarning}" TextWrapping="Wrap" Foreground="{StaticResource WarningBrush}" FontSize="12" />
-                            </Border>
-
-                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                                <Button Style="{StaticResource GhostButton}" Command="{Binding LoadWordFileCommand}" Content="Carica file..." />
-                                <Button Style="{StaticResource GhostButton}" Command="{Binding ResetWordsCommand}" Content="Ripristina integrata" Margin="8,0,0,0" />
-                            </StackPanel>
-                            <TextBlock Style="{StaticResource Muted}" Margin="0,8,0,0"
-                                       Text="File di testo con una parola per riga (4-9 lettere, accenti rimossi, # per i commenti). Il file resta sul tuo computer." />
-                        </StackPanel>
-                    </Border>
-
-                    <Border Style="{StaticResource Card}">
-                        <StackPanel>
-                            <TextBlock Style="{StaticResource CardTitle}" Text="Numero di proposte" />
-                            <DockPanel>
-                                <TextBlock DockPanel.Dock="Right" FontWeight="SemiBold" Text="{Binding SuggestionCount}" />
-                                <TextBlock Text="Quante password generare per volta" />
-                            </DockPanel>
-                            <Slider Minimum="1" Maximum="20" Value="{Binding SuggestionCount, Mode=TwoWay}" Margin="0,6,0,0" />
-                        </StackPanel>
-                    </Border>
-
-                    <Border Style="{StaticResource Card}">
-                        <StackPanel>
-                            <TextBlock Style="{StaticResource CardTitle}" Text="Regole della policy aziendale" />
-                            <TextBlock Style="{StaticResource Muted}" Text="{Binding PolicySummary}" Margin="0,0,0,8" />
-
-                            <DockPanel>
-                                <TextBlock DockPanel.Dock="Right" FontWeight="SemiBold" Text="{Binding MinLength}" />
-                                <TextBlock Text="Lunghezza minima" />
-                            </DockPanel>
-                            <Slider Minimum="6" Maximum="32" Value="{Binding MinLength, Mode=TwoWay}" Margin="0,6,0,6" />
-
-                            <UniformGrid Columns="2">
-                                <CheckBox Content="Maiuscole" IsChecked="{Binding RequireUpper, Mode=TwoWay}" />
-                                <CheckBox Content="Minuscole" IsChecked="{Binding RequireLower, Mode=TwoWay}" />
-                                <CheckBox Content="Numeri" IsChecked="{Binding RequireDigit, Mode=TwoWay}" />
-                                <CheckBox Content="Caratteri speciali" IsChecked="{Binding RequireSpecial, Mode=TwoWay}" />
-                            </UniformGrid>
-                            <CheckBox Content="Evita caratteri ambigui (0 O 1 l I)" IsChecked="{Binding AvoidAmbiguous, Mode=TwoWay}" Margin="0,6,0,0" />
-                        </StackPanel>
-                    </Border>
-
-                    <Border Style="{StaticResource Card}">
-                        <StackPanel>
-                            <TextBlock Style="{StaticResource CardTitle}" Text="Blocco dell'app" />
-                            <CheckBox Content="Richiedi Windows Hello o il PIN/password dell'app per aprire l'app" IsChecked="{Binding LockEnabled, Mode=TwoWay}" />
-                            <TextBlock Style="{StaticResource Muted}" Text="Blocca di nuovo" Margin="0,8,0,2" />
-                            <ComboBox ItemsSource="{Binding LockGraceNames}" SelectedIndex="{Binding LockGraceIndex, Mode=TwoWay}" Padding="6,4" />
-                            <TextBlock Style="{StaticResource Muted}" Text="{Binding CredentialText}" Margin="0,10,0,0" TextWrapping="Wrap" />
-                            <WrapPanel Margin="0,6,0,0">
-                                <Button Style="{StaticResource GhostButton}" Command="{Binding SetCredentialCommand}" Content="{Binding SetCredentialText}"
-                                        Margin="0,0,8,6" />
-                                <Button Style="{StaticResource GhostButton}" Command="{Binding RemoveCredentialCommand}" Content="Rimuovi PIN/password"
-                                        Margin="0,0,8,6" />
-                            </WrapPanel>
-                            <Button Style="{StaticResource GhostButton}" Command="{Binding LockNowCommand}" Content="Blocca adesso"
-                                    HorizontalAlignment="Left" Margin="0,4,0,0" />
-                            <TextBlock Style="{StaticResource Muted}" Margin="0,8,0,0"
-                                       Text="Con Windows Hello (Impostazioni, Account, Opzioni di accesso) o con un PIN o una password dell'app; dopo 5 errori con il PIN/password l'app aspetta sempre di più (30 secondi, 1, 2, 4 minuti... fino a un'ora). Con il blocco attivo la finestra è esclusa anche da screenshot e registrazioni dello schermo." />
-                        </StackPanel>
-                    </Border>
-
+                    <TextBlock Style="{StaticResource Muted}" Margin="2,-4,0,10"
+                               Text="Lunghezza, regole della policy, blocco, promemoria e sincronizzazione sono nella scheda «Impostazioni»." TextWrapping="Wrap" />
                     <Border Style="{StaticResource Card}">
                         <StackPanel>
                             <TextBlock Style="{StaticResource CardTitle}" Text="Password attuale (facoltativa)" />
                             <PasswordBox x:Name="PreviousBox" Padding="6,5" PasswordChanged="OnPreviousPasswordChanged" />
                             <TextBlock Style="{StaticResource Muted}" Margin="0,6,0,0"
                                        Text="Se la indichi, le nuove proposte saranno sensibilmente diverse (molte policy vietano varianti della precedente). Resta solo in memoria: non viene mai salvata." />
-                        </StackPanel>
-                    </Border>
-
-                    <Border Style="{StaticResource Card}">
-                        <StackPanel>
-                            <TextBlock Style="{StaticResource CardTitle}" Text="Promemoria cambio password" />
-                            <CheckBox Content="Avvisami prima della scadenza" IsChecked="{Binding ReminderEnabled, Mode=TwoWay}" />
-                            <StackPanel IsEnabled="{Binding ReminderEnabled}" Margin="0,6,0,0">
-                                <DockPanel>
-                                    <TextBlock DockPanel.Dock="Right" FontWeight="SemiBold" Text="{Binding ValidityDays, StringFormat='{}{0} giorni'}" />
-                                    <TextBlock Text="La password dura" />
-                                </DockPanel>
-                                <Slider Minimum="14" Maximum="90" Value="{Binding ValidityDays, Mode=TwoWay}" Margin="0,6,0,6" />
-                                <CheckBox Content="Ricordamelo anche all'accesso a Windows" IsChecked="{Binding StartWithWindows, Mode=TwoWay}"
-                                          ToolTip="All'avvio di Windows l'app si apre solo se la password è in scadenza" />
-                            </StackPanel>
-                        </StackPanel>
-                    </Border>
-                    <Border Style="{StaticResource Card}">
-                        <StackPanel>
-                            <TextBlock Style="{StaticResource CardTitle}" Text="Storico delle password" />
-                            <CheckBox Content="Conserva le password scelte" IsChecked="{Binding HistoryEnabled, Mode=TwoWay}" />
-                            <TextBlock Style="{StaticResource Muted}" Margin="0,6,0,0"
-                                       Text="Quando premi «Ho cambiato la password» l'app ti chiede quale proposta hai usato e la salva in un file cifrato per il tuo utente Windows (ultime 12). Le nuove proposte evitano le varianti di quelle passate. Disattivandolo, lo storico viene cancellato." />
-                            <Button Style="{StaticResource GhostButton}" Command="{Binding ClearHistoryCommand}" Content="Cancella tutto lo storico"
-                                    HorizontalAlignment="Left" Margin="0,10,0,0" />
-                        </StackPanel>
-                    </Border>
-                    <Border Style="{StaticResource Card}">
-                        <StackPanel>
-                            <TextBlock Style="{StaticResource CardTitle}" Text="Sincronizzazione e backup" />
-                            <TextBlock Style="{StaticResource Muted}" Text="{Binding SyncSummary}" TextWrapping="Wrap" />
-                            <TextBlock Style="{StaticResource Muted}" Margin="0,6,0,0"
-                                       Text="Per vedere lo storico anche sul telefono scegli un file in una cartella sincronizzata (per esempio Google Drive): l'app lo tiene aggiornato, cifrato con una frase segreta che solo tu conosci. Storico, data dell'ultimo cambio e durata della password si uniscono senza perdere nulla." />
-                            <WrapPanel Margin="0,10,0,0">
-                                <Button Style="{StaticResource GhostButton}" Command="{Binding SetupSyncCommand}" Content="Imposta..." Margin="0,0,8,6" />
-                                <Button Style="{StaticResource GhostButton}" Command="{Binding SyncNowCommand}" Content="Sincronizza ora" Margin="0,0,8,6" />
-                                <Button Style="{StaticResource GhostButton}" Command="{Binding StopSyncCommand}" Content="Disattiva" Margin="0,0,8,6" />
-                            </WrapPanel>
-                            <WrapPanel>
-                                <Button Style="{StaticResource GhostButton}" Command="{Binding ExportCommand}" Content="Esporta..." Margin="0,0,8,0" />
-                                <Button Style="{StaticResource GhostButton}" Command="{Binding ImportCommand}" Content="Importa..." />
-                            </WrapPanel>
                         </StackPanel>
                     </Border>
                 </StackPanel>
@@ -417,7 +271,178 @@
                 </TabItem>
                 </TabControl>
             </Border>
-        </Grid>
+            </Grid>
+            </TabItem>
+
+            <!-- Impostazioni -->
+            <TabItem Header="Impostazioni">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="20" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Password -->
+                    <StackPanel Grid.Column="0">
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource CardTitle}" Text="Lunghezza delle password" />
+                            <!-- Lunghezza: dipende dal tipo -->
+                            <StackPanel Visibility="{Binding IsPassphraseMode, Converter={StaticResource BoolToVisibility}}">
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Right" FontWeight="SemiBold" Text="{Binding WordCount}" />
+                                    <TextBlock Text="Numero di parole" />
+                                </DockPanel>
+                                <Slider Minimum="3" Maximum="8" Value="{Binding WordCount, Mode=TwoWay}" Margin="0,6,0,0" />
+                                <TextBlock Style="{StaticResource Muted}" Text="Più parole = più sicura. 4 sono un buon compromesso, 5 o più per le password importanti." />
+                            </StackPanel>
+                            <StackPanel Visibility="{Binding IsSyllablesMode, Converter={StaticResource BoolToVisibility}}">
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Right" FontWeight="SemiBold" Text="{Binding SyllableCount}" />
+                                    <TextBlock Text="Numero di sillabe" />
+                                </DockPanel>
+                                <Slider Minimum="6" Maximum="15" Value="{Binding SyllableCount, Mode=TwoWay}" Margin="0,6,0,0" />
+                                <TextBlock Style="{StaticResource Muted}" Text="Le sillabe sono raggruppate a tre per volta e separate da un simbolo." />
+                            </StackPanel>
+                            <StackPanel Visibility="{Binding IsRandomMode, Converter={StaticResource BoolToVisibility}}">
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Right" FontWeight="SemiBold" Text="{Binding RandomLength}" />
+                                    <TextBlock Text="Lunghezza (caratteri)" />
+                                </DockPanel>
+                                <Slider Minimum="8" Maximum="40" Value="{Binding RandomLength, Mode=TwoWay}" Margin="0,6,0,0" />
+                                <TextBlock Style="{StaticResource Muted}" Text="Difficile da ricordare: pensata per i casi in cui basta copiarla." />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource CardTitle}" Text="Numero di proposte" />
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" FontWeight="SemiBold" Text="{Binding SuggestionCount}" />
+                                <TextBlock Text="Quante password generare per volta" />
+                            </DockPanel>
+                            <Slider Minimum="1" Maximum="20" Value="{Binding SuggestionCount, Mode=TwoWay}" Margin="0,6,0,0" />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}"
+                            Visibility="{Binding IsPassphraseMode, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource CardTitle}" Text="Parole della passphrase" />
+                            <TextBlock Text="{Binding WordSummary}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,6" />
+
+                            <RadioButton GroupName="Words" Content="Solo la lista integrata" IsChecked="{Binding IsBuiltinWords, Mode=TwoWay}" />
+                            <RadioButton GroupName="Words" Content="Aggiungi il mio file alla lista integrata"
+                                         IsEnabled="{Binding HasCustomWords}" IsChecked="{Binding IsCombinedWords, Mode=TwoWay}" />
+                            <RadioButton GroupName="Words" Content="Solo il mio file (almeno 300 parole)"
+                                         IsEnabled="{Binding HasCustomWords}" IsChecked="{Binding IsCustomOnlyWords, Mode=TwoWay}" />
+
+                            <TextBlock Style="{StaticResource Muted}" Text="{Binding CustomFileSummary}" Margin="0,6,0,0" />
+                            <Border Background="{StaticResource WarningSoftBrush}" BorderBrush="{StaticResource WarningBorderBrush}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,8,0,0"
+                                    Visibility="{Binding HasWordWarning, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Text="{Binding WordWarning}" TextWrapping="Wrap" Foreground="{StaticResource WarningBrush}" FontSize="12" />
+                            </Border>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                <Button Style="{StaticResource GhostButton}" Command="{Binding LoadWordFileCommand}" Content="Carica file..." />
+                                <Button Style="{StaticResource GhostButton}" Command="{Binding ResetWordsCommand}" Content="Ripristina integrata" Margin="8,0,0,0" />
+                            </StackPanel>
+                            <TextBlock Style="{StaticResource Muted}" Margin="0,8,0,0"
+                                       Text="File di testo con una parola per riga (4-9 lettere, accenti rimossi, # per i commenti). Il file resta sul tuo computer." />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource CardTitle}" Text="Regole della policy aziendale" />
+                            <TextBlock Style="{StaticResource Muted}" Text="{Binding PolicySummary}" Margin="0,0,0,8" />
+
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" FontWeight="SemiBold" Text="{Binding MinLength}" />
+                                <TextBlock Text="Lunghezza minima" />
+                            </DockPanel>
+                            <Slider Minimum="6" Maximum="32" Value="{Binding MinLength, Mode=TwoWay}" Margin="0,6,0,6" />
+
+                            <UniformGrid Columns="2">
+                                <CheckBox Content="Maiuscole" IsChecked="{Binding RequireUpper, Mode=TwoWay}" />
+                                <CheckBox Content="Minuscole" IsChecked="{Binding RequireLower, Mode=TwoWay}" />
+                                <CheckBox Content="Numeri" IsChecked="{Binding RequireDigit, Mode=TwoWay}" />
+                                <CheckBox Content="Caratteri speciali" IsChecked="{Binding RequireSpecial, Mode=TwoWay}" />
+                            </UniformGrid>
+                            <CheckBox Content="Evita caratteri ambigui (0 O 1 l I)" IsChecked="{Binding AvoidAmbiguous, Mode=TwoWay}" Margin="0,6,0,0" />
+                        </StackPanel>
+                    </Border>
+                    </StackPanel>
+
+                    <!-- Sicurezza, storico e sincronizzazione -->
+                    <StackPanel Grid.Column="2">
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource CardTitle}" Text="Blocco dell'app" />
+                            <CheckBox Content="Richiedi Windows Hello o il PIN/password dell'app per aprire l'app" IsChecked="{Binding LockEnabled, Mode=TwoWay}" />
+                            <TextBlock Style="{StaticResource Muted}" Text="Blocca di nuovo" Margin="0,8,0,2" />
+                            <ComboBox ItemsSource="{Binding LockGraceNames}" SelectedIndex="{Binding LockGraceIndex, Mode=TwoWay}" Padding="6,4" />
+                            <TextBlock Style="{StaticResource Muted}" Text="{Binding CredentialText}" Margin="0,10,0,0" TextWrapping="Wrap" />
+                            <WrapPanel Margin="0,6,0,0">
+                                <Button Style="{StaticResource GhostButton}" Command="{Binding SetCredentialCommand}" Content="{Binding SetCredentialText}"
+                                        Margin="0,0,8,6" />
+                                <Button Style="{StaticResource GhostButton}" Command="{Binding RemoveCredentialCommand}" Content="Rimuovi PIN/password"
+                                        Margin="0,0,8,6" />
+                            </WrapPanel>
+                            <Button Style="{StaticResource GhostButton}" Command="{Binding LockNowCommand}" Content="Blocca adesso"
+                                    HorizontalAlignment="Left" Margin="0,4,0,0" />
+                            <TextBlock Style="{StaticResource Muted}" Margin="0,8,0,0"
+                                       Text="Con Windows Hello (Impostazioni, Account, Opzioni di accesso) o con un PIN o una password dell'app; dopo 5 errori con il PIN/password l'app aspetta sempre di più (30 secondi, 1, 2, 4 minuti... fino a un'ora). Con il blocco attivo la finestra è esclusa anche da screenshot e registrazioni dello schermo." />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource CardTitle}" Text="Promemoria cambio password" />
+                            <CheckBox Content="Avvisami prima della scadenza" IsChecked="{Binding ReminderEnabled, Mode=TwoWay}" />
+                            <StackPanel IsEnabled="{Binding ReminderEnabled}" Margin="0,6,0,0">
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Right" FontWeight="SemiBold" Text="{Binding ValidityDays, StringFormat='{}{0} giorni'}" />
+                                    <TextBlock Text="La password dura" />
+                                </DockPanel>
+                                <Slider Minimum="14" Maximum="90" Value="{Binding ValidityDays, Mode=TwoWay}" Margin="0,6,0,6" />
+                                <CheckBox Content="Ricordamelo anche all'accesso a Windows" IsChecked="{Binding StartWithWindows, Mode=TwoWay}"
+                                          ToolTip="All'avvio di Windows l'app si apre solo se la password è in scadenza" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource CardTitle}" Text="Storico delle password" />
+                            <CheckBox Content="Conserva le password scelte" IsChecked="{Binding HistoryEnabled, Mode=TwoWay}" />
+                            <TextBlock Style="{StaticResource Muted}" Margin="0,6,0,0"
+                                       Text="Quando premi «Ho cambiato la password» l'app ti chiede quale proposta hai usato e la salva in un file cifrato per il tuo utente Windows (ultime 12). Le nuove proposte evitano le varianti di quelle passate. Disattivandolo, lo storico viene cancellato." />
+                            <Button Style="{StaticResource GhostButton}" Command="{Binding ClearHistoryCommand}" Content="Cancella tutto lo storico"
+                                    HorizontalAlignment="Left" Margin="0,10,0,0" />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource CardTitle}" Text="Sincronizzazione e backup" />
+                            <TextBlock Style="{StaticResource Muted}" Text="{Binding SyncSummary}" TextWrapping="Wrap" />
+                            <TextBlock Style="{StaticResource Muted}" Margin="0,6,0,0"
+                                       Text="Per vedere lo storico anche sul telefono scegli un file in una cartella sincronizzata (per esempio Google Drive): l'app lo tiene aggiornato, cifrato con una frase segreta che solo tu conosci. Storico, data dell'ultimo cambio e durata della password si uniscono senza perdere nulla." />
+                            <WrapPanel Margin="0,10,0,0">
+                                <Button Style="{StaticResource GhostButton}" Command="{Binding SetupSyncCommand}" Content="Imposta..." Margin="0,0,8,6" />
+                                <Button Style="{StaticResource GhostButton}" Command="{Binding SyncNowCommand}" Content="Sincronizza ora" Margin="0,0,8,6" />
+                                <Button Style="{StaticResource GhostButton}" Command="{Binding StopSyncCommand}" Content="Disattiva" Margin="0,0,8,6" />
+                            </WrapPanel>
+                            <WrapPanel>
+                                <Button Style="{StaticResource GhostButton}" Command="{Binding ExportCommand}" Content="Esporta..." Margin="0,0,8,0" />
+                                <Button Style="{StaticResource GhostButton}" Command="{Binding ImportCommand}" Content="Importa..." />
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+                    </StackPanel>
+                </Grid>
+            </ScrollViewer>
+            </TabItem>
+        </TabControl>
     </DockPanel>
 
     <!-- Schermata di blocco: copre tutto finché l'utente non si autentica (Windows Hello o PIN/password dell'app) -->
