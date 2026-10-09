@@ -152,6 +152,8 @@
                         <Label Text="{Binding SyncSummary}" Style="{StaticResource MutedText}" />
                         <Label Style="{StaticResource MutedText}"
                                Text="Per vedere lo storico anche sul PC scegli un file in una cartella sincronizzata (per esempio Google Drive): l'app lo tiene aggiornato, cifrato con una frase segreta che solo tu conosci. Storico, data dell'ultimo cambio e durata della password si uniscono senza perdere nulla." />
+                        <Label Text="Controlla le modifiche dell'altro dispositivo" Style="{StaticResource MutedText}" />
+                        <Picker ItemsSource="{Binding SyncIntervalNames}" SelectedIndex="{Binding SyncIntervalIndex, Mode=TwoWay}" />
                         <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
                             <Button Text="Imposta..." Command="{Binding SetupSyncCommand}" IsEnabled="{Binding CanUseSync}"
                                     BackgroundColor="White" TextColor="{StaticResource Accent}" BorderColor="#CBD5E1" BorderWidth="1" FontSize="12" />

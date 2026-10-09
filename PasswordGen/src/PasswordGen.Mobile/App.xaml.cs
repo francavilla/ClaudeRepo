@@ -86,10 +86,10 @@ public partial class App : Application
             _ = viewModel.SyncIfIdleAsync(TimeSpan.FromSeconds(5));
         };
 
-        // Con l'app in primo piano si controlla ogni 15 secondi se l'altro dispositivo ha cambiato qualcosa (per esempio azzerato lo storico).
+        // Con l'app in primo piano si controlla con l'intervallo scelto in Impostazioni (15 secondi di base) se l'altro dispositivo ha cambiato qualcosa (per esempio azzerato lo storico).
         var syncTimer = Dispatcher.CreateTimer();
-        syncTimer.Interval = TimeSpan.FromSeconds(15);
-        syncTimer.Tick += (sender, args) => _ = viewModel.SyncIfIdleAsync(TimeSpan.FromSeconds(10));
+        syncTimer.Interval = TimeSpan.FromSeconds(5);
+        syncTimer.Tick += (sender, args) => _ = viewModel.SyncIfIdleAsync(viewModel.SyncInterval);
         syncTimer.Start();
         return window;
     }

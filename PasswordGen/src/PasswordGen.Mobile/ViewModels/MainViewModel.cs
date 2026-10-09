@@ -110,6 +110,7 @@ public class MainViewModel : ObservableObject
         _validityDays = _settings.ValidityDays;
         _wordSource = _settings.WordSource;
         _lockGraceSeconds = _settings.LockGraceSeconds;
+        _syncIntervalSeconds = _settings.SyncIntervalSeconds;
         _lockEnabled = _settings.LockEnabled && (security.IsAvailable || appLock.HasCredential);
         _customWordsPath = _settings.CustomWordsPath;
         if (!string.IsNullOrEmpty(_customWordsPath))
@@ -635,7 +636,7 @@ public class MainViewModel : ObservableObject
         }
 
         // Dove non si può controllare l'impronta (per esempio un documento di Android) si sincronizza al massimo ogni due minuti.
-        if (token == null && DateTime.UtcNow - _lastFullSync < TimeSpan.FromMinutes(2))
+        if (token == null && DateTime.UtcNow - _lastFullSync < TimeSpan.FromSeconds(Math.Max(120, _syncIntervalSeconds)))
         {
             return;
         }
@@ -643,7 +644,50 @@ public class MainViewModel : ObservableObject
         await AutoSyncAsync();
     }
 
+    private static readonly int[] SyncIntervalChoices = { 15, 30, 60, 120, 300, 600 };
+
+    public string[] SyncIntervalNames
+    {
+        get { return new[] { "Ogni 15 secondi", "Ogni 30 secondi", "Ogni minuto", "Ogni 2 minuti", "Ogni 5 minuti", "Ogni 10 minuti" }; }
+    }
+
+    /// <summary>Ogni quanto, ad app aperta, si controlla se l'altro dispositivo ha cambiato qualcosa.</summary>
+    public TimeSpan SyncInterval
+    {
+        get { return TimeSpan.FromSeconds(_syncIntervalSeconds); }
+    }
+
+    public int SyncIntervalIndex
+    {
+        get
+        {
+            // Un valore salvato che non è tra le scelte (file modificato a mano) si porta alla più vicina.
+            var best = 0;
+            for (var i = 1; i < SyncIntervalChoices.Length; i++)
+            {
+                if (Math.Abs(SyncIntervalChoices[i] - _syncIntervalSeconds) < Math.Abs(SyncIntervalChoices[best] - _syncIntervalSeconds))
+                {
+                    best = i;
+                }
+            }
+
+            return best;
+        }
+        set
+        {
+            if (value < 0 || value >= SyncIntervalChoices.Length || SyncIntervalChoices[value] == _syncIntervalSeconds)
+            {
+                return;
+            }
+
+            _syncIntervalSeconds = SyncIntervalChoices[value];
+            OnPropertyChanged();
+            SaveSettings();
+        }
+    }
+
     private DateTime _lastFullSync = DateTime.MinValue;
+    private int _syncIntervalSeconds = AppSettings.DefaultSyncIntervalSeconds;
     private string _knownRemoteToken;
 
     private Task<string> ProbeAsync(string address)
@@ -1493,6 +1537,7 @@ public class MainViewModel : ObservableObject
         _settings.AvoidAmbiguous = _avoidAmbiguous;
         _settings.LockEnabled = _lockEnabled;
         _settings.LockGraceSeconds = _lockGraceSeconds;
+        _settings.SyncIntervalSeconds = _syncIntervalSeconds;
         _settings.WordSource = _wordSource;
         _settings.CustomWordsPath = _customWordsPath;
         _settings.ReminderEnabled = _reminderEnabled;

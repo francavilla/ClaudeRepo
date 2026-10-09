@@ -4,6 +4,12 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [2.2.0] - 2026-10-09
+
+### Aggiunto
+- **Intervallo di controllo della sincronizzazione.** In «Impostazioni», nella card della sincronizzazione, si sceglie ogni quanto, ad app aperta, controllare se l'altro dispositivo ha cambiato qualcosa:
+  15 o 30 secondi, 1, 2, 5 o 10 minuti. Di base 15 secondi. Vale per Windows e Android; dove non si può controllare il file in modo leggero (documento scelto su Android) la sincronizzazione completa resta al massimo ogni due minuti.
+
 ## [2.1.2] - 2026-10-09
 
 ### Corretto
