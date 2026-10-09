@@ -217,6 +217,18 @@ namespace PasswordGen.Core.Tests
         }
 
         [Fact]
+        public void ScambioDelCodice_Rifiutato_RiportaIlMotivoDiGoogle_NonDiceAccessoScaduto()
+        {
+            var rig = CreateRig(false);
+            rig.Google.TokenError = "invalid_client";
+
+            var ex = Assert.Throws<IOException>(() => rig.OAuth.ExchangeCodeAsync("codice", "verificatore").GetAwaiter().GetResult());
+
+            Assert.Contains("invalid_client", ex.Message);
+            Assert.Contains("prova", ex.Message);   // la descrizione di Google
+        }
+
+        [Fact]
         public void Rinnovo_AltroErrore_EUnErroreDiRete()
         {
             var rig = CreateRig();

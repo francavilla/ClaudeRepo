@@ -128,7 +128,7 @@ namespace PasswordGen.Services
             var attribute = typeof(GoogleDriveService).Assembly
                 .GetCustomAttributes<AssemblyMetadataAttribute>()
                 .FirstOrDefault(a => a.Key == key);
-            return attribute == null ? null : attribute.Value;
+            return attribute == null || attribute.Value == null ? null : attribute.Value.Trim();
         }
     }
 }

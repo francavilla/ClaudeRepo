@@ -119,7 +119,7 @@ namespace PasswordGen.Core.Sync.Google
                 { "code_verifier", verifier },
                 { "grant_type", "authorization_code" },
                 { "redirect_uri", redirectUri ?? _redirectUri }
-            });
+            }, false);
         }
 
         /// <exception cref="GoogleAuthException">Il rinnovo è stato rifiutato: serve un nuovo accesso.</exception>
@@ -130,10 +130,10 @@ namespace PasswordGen.Core.Sync.Google
                 { "client_id", _clientId },
                 { "refresh_token", refreshToken },
                 { "grant_type", "refresh_token" }
-            });
+            }, true);
         }
 
-        private async Task<GoogleTokens> PostAsync(Dictionary<string, string> form)
+        private async Task<GoogleTokens> PostAsync(Dictionary<string, string> form, bool isRefresh)
         {
             if (!string.IsNullOrEmpty(_clientSecret))
             {
@@ -158,7 +158,9 @@ namespace PasswordGen.Core.Sync.Google
 
                 if (!response.IsSuccessStatusCode || parsed == null || string.IsNullOrEmpty(parsed.AccessToken))
                 {
-                    if (parsed != null && (parsed.Error == "invalid_grant" || parsed.Error == "invalid_client" || parsed.Error == "unauthorized_client"))
+                    // Solo il rinnovo rifiutato significa «accesso scaduto o revocato»; allo scambio del codice un rifiuto ha un'altra causa
+                    // (client o chiave non validi, codice scaduto, indirizzo di ritorno diverso): si riporta il motivo di Google così com'è.
+                    if (isRefresh && parsed != null && (parsed.Error == "invalid_grant" || parsed.Error == "invalid_client" || parsed.Error == "unauthorized_client"))
                     {
                         throw new GoogleAuthException("L'accesso a Google è scaduto o è stato revocato: accedi di nuovo.");
                     }
