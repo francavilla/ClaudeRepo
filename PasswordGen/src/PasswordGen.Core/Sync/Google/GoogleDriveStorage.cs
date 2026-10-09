@@ -17,6 +17,25 @@ namespace PasswordGen.Core.Sync.Google
     }
 
     [DataContract]
+    internal sealed class DriveErrorDetail
+    {
+        [DataMember(Name = "reason")] public string Reason { get; set; }
+    }
+
+    [DataContract]
+    internal sealed class DriveErrorBody
+    {
+        [DataMember(Name = "message")] public string Message { get; set; }
+        [DataMember(Name = "errors")] public List<DriveErrorDetail> Errors { get; set; }
+    }
+
+    [DataContract]
+    internal sealed class DriveErrorResponse
+    {
+        [DataMember(Name = "error")] public DriveErrorBody Error { get; set; }
+    }
+
+    [DataContract]
     internal sealed class DriveFile
     {
         [DataMember(Name = "id")] public string Id { get; set; }
@@ -138,17 +157,54 @@ namespace PasswordGen.Core.Sync.Google
                 return;
             }
 
+            var detail = ReadGoogleError(response);
+
             if (response.StatusCode == HttpStatusCode.Unauthorized)
             {
-                throw new GoogleAuthException("Google ha rifiutato l'accesso: accedi di nuovo.");
+                throw new GoogleAuthException("Google ha rifiutato l'accesso: accedi di nuovo." + detail);
             }
 
             if (response.StatusCode == HttpStatusCode.Forbidden)
             {
-                throw new IOException("Google Drive non permette l'operazione (" + what + "): controlla di aver consentito l'accesso ai file di Drive.");
+                throw new IOException("Google Drive non permette l'operazione (" + what + "): controlla di aver consentito l'accesso ai file di Drive e che l'API di Drive sia abilitata nel progetto." + detail);
             }
 
-            throw new IOException("Google Drive: errore nella " + what + " (HTTP " + (int)response.StatusCode + ").");
+            throw new IOException("Google Drive: errore nella " + what + " (HTTP " + (int)response.StatusCode + ")." + detail);
+        }
+
+        /// <summary>Il motivo scritto da Google nella risposta d'errore (JSON), per capire cosa non va; vuoto se non c'è.</summary>
+        private static string ReadGoogleError(HttpResponseMessage response)
+        {
+            try
+            {
+                var body = response.Content == null ? null : response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                if (string.IsNullOrWhiteSpace(body))
+                {
+                    return string.Empty;
+                }
+
+                using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(body)))
+                {
+                    var parsed = (DriveErrorResponse)new DataContractJsonSerializer(typeof(DriveErrorResponse)).ReadObject(stream);
+                    if (parsed == null || parsed.Error == null)
+                    {
+                        return string.Empty;
+                    }
+
+                    var reason = parsed.Error.Errors != null && parsed.Error.Errors.Count > 0 ? parsed.Error.Errors[0].Reason : null;
+                    var text = parsed.Error.Message;
+                    if (string.IsNullOrEmpty(text) && string.IsNullOrEmpty(reason))
+                    {
+                        return string.Empty;
+                    }
+
+                    return " Google: " + text + (string.IsNullOrEmpty(reason) ? string.Empty : " [" + reason + "]");
+                }
+            }
+            catch (Exception)
+            {
+                return string.Empty;
+            }
         }
     }
 }

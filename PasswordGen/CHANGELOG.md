@@ -18,6 +18,7 @@ Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Bui
 
 ### Modificato
 - «Imposta...» chiede prima dove sincronizzare (Google Drive o un file).
+- Gli errori di Google Drive riportano anche il motivo scritto da Google (per esempio API non abilitata o ambito non concesso).
 
 ## [1.4.0] - 2026-10-08
 

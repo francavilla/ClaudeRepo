@@ -49,6 +49,7 @@ namespace PasswordGen.Core.Tests
             public int Counter = 1;
             public byte[] FileContent;
             public string FileId;
+            public string FailBody;
             public int FailNextWithStatus;              // se > 0, la prossima chiamata a Drive risponde con questo codice
             public bool RejectFirstDriveCall;           // la prima chiamata a Drive riceve 401 (token scaduto)
             public readonly List<string> Calls = new List<string>();
@@ -84,7 +85,13 @@ namespace PasswordGen.Core.Tests
                 {
                     var status = (HttpStatusCode)FailNextWithStatus;
                     FailNextWithStatus = 0;
-                    return new HttpResponseMessage(status);
+                    var failure = new HttpResponseMessage(status);
+                    if (FailBody != null)
+                    {
+                        failure.Content = new StringContent(FailBody, Encoding.UTF8, "application/json");
+                    }
+
+                    return failure;
                 }
 
                 if (request.Method == HttpMethod.Get && url.Contains("alt=media"))
@@ -439,6 +446,19 @@ namespace PasswordGen.Core.Tests
 
             var ex = Assert.Throws<IOException>(() => rig.Storage.Read());
             Assert.Contains("500", ex.Message);
+        }
+
+        [Fact]
+        public void Drive_ErroreDiGoogle_NelMessaggioCompareIlMotivo()
+        {
+            var rig = CreateRig();
+            rig.Google.FailNextWithStatus = 403;
+            rig.Google.FailBody = "{\"error\":{\"code\":403,\"message\":\"Google Drive API has not been used in project 123 before or it is disabled.\",\"errors\":[{\"reason\":\"accessNotConfigured\"}]}}";
+
+            var ex = Assert.Throws<IOException>(() => rig.Storage.Read());
+
+            Assert.Contains("Google Drive API has not been used", ex.Message);
+            Assert.Contains("accessNotConfigured", ex.Message);
         }
 
         [Fact]
