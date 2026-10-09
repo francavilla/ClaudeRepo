@@ -3,7 +3,7 @@
 Applicazione desktop **WPF per .NET Framework 4.8** che genera password **casuali, sicure e facili da ricordare**,
 pensata per chi deve cambiare password ogni mese per policy aziendale.
 
-Tutto avviene sul computer: nessuna connessione di rete. Le password non vengono salvate, salvo quelle che scegli tu di conservare nello **storico** (facoltativo, cifrato: vedi sotto).
+Tutto avviene sul computer: il programma usa la rete solo se attivi la sincronizzazione su Google Drive (facoltativa), altrimenti non si collega a nulla. Le password non vengono salvate, salvo quelle che scegli tu di conservare nello **storico** (facoltativo, cifrato: vedi sotto).
 
 ## Uso
 

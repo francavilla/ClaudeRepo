@@ -4,6 +4,12 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [1.5.1] - 2026-10-09
+
+### Corretto
+- Le note della release Windows e il README dicevano «nessuna connessione di rete»: non è più vero se si attiva la sincronizzazione su Google Drive. Ora dicono che la rete
+  serve solo per quella funzione facoltativa. Nessuna modifica al programma.
+
 ## [1.5.0] - 2026-10-09
 
 ### Aggiunto
