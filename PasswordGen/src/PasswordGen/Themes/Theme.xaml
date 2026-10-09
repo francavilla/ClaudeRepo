@@ -342,4 +342,63 @@
             </Setter.Value>
         </Setter>
     </Style>
+
+    <!-- Sezione comprimibile delle impostazioni -->
+    <Style x:Key="SectionExpander" TargetType="Expander">
+        <Setter Property="Margin" Value="0,0,0,12" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Expander">
+                    <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10">
+                        <DockPanel>
+                            <ToggleButton DockPanel.Dock="Top" Cursor="Hand" Focusable="True"
+                                          IsChecked="{Binding IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                          Content="{Binding Header, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="Hd" Background="Transparent" Padding="16,12" CornerRadius="10">
+                                            <DockPanel>
+                                                <Path x:Name="Chevron" DockPanel.Dock="Right" Data="M 0 0 L 4 4 L 8 0" VerticalAlignment="Center"
+                                                      Stroke="{DynamicResource MutedBrush}" StrokeThickness="1.6" RenderTransformOrigin="0.5,0.5">
+                                                    <Path.RenderTransform>
+                                                        <RotateTransform Angle="-90" />
+                                                    </Path.RenderTransform>
+                                                </Path>
+                                                <ContentPresenter VerticalAlignment="Center" TextElement.FontWeight="SemiBold" TextElement.FontSize="14"
+                                                                  TextElement.Foreground="{DynamicResource TextBrush}" />
+                                            </DockPanel>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Hd" Property="Background" Value="{DynamicResource HoverBrush}" />
+                                            </Trigger>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="Chevron" Property="RenderTransform">
+                                                    <Setter.Value>
+                                                        <RotateTransform Angle="0" />
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <ContentPresenter x:Name="Body" Margin="16,0,16,16" Visibility="Collapsed" />
+                        </DockPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsExpanded" Value="True">
+                            <Setter TargetName="Body" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Pulsante per le azioni che cancellano o disattivano -->
+    <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource GhostButton}">
+        <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ErrorBorderBrush}" />
+    </Style>
 </ResourceDictionary>

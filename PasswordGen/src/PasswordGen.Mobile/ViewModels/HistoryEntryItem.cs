@@ -13,12 +13,18 @@ public sealed class HistoryEntryItem : ObservableObject
     private readonly HistoryEntry _entry;
     private bool _isRevealed;
 
-    public HistoryEntryItem(HistoryEntry entry, Action<HistoryEntryItem> copy)
+    public HistoryEntryItem(HistoryEntry entry, Action<HistoryEntryItem> copy, bool isCurrent)
     {
         _entry = entry;
+        IsCurrent = isCurrent;
         ToggleCommand = new Command(() => IsRevealed = !IsRevealed, () => _entry.HasPassword);
         CopyCommand = new Command(() => copy(this), () => _entry.HasPassword);
     }
+
+    /// <summary>La voce più recente: la password in uso.</summary>
+    public bool IsCurrent { get; }
+
+    public bool IsNotCurrent => !IsCurrent;
 
     public int Number => _entry.Number;
 

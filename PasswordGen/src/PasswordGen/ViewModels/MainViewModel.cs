@@ -1528,6 +1528,17 @@ namespace PasswordGen.ViewModels
 
         public ObservableCollection<HistoryEntryViewModel> HistoryEntries { get; private set; }
 
+        /// <summary>Quante delle voci disponibili sono occupate, per esempio «7 di 20 password conservate».</summary>
+        public string HistoryUsageText
+        {
+            get { return _history.Entries.Count + " di " + PasswordHistory.MaxEntries + " password conservate"; }
+        }
+
+        public double HistoryUsage
+        {
+            get { return (double)_history.Entries.Count / PasswordHistory.MaxEntries; }
+        }
+
         public bool HasHistory
         {
             get { return _history.Entries.Count > 0; }
@@ -1559,9 +1570,11 @@ namespace PasswordGen.ViewModels
             HistoryEntries.Clear();
             foreach (var entry in _history.Entries)
             {
-                HistoryEntries.Add(new HistoryEntryViewModel(entry, CopyHistoryEntry));
+                HistoryEntries.Add(new HistoryEntryViewModel(entry, CopyHistoryEntry, HistoryEntries.Count == 0));
             }
 
+            OnPropertyChanged(nameof(HistoryUsageText));
+            OnPropertyChanged(nameof(HistoryUsage));
             OnPropertyChanged(nameof(HasHistory));
             OnPropertyChanged(nameof(HistoryHeader));
         }

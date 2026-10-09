@@ -20,8 +20,15 @@
 
                 <!-- Lunghezza -->
                 <Border Style="{StaticResource Card}">
-                    <VerticalStackLayout Spacing="8">
-                        <Label Text="Lunghezza delle password" Style="{StaticResource CardTitle}" />
+                    <VerticalStackLayout Spacing="0">
+                        <Grid ColumnDefinitions="*,Auto" Padding="0,2">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnSectionTapped" />
+                            </Grid.GestureRecognizers>
+                            <Label Text="Lunghezza delle password" Style="{StaticResource CardTitle}" VerticalOptions="Center" />
+                            <Label Grid.Column="1" Text="▾" TextColor="{DynamicResource Muted}" FontSize="16" VerticalOptions="Center" />
+                        </Grid>
+                        <VerticalStackLayout Spacing="8" Margin="0,8,0,0">
                         <VerticalStackLayout IsVisible="{Binding IsPassphrase}">
                             <Label Text="{Binding WordCount, StringFormat='Numero di parole: {0:0}'}" />
                             <Slider Minimum="3" Maximum="8" Value="{Binding WordCount, Mode=TwoWay}" />
@@ -42,13 +49,21 @@
 
                         <Label Text="{Binding SuggestionCount, StringFormat='Proposte per volta: {0:0}'}" Margin="0,6,0,0" />
                         <Slider Minimum="1" Maximum="20" Value="{Binding SuggestionCount, Mode=TwoWay}" />
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
 
                 <!-- Parole della passphrase -->
                 <Border Style="{StaticResource Card}" IsVisible="{Binding IsPassphrase}">
-                    <VerticalStackLayout Spacing="4">
-                        <Label Text="Parole della passphrase" Style="{StaticResource CardTitle}" />
+                    <VerticalStackLayout Spacing="0">
+                        <Grid ColumnDefinitions="*,Auto" Padding="0,2">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnSectionTapped" />
+                            </Grid.GestureRecognizers>
+                            <Label Text="Parole della passphrase" Style="{StaticResource CardTitle}" VerticalOptions="Center" />
+                            <Label Grid.Column="1" Text="▸" TextColor="{DynamicResource Muted}" FontSize="16" VerticalOptions="Center" />
+                        </Grid>
+                        <VerticalStackLayout Spacing="4" Margin="0,8,0,0" IsVisible="False">
                         <Label Text="{Binding WordSummary}" FontAttributes="Bold" />
 
                         <RadioButton GroupName="Words" Content="Solo la lista integrata" IsChecked="{Binding IsBuiltinWords, Mode=TwoWay}" />
@@ -73,13 +88,21 @@
                         </Grid>
                         <Label Style="{StaticResource MutedText}"
                                Text="File di testo con una parola per riga (4-9 lettere, accenti rimossi, # per i commenti). Viene copiato nella memoria privata dell'app." />
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
 
                 <!-- Policy -->
                 <Border Style="{StaticResource Card}">
-                    <VerticalStackLayout Spacing="6">
-                        <Label Text="Regole della policy aziendale" Style="{StaticResource CardTitle}" />
+                    <VerticalStackLayout Spacing="0">
+                        <Grid ColumnDefinitions="*,Auto" Padding="0,2">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnSectionTapped" />
+                            </Grid.GestureRecognizers>
+                            <Label Text="Regole della policy aziendale" Style="{StaticResource CardTitle}" VerticalOptions="Center" />
+                            <Label Grid.Column="1" Text="▸" TextColor="{DynamicResource Muted}" FontSize="16" VerticalOptions="Center" />
+                        </Grid>
+                        <VerticalStackLayout Spacing="6" Margin="0,8,0,0" IsVisible="False">
                         <Label Text="{Binding PolicySummary}" Style="{StaticResource MutedText}" />
 
                         <Label Text="{Binding MinLength, StringFormat='Lunghezza minima: {0:0}'}" Margin="0,6,0,0" />
@@ -105,13 +128,21 @@
                             <Label Text="Evita caratteri ambigui (0 O 1 l I)" VerticalOptions="Center" />
                             <Switch Grid.Column="1" IsToggled="{Binding AvoidAmbiguous, Mode=TwoWay}" />
                         </Grid>
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
 
                 <!-- Blocco dell'app -->
                 <Border Style="{StaticResource Card}">
-                    <VerticalStackLayout Spacing="6">
-                        <Label Text="Blocco dell'app" Style="{StaticResource CardTitle}" />
+                    <VerticalStackLayout Spacing="0">
+                        <Grid ColumnDefinitions="*,Auto" Padding="0,2">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnSectionTapped" />
+                            </Grid.GestureRecognizers>
+                            <Label Text="Blocco dell'app" Style="{StaticResource CardTitle}" VerticalOptions="Center" />
+                            <Label Grid.Column="1" Text="▸" TextColor="{DynamicResource Muted}" FontSize="16" VerticalOptions="Center" />
+                        </Grid>
+                        <VerticalStackLayout Spacing="6" Margin="0,8,0,0" IsVisible="False">
                         <Grid ColumnDefinitions="*,Auto">
                             <Label Text="Richiedi impronta, volto o PIN" VerticalOptions="Center" />
                             <Switch Grid.Column="1" IsToggled="{Binding LockEnabled, Mode=TwoWay}" IsEnabled="{Binding LockAvailable}" />
@@ -127,13 +158,21 @@
                         <Button Text="Blocca adesso" Command="{Binding LockNowCommand}" IsEnabled="{Binding CanLockNow}"
                                 BackgroundColor="{DynamicResource CardBg}" TextColor="{DynamicResource Accent}" BorderColor="{DynamicResource BorderStrong}" BorderWidth="1" />
                         <Label Text="{Binding LockHint}" Style="{StaticResource MutedText}" />
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
 
                 <!-- Impostazioni del promemoria -->
                 <Border Style="{StaticResource Card}">
-                    <VerticalStackLayout Spacing="6">
-                        <Label Text="Promemoria cambio password" Style="{StaticResource CardTitle}" />
+                    <VerticalStackLayout Spacing="0">
+                        <Grid ColumnDefinitions="*,Auto" Padding="0,2">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnSectionTapped" />
+                            </Grid.GestureRecognizers>
+                            <Label Text="Promemoria cambio password" Style="{StaticResource CardTitle}" VerticalOptions="Center" />
+                            <Label Grid.Column="1" Text="▸" TextColor="{DynamicResource Muted}" FontSize="16" VerticalOptions="Center" />
+                        </Grid>
+                        <VerticalStackLayout Spacing="6" Margin="0,8,0,0" IsVisible="False">
                         <Grid ColumnDefinitions="*,Auto">
                             <Label Text="Avvisami prima della scadenza" VerticalOptions="Center" />
                             <Switch Grid.Column="1" IsToggled="{Binding ReminderEnabled, Mode=TwoWay}" />
@@ -142,13 +181,21 @@
                         <Slider Minimum="14" Maximum="90" Value="{Binding ValidityDays, Mode=TwoWay}" />
                         <Label Style="{StaticResource MutedText}"
                                Text="Una notifica al giorno (verso le 9) quando mancano al massimo 5 giorni o la password è scaduta. Premi «Ho cambiato la password» dopo ogni cambio." />
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
 
                 <!-- Sincronizzazione e backup -->
                 <Border Style="{StaticResource Card}">
-                    <VerticalStackLayout Spacing="6">
-                        <Label Text="Sincronizzazione e backup" Style="{StaticResource CardTitle}" />
+                    <VerticalStackLayout Spacing="0">
+                        <Grid ColumnDefinitions="*,Auto" Padding="0,2">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnSectionTapped" />
+                            </Grid.GestureRecognizers>
+                            <Label Text="Sincronizzazione e backup" Style="{StaticResource CardTitle}" VerticalOptions="Center" />
+                            <Label Grid.Column="1" Text="▸" TextColor="{DynamicResource Muted}" FontSize="16" VerticalOptions="Center" />
+                        </Grid>
+                        <VerticalStackLayout Spacing="6" Margin="0,8,0,0" IsVisible="False">
                         <Label Text="{Binding SyncSummary}" Style="{StaticResource MutedText}" />
                         <Label Style="{StaticResource MutedText}"
                                Text="Per vedere lo storico anche sul PC scegli un file in una cartella sincronizzata (per esempio Google Drive): l'app lo tiene aggiornato, cifrato con una frase segreta che solo tu conosci. Storico, data dell'ultimo cambio e durata della password si uniscono senza perdere nulla." />
@@ -168,6 +215,7 @@
                             <Button Grid.Column="1" Text="Importa..." Command="{Binding ImportCommand}" IsEnabled="{Binding CanUseSync}"
                                     BackgroundColor="{DynamicResource CardBg}" TextColor="{DynamicResource Accent}" BorderColor="{DynamicResource BorderStrong}" BorderWidth="1" FontSize="12" />
                         </Grid>
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
 

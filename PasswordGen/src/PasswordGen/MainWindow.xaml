@@ -304,8 +304,13 @@
 
                 <TabItem Header="{Binding HistoryHeader}">
                     <DockPanel>
-                        <TextBlock DockPanel.Dock="Top" Style="{StaticResource Muted}" Margin="0,0,0,10"
-                                   Text="Le ultime password che hai usato, dalla più recente. Sono mascherate: mostrale o copiale solo quando servono." />
+                        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource Muted}" Text="{Binding HistoryUsageText}" />
+                                <TextBlock Style="{StaticResource Muted}" Text="Dalla più recente. Le password sono mascherate: mostrale o copiale solo quando servono." Margin="0,0,16,0" />
+                            </DockPanel>
+                            <ProgressBar Style="{StaticResource SlimProgress}" Value="{Binding HistoryUsage}" Margin="0,8,0,0" />
+                        </StackPanel>
                         <TextBlock DockPanel.Dock="Top" Style="{StaticResource Muted}" FontStyle="Italic"
                                    Text="Lo storico è ancora vuoto: dopo aver cambiato la password premi «Ho cambiato la password» in alto."
                                    Visibility="{Binding HasHistory, Converter={StaticResource InverseBoolToVisibility}}" />
@@ -313,25 +318,49 @@
                             <ItemsControl ItemsSource="{Binding HistoryEntries}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type vm:HistoryEntryViewModel}">
-                                        <Border Background="{DynamicResource SubtleBrush}" BorderBrush="{DynamicResource BorderBrush}"
-                                                BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,8">
-                                            <DockPanel>
-                                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
-                                                    <Button Style="{StaticResource GhostButton}" Command="{Binding ToggleCommand}" Content="{Binding ToggleText}" />
-                                                    <Button Style="{StaticResource GhostButton}" Command="{Binding CopyCommand}" Content="Copia" Margin="6,0,0,0" />
-                                                </StackPanel>
-                                                <StackPanel>
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
-                                                        <TextBlock Style="{StaticResource Muted}" Margin="8,0,0,0">
-                                                            <Run Text="{Binding DateText, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding ModeText, Mode=OneWay}" />
-                                                        </TextBlock>
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="26" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <!-- Linea del tempo -->
+                                            <Rectangle Width="2" Fill="{DynamicResource BorderBrush}" HorizontalAlignment="Center" Margin="0,18,0,-8" />
+                                            <Ellipse Width="12" Height="12" Margin="0,16,0,0" VerticalAlignment="Top" HorizontalAlignment="Center">
+                                                <Ellipse.Style>
+                                                    <Style TargetType="Ellipse">
+                                                        <Setter Property="Fill" Value="{DynamicResource BorderStrongBrush}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                                                <Setter Property="Fill" Value="{DynamicResource AccentBrush}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Ellipse.Style>
+                                            </Ellipse>
+                                            <Border Grid.Column="1" Background="{DynamicResource SubtleBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                                                    BorderThickness="1" CornerRadius="10" Padding="14,10">
+                                                <DockPanel>
+                                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                                                        <Button Style="{StaticResource GhostButton}" Command="{Binding ToggleCommand}" Content="{Binding ToggleText}" />
+                                                        <Button Style="{StaticResource GhostButton}" Command="{Binding CopyCommand}" Content="Copia" Margin="6,0,0,0" />
                                                     </StackPanel>
-                                                    <TextBlock Text="{Binding DisplayText}" FontFamily="{StaticResource MonoFont}" FontSize="17"
-                                                               FontWeight="SemiBold" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" />
-                                                </StackPanel>
-                                            </DockPanel>
-                                        </Border>
+                                                    <StackPanel>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                                            <Border Background="{DynamicResource AccentSoftBrush}" CornerRadius="8" Padding="8,1" Margin="8,0,0,0"
+                                                                    Visibility="{Binding IsCurrent, Converter={StaticResource BoolToVisibility}}">
+                                                                <TextBlock Text="In uso" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}" />
+                                                            </Border>
+                                                            <TextBlock Style="{StaticResource Muted}" Margin="8,0,0,0" VerticalAlignment="Center">
+                                                                <Run Text="{Binding DateText, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding ModeText, Mode=OneWay}" />
+                                                            </TextBlock>
+                                                        </StackPanel>
+                                                        <TextBlock Text="{Binding DisplayText}" FontFamily="{StaticResource MonoFont}" FontSize="17"
+                                                                   FontWeight="SemiBold" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" />
+                                                    </StackPanel>
+                                                </DockPanel>
+                                            </Border>
+                                        </Grid>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
@@ -355,9 +384,14 @@
 
                     <!-- Password -->
                     <StackPanel Grid.Column="0">
-                    <Border Style="{StaticResource Card}">
+                    <Expander Style="{StaticResource SectionExpander}" IsExpanded="True">
+                        <Expander.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource Icon}" Text="&#xE713;" Foreground="{DynamicResource MutedBrush}" Margin="0,0,10,0" />
+                                <TextBlock Text="Lunghezza delle password" />
+                            </StackPanel>
+                        </Expander.Header>
                         <StackPanel>
-                            <TextBlock Style="{StaticResource CardTitle}" Text="Lunghezza delle password" />
                             <!-- Lunghezza: dipende dal tipo -->
                             <StackPanel Visibility="{Binding IsPassphraseMode, Converter={StaticResource BoolToVisibility}}">
                                 <DockPanel>
@@ -384,21 +418,30 @@
                                 <TextBlock Style="{StaticResource Muted}" Text="Difficile da ricordare: pensata per i casi in cui basta copiarla." />
                             </StackPanel>
                         </StackPanel>
-                    </Border>
-                    <Border Style="{StaticResource Card}">
+                    </Expander>
+                    <Expander Style="{StaticResource SectionExpander}" IsExpanded="True">
+                        <Expander.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource Icon}" Text="&#xE713;" Foreground="{DynamicResource MutedBrush}" Margin="0,0,10,0" />
+                                <TextBlock Text="Numero di proposte" />
+                            </StackPanel>
+                        </Expander.Header>
                         <StackPanel>
-                            <TextBlock Style="{StaticResource CardTitle}" Text="Numero di proposte" />
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Right" FontWeight="SemiBold" Text="{Binding SuggestionCount}" />
                                 <TextBlock Text="Quante password generare per volta" />
                             </DockPanel>
                             <Slider Minimum="1" Maximum="20" Value="{Binding SuggestionCount, Mode=TwoWay}" Margin="0,6,0,0" />
                         </StackPanel>
-                    </Border>
-                    <Border Style="{StaticResource Card}"
-                            Visibility="{Binding IsPassphraseMode, Converter={StaticResource BoolToVisibility}}">
+                    </Expander>
+                    <Expander Style="{StaticResource SectionExpander}" IsExpanded="False" Visibility="{Binding IsPassphraseMode, Converter={StaticResource BoolToVisibility}}">
+                        <Expander.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource Icon}" Text="&#xE713;" Foreground="{DynamicResource MutedBrush}" Margin="0,0,10,0" />
+                                <TextBlock Text="Parole della passphrase" />
+                            </StackPanel>
+                        </Expander.Header>
                         <StackPanel>
-                            <TextBlock Style="{StaticResource CardTitle}" Text="Parole della passphrase" />
                             <TextBlock Text="{Binding WordSummary}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,6" />
 
                             <RadioButton GroupName="Words" Content="Solo la lista integrata" IsChecked="{Binding IsBuiltinWords, Mode=TwoWay}" />
@@ -421,10 +464,15 @@
                             <TextBlock Style="{StaticResource Muted}" Margin="0,8,0,0"
                                        Text="File di testo con una parola per riga (4-9 lettere, accenti rimossi, # per i commenti). Il file resta sul tuo computer." />
                         </StackPanel>
-                    </Border>
-                    <Border Style="{StaticResource Card}">
+                    </Expander>
+                    <Expander Style="{StaticResource SectionExpander}" IsExpanded="False">
+                        <Expander.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource Icon}" Text="&#xE713;" Foreground="{DynamicResource MutedBrush}" Margin="0,0,10,0" />
+                                <TextBlock Text="Regole della policy aziendale" />
+                            </StackPanel>
+                        </Expander.Header>
                         <StackPanel>
-                            <TextBlock Style="{StaticResource CardTitle}" Text="Regole della policy aziendale" />
                             <TextBlock Style="{StaticResource Muted}" Text="{Binding PolicySummary}" Margin="0,0,0,8" />
 
                             <DockPanel>
@@ -441,14 +489,19 @@
                             </UniformGrid>
                             <CheckBox Content="Evita caratteri ambigui (0 O 1 l I)" IsChecked="{Binding AvoidAmbiguous, Mode=TwoWay}" Margin="0,6,0,0" />
                         </StackPanel>
-                    </Border>
+                    </Expander>
                     </StackPanel>
 
                     <!-- Sicurezza, storico e sincronizzazione -->
                     <StackPanel Grid.Column="2">
-                    <Border Style="{StaticResource Card}">
+                    <Expander Style="{StaticResource SectionExpander}" IsExpanded="False">
+                        <Expander.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource Icon}" Text="&#xE72E;" Foreground="{DynamicResource MutedBrush}" Margin="0,0,10,0" />
+                                <TextBlock Text="Blocco dell&apos;app" />
+                            </StackPanel>
+                        </Expander.Header>
                         <StackPanel>
-                            <TextBlock Style="{StaticResource CardTitle}" Text="Blocco dell'app" />
                             <CheckBox Content="Richiedi Windows Hello o il PIN/password dell'app per aprire l'app" IsChecked="{Binding LockEnabled, Mode=TwoWay}" />
                             <TextBlock Style="{StaticResource Muted}" Text="Blocca di nuovo" Margin="0,8,0,2" />
                             <ComboBox ItemsSource="{Binding LockGraceNames}" SelectedIndex="{Binding LockGraceIndex, Mode=TwoWay}" Padding="6,4" />
@@ -456,7 +509,7 @@
                             <WrapPanel Margin="0,6,0,0">
                                 <Button Style="{StaticResource GhostButton}" Command="{Binding SetCredentialCommand}" Content="{Binding SetCredentialText}"
                                         Margin="0,0,8,6" />
-                                <Button Style="{StaticResource GhostButton}" Command="{Binding RemoveCredentialCommand}" Content="Rimuovi PIN/password"
+                                <Button Style="{StaticResource DangerButton}" Command="{Binding RemoveCredentialCommand}" Content="Rimuovi PIN/password"
                                         Margin="0,0,8,6" />
                             </WrapPanel>
                             <Button Style="{StaticResource GhostButton}" Command="{Binding LockNowCommand}" Content="Blocca adesso"
@@ -464,10 +517,15 @@
                             <TextBlock Style="{StaticResource Muted}" Margin="0,8,0,0"
                                        Text="Con Windows Hello (Impostazioni, Account, Opzioni di accesso) o con un PIN o una password dell'app; dopo 5 errori con il PIN/password l'app aspetta sempre di più (30 secondi, 1, 2, 4 minuti... fino a un'ora). Con il blocco attivo la finestra è esclusa anche da screenshot e registrazioni dello schermo." />
                         </StackPanel>
-                    </Border>
-                    <Border Style="{StaticResource Card}">
+                    </Expander>
+                    <Expander Style="{StaticResource SectionExpander}" IsExpanded="False">
+                        <Expander.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource Icon}" Text="&#xE787;" Foreground="{DynamicResource MutedBrush}" Margin="0,0,10,0" />
+                                <TextBlock Text="Promemoria cambio password" />
+                            </StackPanel>
+                        </Expander.Header>
                         <StackPanel>
-                            <TextBlock Style="{StaticResource CardTitle}" Text="Promemoria cambio password" />
                             <CheckBox Content="Avvisami prima della scadenza" IsChecked="{Binding ReminderEnabled, Mode=TwoWay}" />
                             <StackPanel IsEnabled="{Binding ReminderEnabled}" Margin="0,6,0,0">
                                 <DockPanel>
@@ -479,19 +537,29 @@
                                           ToolTip="All'avvio di Windows l'app si apre solo se la password è in scadenza" />
                             </StackPanel>
                         </StackPanel>
-                    </Border>
-                    <Border Style="{StaticResource Card}">
+                    </Expander>
+                    <Expander Style="{StaticResource SectionExpander}" IsExpanded="False">
+                        <Expander.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource Icon}" Text="&#xE81C;" Foreground="{DynamicResource MutedBrush}" Margin="0,0,10,0" />
+                                <TextBlock Text="Storico delle password" />
+                            </StackPanel>
+                        </Expander.Header>
                         <StackPanel>
-                            <TextBlock Style="{StaticResource CardTitle}" Text="Storico delle password" />
                             <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap"
                                        Text="Quando premi «Ho cambiato la password» l'app ti chiede quale proposta hai usato e la salva in un file cifrato per il tuo utente Windows (ultime 20). La nuova password non può essere identica a una di quelle e le proposte evitano anche le loro varianti. Lo storico è sempre attivo e le singole voci non si possono eliminare." />
-                            <Button Style="{StaticResource GhostButton}" Command="{Binding ClearHistoryCommand}" Content="Azzera storico..."
+                            <Button Style="{StaticResource DangerButton}" Command="{Binding ClearHistoryCommand}" Content="Azzera storico..."
                                     HorizontalAlignment="Left" Margin="0,10,0,0" />
                         </StackPanel>
-                    </Border>
-                    <Border Style="{StaticResource Card}">
+                    </Expander>
+                    <Expander Style="{StaticResource SectionExpander}" IsExpanded="False">
+                        <Expander.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource Icon}" Text="&#xE895;" Foreground="{DynamicResource MutedBrush}" Margin="0,0,10,0" />
+                                <TextBlock Text="Sincronizzazione e backup" />
+                            </StackPanel>
+                        </Expander.Header>
                         <StackPanel>
-                            <TextBlock Style="{StaticResource CardTitle}" Text="Sincronizzazione e backup" />
                             <TextBlock Style="{StaticResource Muted}" Text="{Binding SyncSummary}" TextWrapping="Wrap" />
                             <TextBlock Style="{StaticResource Muted}" Margin="0,6,0,0"
                                        Text="Per vedere lo storico anche sul telefono scegli un file in una cartella sincronizzata (per esempio Google Drive): l'app lo tiene aggiornato, cifrato con una frase segreta che solo tu conosci. Storico, data dell'ultimo cambio e durata della password si uniscono senza perdere nulla." />
@@ -500,14 +568,14 @@
                             <WrapPanel Margin="0,10,0,0">
                                 <Button Style="{StaticResource GhostButton}" Command="{Binding SetupSyncCommand}" Content="Imposta..." Margin="0,0,8,6" />
                                 <Button Style="{StaticResource GhostButton}" Command="{Binding SyncNowCommand}" Content="Sincronizza ora" Margin="0,0,8,6" />
-                                <Button Style="{StaticResource GhostButton}" Command="{Binding StopSyncCommand}" Content="Disattiva" Margin="0,0,8,6" />
+                                <Button Style="{StaticResource DangerButton}" Command="{Binding StopSyncCommand}" Content="Disattiva" Margin="0,0,8,6" />
                             </WrapPanel>
                             <WrapPanel>
                                 <Button Style="{StaticResource GhostButton}" Command="{Binding ExportCommand}" Content="Esporta..." Margin="0,0,8,0" />
                                 <Button Style="{StaticResource GhostButton}" Command="{Binding ImportCommand}" Content="Importa..." />
                             </WrapPanel>
                         </StackPanel>
-                    </Border>
+                    </Expander>
                     </StackPanel>
                 </Grid>
             </ScrollViewer>

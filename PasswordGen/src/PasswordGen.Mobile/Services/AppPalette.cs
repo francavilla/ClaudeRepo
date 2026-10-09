@@ -15,6 +15,7 @@ public static class AppPalette
         Set(resources, "Header", dark ? "#111C3F" : "#1E3A8A");
         Set(resources, "Muted", dark ? "#94A3B8" : "#64748B");
         Set(resources, "PageBg", dark ? "#0F172A" : "#F1F5F9");
+        Set(resources, "AccentSoft", dark ? "#1E3A5F" : "#DBEAFE");
         Set(resources, "CardBg", dark ? "#1E293B" : "#FFFFFF");
         Set(resources, "TextPrimary", dark ? "#E2E8F0" : "#0F172A");
         Set(resources, "Border", dark ? "#334155" : "#E2E8F0");

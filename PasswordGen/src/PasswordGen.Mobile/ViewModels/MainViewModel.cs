@@ -1448,6 +1448,11 @@ public class MainViewModel : ObservableObject
 
     public ObservableCollection<HistoryEntryItem> HistoryEntries { get; }
 
+    /// <summary>Quante delle voci disponibili sono occupate, per esempio «7 di 20 password conservate».</summary>
+    public string HistoryUsageText => _history.Entries.Count + " di " + PasswordHistory.MaxEntries + " password conservate";
+
+    public double HistoryUsage => (double)_history.Entries.Count / PasswordHistory.MaxEntries;
+
     public bool HasHistory => _history.Entries.Count > 0;
 
     public string HistoryHeader => _history.Entries.Count > 0 ? "Storico (" + _history.Entries.Count + ")" : "Storico";
@@ -1533,9 +1538,11 @@ public class MainViewModel : ObservableObject
         HistoryEntries.Clear();
         foreach (var entry in _history.Entries)
         {
-            HistoryEntries.Add(new HistoryEntryItem(entry, CopyHistoryEntry));
+            HistoryEntries.Add(new HistoryEntryItem(entry, CopyHistoryEntry, HistoryEntries.Count == 0));
         }
 
+        OnPropertyChanged(nameof(HistoryUsageText));
+        OnPropertyChanged(nameof(HistoryUsage));
         OnPropertyChanged(nameof(HasHistory));
         OnPropertyChanged(nameof(HistoryHeader));
     }

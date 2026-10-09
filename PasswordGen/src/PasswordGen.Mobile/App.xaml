@@ -11,6 +11,7 @@
             <Color x:Key="Header">#1E3A8A</Color>
             <Color x:Key="Muted">#64748B</Color>
             <Color x:Key="PageBg">#F1F5F9</Color>
+            <Color x:Key="AccentSoft">#DBEAFE</Color>
             <Color x:Key="CardBg">#FFFFFF</Color>
             <Color x:Key="TextPrimary">#0F172A</Color>
             <Color x:Key="Border">#E2E8F0</Color>

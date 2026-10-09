@@ -4,6 +4,15 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [2.5.0] - 2026-10-09
+
+### Modificato
+- **Cronologia e Impostazioni con la nuova veste (terzo passo), su Windows e Android.**
+  - **Cronologia a linea del tempo**: ogni voce ha un punto sulla linea, quella più recente ha il punto blu e l'etichetta «In uso». In cima compare quante delle 20 voci sono occupate («7 di 20 password conservate») con una barra.
+  - **Impostazioni a sezioni comprimibili**: ogni sezione ha un titolo (con icona su Windows) e si apre o si chiude toccandone l'intestazione; all'apertura è aperta solo la prima (la lunghezza delle password), le altre sono chiuse.
+  - **Azioni che cancellano o disattivano** (azzera storico, disattiva la sincronizzazione, rimuovi PIN/password) in rosso su Windows, come già su Android.
+  - Nessuna modifica di funzionamento.
+
 ## [2.4.0] - 2026-10-09
 
 ### Modificato

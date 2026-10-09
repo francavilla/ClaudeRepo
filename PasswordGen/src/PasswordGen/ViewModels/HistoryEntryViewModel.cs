@@ -15,12 +15,16 @@ namespace PasswordGen.ViewModels
         private readonly HistoryEntry _entry;
         private bool _isRevealed;
 
-        public HistoryEntryViewModel(HistoryEntry entry, Action<HistoryEntryViewModel> copy)
+        public HistoryEntryViewModel(HistoryEntry entry, Action<HistoryEntryViewModel> copy, bool isCurrent)
         {
             _entry = entry;
+            IsCurrent = isCurrent;
             ToggleCommand = new RelayCommand(() => IsRevealed = !IsRevealed, () => _entry.HasPassword);
             CopyCommand = new RelayCommand(() => copy(this), () => _entry.HasPassword);
         }
+
+        /// <summary>La voce più recente: la password in uso.</summary>
+        public bool IsCurrent { get; private set; }
 
         public int Number
         {
