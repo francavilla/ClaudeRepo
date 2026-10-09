@@ -49,9 +49,6 @@ namespace PasswordGen.ViewModels
         private bool _requireSpecial;
         private bool _avoidAmbiguous;
         private string _previousPassword = string.Empty;
-        private string _checkedPassword = string.Empty;
-        private string _checkResult = string.Empty;
-        private bool _checkOk;
         private WordSourceMode _wordSource;
         private string _customWordsPath;
         private WordFileResult _customWords;
@@ -146,7 +143,6 @@ namespace PasswordGen.ViewModels
             LoadWordFileCommand = new RelayCommand(LoadWordFile);
             ResetWordsCommand = new RelayCommand(ResetWords, () => _customWords != null || _wordSource != WordSourceMode.Builtin);
             CancelChangeCommand = new RelayCommand(() => IsChoosing = false);
-            CheckPasswordCommand = new RelayCommand(CheckPassword);
             ClearHistoryCommand = new RelayCommand(ClearHistory, () => _history.Entries.Count > 0);
             SetupSyncCommand = new RelayCommand(() => { var ignored = SetupSyncAsync(); }, () => !_syncBusy);
             SyncNowCommand = new RelayCommand(() => { var ignored = SyncNowAsync(); }, () => SyncActive && !_syncBusy);
@@ -473,76 +469,6 @@ namespace PasswordGen.ViewModels
         {
             get { return _previousPassword; }
             set { SetProperty(ref _previousPassword, value ?? string.Empty); }
-        }
-
-        /// <summary>Password da verificare (facoltativa): resta in memoria, non viene salvata.</summary>
-        public string CheckedPassword
-        {
-            get { return _checkedPassword; }
-            set
-            {
-                if (SetProperty(ref _checkedPassword, value ?? string.Empty))
-                {
-                    CheckResult = string.Empty;
-                }
-            }
-        }
-
-        public string CheckResult
-        {
-            get { return _checkResult; }
-            private set
-            {
-                if (SetProperty(ref _checkResult, value ?? string.Empty))
-                {
-                    OnPropertyChanged(nameof(HasCheckResult));
-                }
-            }
-        }
-
-        public bool HasCheckResult
-        {
-            get { return _checkResult.Length > 0; }
-        }
-
-        /// <summary>True se l'ultima password verificata va bene (colora il risultato).</summary>
-        public bool CheckOk
-        {
-            get { return _checkOk; }
-            private set { SetProperty(ref _checkOk, value); }
-        }
-
-        public ICommand CheckPasswordCommand { get; private set; }
-
-        /// <summary>Regola aziendale: la nuova password deve rispettare la policy e non essere identica a una delle ultime 20 usate.</summary>
-        private void CheckPassword()
-        {
-            if (string.IsNullOrEmpty(_checkedPassword))
-            {
-                CheckOk = false;
-                CheckResult = "Scrivi la password da verificare.";
-                return;
-            }
-
-            var duplicate = _history.Find(_checkedPassword);
-            var problems = BuildOptions().Policy.Validate(_checkedPassword);
-            if (duplicate != null)
-            {
-                CheckOk = false;
-                CheckResult = "Non va bene: è già stata usata (#" + duplicate.Number + ", " + duplicate.DateText + "). La nuova password deve essere diversa dalle ultime "
-                              + PasswordHistory.MaxEntries + ".";
-            }
-            else if (problems.Count > 0)
-            {
-                CheckOk = false;
-                CheckResult = "Non rispetta le regole: servono " + string.Join(", ", problems) + ".";
-            }
-            else
-            {
-                CheckOk = true;
-                CheckResult = "Va bene: rispetta le regole e non è tra le ultime " + PasswordHistory.MaxEntries + " usate (nello storico ci sono "
-                              + _history.Passwords().Count + " password).";
-            }
         }
 
         private bool SetOption<T>(ref T field, T value, [System.Runtime.CompilerServices.CallerMemberName] string name = null)
@@ -1401,7 +1327,6 @@ namespace PasswordGen.ViewModels
         public void ClearSensitive()
         {
             PreviousPassword = string.Empty;
-            CheckedPassword = string.Empty;
             foreach (var entry in HistoryEntries)
             {
                 entry.Hide();

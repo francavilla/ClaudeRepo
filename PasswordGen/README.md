@@ -78,7 +78,7 @@ Nella scheda *Storico* le password sono mascherate: si possono mostrare o copiar
 le singole voci non si possono eliminare. Le nuove proposte evitano le varianti di quelle dello storico.
 
 **Regola aziendale:** la nuova password non può essere identica (maiuscole e minuscole contano) a una delle ultime 20. L'app la applica quando
-registri «Ho cambiato la password» e nella card *Verifica una password*, che controlla anche le regole della policy.
+registri «Ho cambiato la password»; le proposte del generatore sono già conformi alla policy e diverse da quelle dello storico.
 
 - Il file `%AppData%\PasswordGen\history.dat` è cifrato con **DPAPI** (ambito utente): si apre solo con lo stesso account Windows
   sullo stesso computer. Non protegge da un programma malevolo che gira con il tuo account.

@@ -4,6 +4,12 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [2.0.1] - 2026-10-09
+
+### Modificato
+- Tolta la card «Verifica una password» (Windows e Android): il controllo sulle ultime 20 password è nel generatore, che scarta le proposte uguali o troppo simili a quelle dello storico.
+  «Ho cambiato la password» continua a rifiutare una proposta identica a una dello storico.
+
 ## [2.0.0] - 2026-10-09
 
 ### Modificato

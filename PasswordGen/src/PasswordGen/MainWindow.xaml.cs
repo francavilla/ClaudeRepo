@@ -45,7 +45,6 @@ namespace PasswordGen
                     if (vm.Lock.IsLocked)
                     {
                         PreviousBox.Password = string.Empty;
-                        VerifyBox.Password = string.Empty;
                         vm.ClearSensitive();
                         UnlockBox.Clear();
                         if (vm.Lock.HasCredential)
@@ -105,15 +104,6 @@ namespace PasswordGen
             Height = Math.Max(MinHeight, Math.Min(Height, workArea.Height));
         }
 
-        private void OnCheckedPasswordChanged(object sender, RoutedEventArgs e)
-        {
-            var vm = DataContext as MainViewModel;
-            if (vm != null)
-            {
-                vm.CheckedPassword = VerifyBox.Password;
-            }
-        }
-
         private void OnPreviousPasswordChanged(object sender, RoutedEventArgs e)
         {
             var vm = DataContext as MainViewModel;
@@ -129,7 +119,6 @@ namespace PasswordGen
             if (vm != null)
             {
                 vm.PreviousPassword = string.Empty;
-                vm.CheckedPassword = string.Empty;
                 vm.SaveSettings();
             }
 

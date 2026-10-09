@@ -48,9 +48,6 @@ public class MainViewModel : ObservableObject
     private bool _requireSpecial;
     private bool _avoidAmbiguous;
     private string _previousPassword = string.Empty;
-    private string _checkedPassword = string.Empty;
-    private string _checkResult = string.Empty;
-    private bool _checkOk;
     private string _statusMessage = string.Empty;
     private WordSourceMode _wordSource;
     private string _customWordsPath;
@@ -332,71 +329,6 @@ public class MainViewModel : ObservableObject
     }
 
     /// <summary>Password attuale (facoltativa): resta solo in memoria. Le nuove proposte la evitano.</summary>
-    public string CheckedPassword
-    {
-        get => _checkedPassword;
-        set
-        {
-            if (SetProperty(ref _checkedPassword, value ?? string.Empty))
-            {
-                CheckResult = string.Empty;
-            }
-        }
-    }
-
-    public string CheckResult
-    {
-        get => _checkResult;
-        private set
-        {
-            if (SetProperty(ref _checkResult, value ?? string.Empty))
-            {
-                OnPropertyChanged(nameof(HasCheckResult));
-            }
-        }
-    }
-
-    public bool HasCheckResult => _checkResult.Length > 0;
-
-    /// <summary>Colore del risultato: verde se la password va bene, rosso altrimenti.</summary>
-    public Color CheckColor => _checkOk ? Color.FromArgb("#15803D") : Color.FromArgb("#DC2626");
-
-    public ICommand CheckPasswordCommand => new Command(CheckPassword);
-
-    /// <summary>Regola aziendale: la nuova password deve rispettare la policy e non essere identica a una delle ultime 20 usate.</summary>
-    private void CheckPassword()
-    {
-        if (string.IsNullOrEmpty(_checkedPassword))
-        {
-            SetCheck(false, "Scrivi la password da verificare.");
-            return;
-        }
-
-        var duplicate = _history.Find(_checkedPassword);
-        var problems = BuildOptions().Policy.Validate(_checkedPassword);
-        if (duplicate != null)
-        {
-            SetCheck(false, "Non va bene: è già stata usata (#" + duplicate.Number + ", " + duplicate.DateText + "). La nuova password deve essere diversa dalle ultime "
-                            + PasswordHistory.MaxEntries + ".");
-        }
-        else if (problems.Count > 0)
-        {
-            SetCheck(false, "Non rispetta le regole: servono " + string.Join(", ", problems) + ".");
-        }
-        else
-        {
-            SetCheck(true, "Va bene: rispetta le regole e non è tra le ultime " + PasswordHistory.MaxEntries + " usate (nello storico ci sono "
-                           + _history.Passwords().Count + " password).");
-        }
-    }
-
-    private void SetCheck(bool ok, string text)
-    {
-        _checkOk = ok;
-        OnPropertyChanged(nameof(CheckColor));
-        CheckResult = text;
-    }
-
     public string PreviousPassword
     {
         get => _previousPassword;
@@ -1465,7 +1397,6 @@ public class MainViewModel : ObservableObject
     public void ClearSensitive()
     {
         PreviousPassword = string.Empty;
-        CheckedPassword = string.Empty;
         foreach (var entry in HistoryEntries)
         {
             entry.IsRevealed = false;

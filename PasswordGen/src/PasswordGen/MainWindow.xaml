@@ -163,29 +163,6 @@
                                        Text="Se la indichi, le nuove proposte saranno sensibilmente diverse (molte policy vietano varianti della precedente). Resta solo in memoria: non viene mai salvata." />
                         </StackPanel>
                     </Border>
-                    <Border Style="{StaticResource Card}">
-                        <StackPanel>
-                            <TextBlock Style="{StaticResource CardTitle}" Text="Verifica una password" />
-                            <PasswordBox x:Name="VerifyBox" Padding="6,5" PasswordChanged="OnCheckedPasswordChanged" />
-                            <Button Style="{StaticResource GhostButton}" Command="{Binding CheckPasswordCommand}" Content="Verifica"
-                                    HorizontalAlignment="Left" Margin="0,8,0,0" />
-                            <TextBlock Margin="0,8,0,0" TextWrapping="Wrap" FontWeight="SemiBold" Text="{Binding CheckResult}"
-                                       Visibility="{Binding HasCheckResult, Converter={StaticResource BoolToVisibility}}">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Foreground" Value="{StaticResource ErrorBrush}" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding CheckOk}" Value="True">
-                                                <Setter Property="Foreground" Value="{StaticResource SuccessBrush}" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                            <TextBlock Style="{StaticResource Muted}" Margin="0,6,0,0"
-                                       Text="Controlla se una password rispetta le regole e non è identica a una delle ultime 20 usate. Resta solo in memoria." />
-                        </StackPanel>
-                    </Border>
                 </StackPanel>
             </ScrollViewer>
 

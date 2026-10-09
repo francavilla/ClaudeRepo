@@ -250,29 +250,6 @@ namespace PasswordGen.App.Tests
         }
 
         [Fact]
-        public void VerificaPassword_SegnalaQuellaGiaUsataEAccettaUnaNuova()
-        {
-            var h = CreateViewModel("a");
-            RegisterChange(h.ViewModel, 1);
-            var used = h.History.Load().Entries[0].Password;
-
-            h.ViewModel.CheckedPassword = used;
-            h.ViewModel.CheckPasswordCommand.Execute(null);
-            Assert.False(h.ViewModel.CheckOk);
-            Assert.Contains("già stata usata", h.ViewModel.CheckResult);
-
-            h.ViewModel.CheckedPassword = "Zebra-Quarzo-Nuvola91!";
-            h.ViewModel.CheckPasswordCommand.Execute(null);
-            Assert.True(h.ViewModel.CheckOk);
-            Assert.Contains("Va bene", h.ViewModel.CheckResult);
-
-            h.ViewModel.CheckedPassword = "corta";
-            h.ViewModel.CheckPasswordCommand.Execute(null);
-            Assert.False(h.ViewModel.CheckOk);
-            Assert.Contains("Non rispetta le regole", h.ViewModel.CheckResult);
-        }
-
-        [Fact]
         public void AzzeraStorico_ConConfermaSvuotaLoStorico()
         {
             var h = CreateViewModel("a");
