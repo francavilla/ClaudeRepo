@@ -4,6 +4,15 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [2.0.0] - 2026-10-09
+
+### Modificato
+- **Nuova versione maggiore, uguale per l'app Windows e per quella Android.** Il cambiamento di comportamento che la giustifica è la regola aziendale delle ultime 20 password
+  (descritta nella 1.7.0): lo storico è sempre attivo, non si può disattivare né cancellare voce per voce, e la nuova password non può essere identica a una delle ultime 20.
+- Raccoglie anche le modifiche delle versioni 1.5.1 – 1.7.0 qui sotto (schede «Genera» e «Impostazioni», tipo di password con riquadri su Android, pulsante del blocco chiaro).
+  Quelle versioni non sono state pubblicate come release.
+- Il codice di versione Android passa a 20000000 + n (con n = 999 nelle release): continua a crescere, quindi l'aggiornamento dalle versioni precedenti è accettato.
+
 ## [1.7.0] - 2026-10-09
 
 ### Aggiunto
