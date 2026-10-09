@@ -40,6 +40,8 @@ namespace PasswordGen.Core.Sync.Google
     {
         [DataMember(Name = "id")] public string Id { get; set; }
         [DataMember(Name = "name")] public string Name { get; set; }
+        [DataMember(Name = "md5Checksum")] public string Md5Checksum { get; set; }
+        [DataMember(Name = "modifiedTime")] public string ModifiedTime { get; set; }
     }
 
     /// <summary>
@@ -47,7 +49,7 @@ namespace PasswordGen.Core.Sync.Google
     /// i file che ha creato lei: il file lo crea l'app, e può poi essere letto anche dal Drive del computer come un normale file.
     /// Le chiamate sono sincrone: vanno eseguite fuori dal thread dell'interfaccia (lo fa <see cref="SyncEngine.RunAsync"/>).
     /// </summary>
-    public sealed class GoogleDriveStorage : ISyncStorage
+    public sealed class GoogleDriveStorage : ISyncStorage, IChangeProbe
     {
         public const string DefaultFileName = "PasswordGen-sync.pgx";
 
@@ -105,6 +107,29 @@ namespace PasswordGen.Core.Sync.Google
             }))
             {
                 EnsureSuccess(response, "creazione del file");
+            }
+        }
+
+        /// <summary>Un'unica richiesta leggera: identificativo, checksum e data di modifica del file (senza scaricarlo).</summary>
+        public string Probe()
+        {
+            var query = "name='" + _fileName.Replace("'", "\\'") + "' and trashed=false";
+            var url = FilesUrl + "?q=" + Uri.EscapeDataString(query) + "&fields=files(id,md5Checksum,modifiedTime)&pageSize=1";
+            using (var response = Send(() => new HttpRequestMessage(HttpMethod.Get, url)))
+            {
+                EnsureSuccess(response, "controllo del file");
+                var body = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(body)))
+                {
+                    var list = (DriveFileList)new DataContractJsonSerializer(typeof(DriveFileList)).ReadObject(stream);
+                    if (list == null || list.Files == null || list.Files.Count == 0)
+                    {
+                        return null;
+                    }
+
+                    var file = list.Files[0];
+                    return file.Id + ":" + file.Md5Checksum + ":" + file.ModifiedTime;
+                }
             }
         }
 

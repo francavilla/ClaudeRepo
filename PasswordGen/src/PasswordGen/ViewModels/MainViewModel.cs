@@ -862,7 +862,40 @@ namespace PasswordGen.ViewModels
             }
 
             _lastBackgroundSync = DateTime.UtcNow;
+
+            // Controllo leggero: se l'impronta del file non è cambiata dall'ultima sincronizzazione non c'è nulla da fare.
+            var token = await ProbeAsync(_settings.SyncPath);
+            if (token != null && token == _knownRemoteToken)
+            {
+                return;
+            }
+
+            // Dove non si può controllare l'impronta (per esempio un documento di Android) si sincronizza al massimo ogni due minuti.
+            if (token == null && DateTime.UtcNow - _lastFullSync < TimeSpan.FromMinutes(2))
+            {
+                return;
+            }
+
             await AutoSyncAsync();
+        }
+
+        private DateTime _lastFullSync = DateTime.MinValue;
+        private string _knownRemoteToken;
+
+        private Task<string> ProbeAsync(string address)
+        {
+            return Task.Run(() =>
+            {
+                try
+                {
+                    var probe = OpenStorage(address) as IChangeProbe;
+                    return probe == null ? null : probe.Probe();
+                }
+                catch (Exception)
+                {
+                    return null;
+                }
+            });
         }
 
         private async Task<bool> RunSyncAsync(string path, string passphrase)
@@ -873,7 +906,9 @@ namespace PasswordGen.ViewModels
             {
                 SaveSettings();   // porta nelle impostazioni i valori correnti (per esempio la durata della password)
                 var hadHistoryBefore = _history.Entries.Count > 0;
+                var tokenBefore = await ProbeAsync(path);
                 var result = await SyncEngine.RunAsync(OpenStorage(path), passphrase, _history, _settings, DateTime.UtcNow);
+                _lastFullSync = DateTime.UtcNow;
                 if (!result.Succeeded)
                 {
                     StatusMessage = result.Message;
@@ -885,6 +920,7 @@ namespace PasswordGen.ViewModels
                     return false;
                 }
 
+                _knownRemoteToken = result.Wrote ? null : tokenBefore;   // se abbiamo scritto, il prossimo controllo rilegge una volta
                 var hadHistory = _history.Entries.Count > 0;
                 _validityDays = _settings.ValidityDays;
                 OnPropertyChanged(nameof(ValidityDays));

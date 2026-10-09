@@ -11,8 +11,17 @@ namespace PasswordGen.Core.Sync
         void Write(byte[] data);
     }
 
+    /// <summary>
+    /// Controllo leggero e rapido: restituisce una «impronta» della versione corrente del file (null se non esiste o non si può sapere).
+    /// Se l'impronta non cambia tra due controlli, il file non è cambiato e non serve leggerlo né sincronizzare.
+    /// </summary>
+    public interface IChangeProbe
+    {
+        string Probe();
+    }
+
     /// <summary>File normale, ad esempio in una cartella sincronizzata da Google Drive.</summary>
-    public sealed class FileSyncStorage : ISyncStorage
+    public sealed class FileSyncStorage : ISyncStorage, IChangeProbe
     {
         private readonly string _path;
 
@@ -24,6 +33,12 @@ namespace PasswordGen.Core.Sync
         public byte[] Read()
         {
             return File.Exists(_path) ? File.ReadAllBytes(_path) : null;
+        }
+
+        public string Probe()
+        {
+            var info = new FileInfo(_path);
+            return info.Exists ? info.Length + ":" + info.LastWriteTimeUtc.Ticks : null;
         }
 
         public void Write(byte[] data)

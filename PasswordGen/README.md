@@ -89,7 +89,7 @@ registri «Ho cambiato la password»; le proposte del generatore sono già confo
 
 Per avere lo stesso storico sul PC e sul telefono (storico, data dell'ultimo cambio e durata della password) le due app condividono un
 **file cifrato** `PasswordGen-sync.pgx`: ognuna lo legge, unisce il contenuto con i propri dati (senza cancellare nulla di locale) e lo
-riscrive se c'è qualcosa di nuovo. Succede all'avvio, dopo ogni «Ho cambiato la password», con «Sincronizza ora», quando l'app torna in primo piano e, ad app aperta, ogni due minuti.
+riscrive se c'è qualcosa di nuovo. Succede all'avvio, dopo ogni «Ho cambiato la password», con «Sincronizza ora», quando l'app torna in primo piano e, ad app aperta, ogni 15 secondi (con un controllo leggero: si sincronizza solo se il file su Google Drive è cambiato).
 *Azzera storico* si propaga: le voci registrate prima dell'azzeramento vengono eliminate anche sull'altro dispositivo e non tornano.
 
 - Il file è cifrato con una **frase segreta** scelta da te (almeno 8 caratteri, AES-256 con controllo di integrità, chiave PBKDF2-SHA256).

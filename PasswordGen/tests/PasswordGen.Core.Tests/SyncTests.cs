@@ -309,6 +309,23 @@ namespace PasswordGen.Core.Tests
         }
 
         [Fact]
+        public void FileSyncStorage_Probe_CambiaSoloQuandoIlFileCambia()
+        {
+            Directory.CreateDirectory(_directory);
+            var path = Path.Combine(_directory, "probe.pgx");
+            var storage = new FileSyncStorage(path);
+            Assert.Null(storage.Probe());
+
+            storage.Write(new byte[] { 1, 2, 3 });
+            var first = storage.Probe();
+            Assert.NotNull(first);
+            Assert.Equal(first, storage.Probe());
+
+            storage.Write(new byte[] { 1, 2, 3, 4 });
+            Assert.NotEqual(first, storage.Probe());
+        }
+
+        [Fact]
         public void Azzeramento_ResistePersistenzaESerializzazione()
         {
             var history = HistoryWith("2026-09-01|Aaaa-1111-bbbb!");

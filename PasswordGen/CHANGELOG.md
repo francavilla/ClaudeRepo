@@ -4,6 +4,13 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [2.1.1] - 2026-10-09
+
+### Modificato
+- **Le modifiche dell'altro dispositivo arrivano in pochi secondi.** Ad app aperta, ogni 15 secondi l'app controlla con una richiesta leggera (checksum e data del file su Google Drive, senza scaricarlo) se il file è cambiato,
+  e sincronizza solo in quel caso; lo stesso controllo avviene quando l'app torna in primo piano. Per il documento scelto su Android, dove l'impronta non è disponibile, la sincronizzazione completa resta al massimo ogni due minuti.
+  Prima si controllava ogni due minuti e bisognava aspettare o riavviare.
+
 ## [2.1.0] - 2026-10-09
 
 ### Aggiunto
