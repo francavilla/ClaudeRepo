@@ -4,6 +4,15 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [2.4.0] - 2026-10-09
+
+### Modificato
+- **Nuova schermata «Genera» (secondo passo della veste grafica), su Windows e Android.**
+  - La **prima proposta è in primo piano**: password grande, **barra di robustezza colorata** (rossa, gialla o verde, in base ai bit di entropia) e pulsante «Copia» ben visibile. Le altre proposte sono più compatte.
+  - Il **promemoria mostra i giorni alla scadenza** in grande, con una barra di avanzamento che cambia colore (verde, giallo, rosso); se non c'è una data di cambio compare il solo messaggio.
+  - Il **tipo di password è un selettore a segmenti** («Parole», «Sillabe», «Caratteri») con, sotto, la descrizione e l'esempio del tipo scelto.
+  - Nessuna modifica di funzionamento.
+
 ## [2.3.0] - 2026-10-09
 
 ### Modificato

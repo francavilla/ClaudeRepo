@@ -7,8 +7,10 @@ namespace PasswordGen.ViewModels
     /// <summary>Una proposta di password mostrata nell'elenco.</summary>
     public sealed class SuggestionViewModel
     {
-        public SuggestionViewModel(GeneratedPassword password, ICommand copyCommand)
+        public SuggestionViewModel(GeneratedPassword password, ICommand copyCommand, bool isPrimary)
         {
+            IsPrimary = isPrimary;
+            StrengthFraction = System.Math.Min(1.0, System.Math.Max(0.0, password.EntropyBits / 100.0));
             Text = password.Text;
             Mode = password.Mode;
             Level = password.Level;
@@ -16,6 +18,17 @@ namespace PasswordGen.ViewModels
             BitsText = Round(password.EntropyBits) + " bit";
             CopyCommand = copyCommand;
         }
+
+        /// <summary>La prima proposta della serie: si mostra in grande.</summary>
+        public bool IsPrimary { get; private set; }
+
+        public bool IsSecondary
+        {
+            get { return !IsPrimary; }
+        }
+
+        /// <summary>Robustezza da 0 a 1 (100 bit o più = barra piena), per la barra colorata.</summary>
+        public double StrengthFraction { get; private set; }
 
         public string Text { get; private set; }
 

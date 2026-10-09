@@ -66,6 +66,10 @@ namespace PasswordGen.ViewModels
         private string _reminderMessage = string.Empty;
         private string _reminderLevel = "Info";
         private string _lastChangeText = string.Empty;
+        private bool _hasReminderDays;
+        private string _reminderDaysText = string.Empty;
+        private string _reminderDaysCaption = string.Empty;
+        private double _reminderProgress;
 
         public MainViewModel(
             PasswordGenerator generator,
@@ -229,7 +233,35 @@ namespace PasswordGen.ViewModels
             OnPropertyChanged(nameof(IsPassphraseMode));
             OnPropertyChanged(nameof(IsSyllablesMode));
             OnPropertyChanged(nameof(IsRandomMode));
+            OnPropertyChanged(nameof(ModeDescription));
+            OnPropertyChanged(nameof(ModeExample));
             Generate();
+        }
+
+        public string ModeDescription
+        {
+            get
+            {
+                switch (_mode)
+                {
+                    case GenerationMode.Syllables: return "Sillabe pronunciabili, facili da dire ad alta voce.";
+                    case GenerationMode.Random: return "Caratteri casuali, difficili da ricordare: pensata per quando basta copiarla.";
+                    default: return "Parole italiane, facili da ricordare (consigliata).";
+                }
+            }
+        }
+
+        public string ModeExample
+        {
+            get
+            {
+                switch (_mode)
+                {
+                    case GenerationMode.Syllables: return "Bamelo-Tirusa-Pevono83=";
+                    case GenerationMode.Random: return "k7Q#mP2v!xR4tw9N";
+                    default: return "Lampo-Cavallo-Nebbia-Fiume47!";
+                }
+            }
         }
 
         public int WordCount
@@ -553,6 +585,30 @@ namespace PasswordGen.ViewModels
             private set { SetProperty(ref _reminderLevel, value); }
         }
 
+        public bool HasReminderDays
+        {
+            get { return _hasReminderDays; }
+            private set { SetProperty(ref _hasReminderDays, value); }
+        }
+
+        public string ReminderDaysText
+        {
+            get { return _reminderDaysText; }
+            private set { SetProperty(ref _reminderDaysText, value); }
+        }
+
+        public string ReminderDaysCaption
+        {
+            get { return _reminderDaysCaption; }
+            private set { SetProperty(ref _reminderDaysCaption, value); }
+        }
+
+        public double ReminderProgress
+        {
+            get { return _reminderProgress; }
+            private set { SetProperty(ref _reminderProgress, value); }
+        }
+
         public string LastChangeText
         {
             get { return _lastChangeText; }
@@ -579,6 +635,22 @@ namespace PasswordGen.ViewModels
                 default:
                     ReminderLevel = "Info";
                     break;
+            }
+
+            // Giorni alla scadenza e avanzamento (0 = appena cambiata, 1 = scaduta).
+            var remaining = state.DaysRemaining;
+            HasReminderDays = remaining.HasValue;
+            if (remaining.HasValue)
+            {
+                var days = Math.Abs(remaining.Value);
+                ReminderDaysText = days.ToString(CultureInfo.CurrentCulture);
+                ReminderDaysCaption = remaining.Value < 0 ? (days == 1 ? "giorno di ritardo" : "giorni di ritardo")
+                    : (days == 1 ? "giorno rimasto" : "giorni rimasti");
+                ReminderProgress = _validityDays > 0 ? Math.Min(1.0, Math.Max(0.0, 1.0 - (double)remaining.Value / _validityDays)) : 1.0;
+            }
+            else
+            {
+                ReminderProgress = 0;
             }
 
             LastChangeText = last.HasValue
@@ -1575,7 +1647,7 @@ namespace PasswordGen.ViewModels
                 foreach (var item in items)
                 {
                     SuggestionViewModel row = null;
-                    row = new SuggestionViewModel(item, new RelayCommand(() => Copy(row)));
+                    row = new SuggestionViewModel(item, new RelayCommand(() => Copy(row)), Suggestions.Count == 0);
                     Suggestions.Add(row);
                 }
 

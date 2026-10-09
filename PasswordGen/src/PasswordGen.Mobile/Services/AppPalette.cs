@@ -33,6 +33,8 @@ public static class AppPalette
     }
 
     // Colori calcolati nei ViewModel.
+    public static Color Accent => Color.FromArgb(IsDark ? "#3B82F6" : "#2563EB");
+
     public static Color CardBackground => Color.FromArgb(IsDark ? "#1E293B" : "#FFFFFF");
 
     public static Color SelectedBackground => Color.FromArgb(IsDark ? "#1E3A5F" : "#E0E7FF");

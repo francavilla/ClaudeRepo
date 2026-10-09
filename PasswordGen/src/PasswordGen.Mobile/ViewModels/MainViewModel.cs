@@ -61,6 +61,11 @@ public class MainViewModel : ObservableObject
     private int _validityDays;
     private string _reminderMessage = string.Empty;
     private string _lastChangeText = string.Empty;
+    private bool _hasReminderDays;
+    private string _reminderDaysText = string.Empty;
+    private string _reminderDaysCaption = string.Empty;
+    private double _reminderProgress;
+    private Color _reminderProgressColor = AppPalette.Accent;
     private Color _reminderBackground = Color.FromArgb("#EFF6FF");
 
     /// <param name="syncPassphrases">Frase segreta della sincronizzazione (cifrata col Keystore); nulla se la chiave non è disponibile.</param>
@@ -180,9 +185,8 @@ public class MainViewModel : ObservableObject
             OnPropertyChanged(nameof(IsPassphrase));
             OnPropertyChanged(nameof(IsSyllables));
             OnPropertyChanged(nameof(IsRandom));
-            OnPropertyChanged(nameof(PassphraseMarker));
-            OnPropertyChanged(nameof(SyllablesMarker));
-            OnPropertyChanged(nameof(RandomMarker));
+            OnPropertyChanged(nameof(ModeDescription));
+            OnPropertyChanged(nameof(ModeExample));
             OnPropertyChanged(nameof(PassphraseBackground));
             OnPropertyChanged(nameof(SyllablesBackground));
             OnPropertyChanged(nameof(RandomBackground));
@@ -203,11 +207,19 @@ public class MainViewModel : ObservableObject
         RefreshReminder();
     }
 
-    public string PassphraseMarker => _mode == GenerationMode.Passphrase ? "●" : "○";
+    public string ModeDescription => _mode switch
+    {
+        GenerationMode.Syllables => "Sillabe pronunciabili, facili da dire ad alta voce.",
+        GenerationMode.Random => "Caratteri casuali, difficili da ricordare: pensata per quando basta copiarla.",
+        _ => "Parole italiane, facili da ricordare (consigliata).",
+    };
 
-    public string SyllablesMarker => _mode == GenerationMode.Syllables ? "●" : "○";
-
-    public string RandomMarker => _mode == GenerationMode.Random ? "●" : "○";
+    public string ModeExample => _mode switch
+    {
+        GenerationMode.Syllables => "Bamelo-Tirusa-Pevono83=",
+        GenerationMode.Random => "k7Q#mP2v!xR4tw9N",
+        _ => "Lampo-Cavallo-Nebbia-Fiume47!",
+    };
 
     public Color PassphraseBackground => ModeBackground(GenerationMode.Passphrase);
 
@@ -402,7 +414,7 @@ public class MainViewModel : ObservableObject
             foreach (var item in items)
             {
                 SuggestionItem row = null;
-                row = new SuggestionItem(item, new Command(() => Copy(row)));
+                row = new SuggestionItem(item, new Command(() => Copy(row)), Suggestions.Count == 0);
                 Suggestions.Add(row);
             }
 
@@ -1327,6 +1339,36 @@ public class MainViewModel : ObservableObject
         private set => SetProperty(ref _reminderMessage, value);
     }
 
+    public bool HasReminderDays
+    {
+        get => _hasReminderDays;
+        private set => SetProperty(ref _hasReminderDays, value);
+    }
+
+    public string ReminderDaysText
+    {
+        get => _reminderDaysText;
+        private set => SetProperty(ref _reminderDaysText, value);
+    }
+
+    public string ReminderDaysCaption
+    {
+        get => _reminderDaysCaption;
+        private set => SetProperty(ref _reminderDaysCaption, value);
+    }
+
+    public double ReminderProgress
+    {
+        get => _reminderProgress;
+        private set => SetProperty(ref _reminderProgress, value);
+    }
+
+    public Color ReminderProgressColor
+    {
+        get => _reminderProgressColor;
+        private set => SetProperty(ref _reminderProgressColor, value);
+    }
+
     public string LastChangeText
     {
         get => _lastChangeText;
@@ -1352,6 +1394,30 @@ public class MainViewModel : ObservableObject
             ReminderStatus.Ok => AppPalette.ReminderOk,
             _ => AppPalette.ReminderInfo,
         };
+        // Giorni alla scadenza e avanzamento (0 = appena cambiata, 1 = scaduta).
+        var remaining = state.DaysRemaining;
+        HasReminderDays = remaining.HasValue;
+        if (remaining.HasValue)
+        {
+            var days = Math.Abs(remaining.Value);
+            ReminderDaysText = days.ToString(CultureInfo.CurrentCulture);
+            ReminderDaysCaption = remaining.Value < 0 ? (days == 1 ? "giorno di ritardo" : "giorni di ritardo")
+                : (days == 1 ? "giorno rimasto" : "giorni rimasti");
+            ReminderProgress = _validityDays > 0 ? Math.Min(1.0, Math.Max(0.0, 1.0 - (double)remaining.Value / _validityDays)) : 1.0;
+        }
+        else
+        {
+            ReminderProgress = 0;
+        }
+
+        ReminderProgressColor = state.Status switch
+        {
+            ReminderStatus.Expired => AppPalette.StrengthWeak,
+            ReminderStatus.DueSoon => AppPalette.StrengthFair,
+            ReminderStatus.Ok => AppPalette.StrengthGood,
+            _ => AppPalette.Accent,
+        };
+
         LastChangeText = last.HasValue
             ? "Ultimo cambio: " + last.Value.ToString("d", CultureInfo.CurrentCulture)
             : "Nessun cambio registrato";

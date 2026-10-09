@@ -35,14 +35,25 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- Promemoria -->
+                <!-- Promemoria: giorni alla scadenza e avanzamento -->
                 <Border BackgroundColor="{Binding ReminderBackground}" Stroke="{DynamicResource Border}" StrokeThickness="1" Padding="14">
                     <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="12" />
+                        <RoundRectangle CornerRadius="14" />
                     </Border.StrokeShape>
-                    <VerticalStackLayout Spacing="8">
-                        <Label Text="{Binding ReminderMessage}" FontAttributes="Bold" TextColor="{DynamicResource TextPrimary}" />
-                        <Label Text="{Binding LastChangeText}" Style="{StaticResource MutedText}" />
+                    <VerticalStackLayout Spacing="10">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+                            <VerticalStackLayout IsVisible="{Binding HasReminderDays}" VerticalOptions="Center" WidthRequest="78">
+                                <Label Text="{Binding ReminderDaysText}" FontSize="30" FontAttributes="Bold" HorizontalTextAlignment="Center"
+                                       TextColor="{DynamicResource TextPrimary}" />
+                                <Label Text="{Binding ReminderDaysCaption}" Style="{StaticResource MutedText}" HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
+                                <Label Text="{Binding ReminderMessage}" FontAttributes="Bold" TextColor="{DynamicResource TextPrimary}" />
+                                <Label Text="{Binding LastChangeText}" Style="{StaticResource MutedText}" />
+                                <ProgressBar Progress="{Binding ReminderProgress}" ProgressColor="{Binding ReminderProgressColor}"
+                                             IsVisible="{Binding HasReminderDays}" />
+                            </VerticalStackLayout>
+                        </Grid>
                         <Button Text="Ho cambiato la password" Command="{Binding MarkChangedCommand}"
                                 BackgroundColor="{DynamicResource CardBg}" TextColor="{DynamicResource Accent}" BorderColor="{DynamicResource BorderStrong}" BorderWidth="1" />
                     </VerticalStackLayout>
@@ -51,23 +62,45 @@
                 <!-- Proposte -->
                 <Button Text="Genera nuove proposte" Style="{StaticResource PrimaryButton}" Command="{Binding GenerateCommand}" />
 
-                <VerticalStackLayout Spacing="8" BindableLayout.ItemsSource="{Binding Suggestions}">
+                <VerticalStackLayout Spacing="10" BindableLayout.ItemsSource="{Binding Suggestions}">
                     <BindableLayout.ItemTemplate>
                         <DataTemplate x:DataType="vm:SuggestionItem">
-                            <Border Style="{StaticResource Card}">
-                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                                    <VerticalStackLayout Spacing="2">
-                                        <Label Text="{Binding Text}" FontFamily="monospace" FontSize="17" FontAttributes="Bold"
+                            <Grid>
+                                <!-- Prima proposta: in primo piano -->
+                                <Border Style="{StaticResource Card}" Stroke="{DynamicResource Accent}" StrokeThickness="1.5" Padding="16"
+                                        IsVisible="{Binding IsPrimary}">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="16" />
+                                    </Border.StrokeShape>
+                                    <VerticalStackLayout Spacing="10">
+                                        <Label Text="{Binding Text}" FontFamily="monospace" FontSize="22" FontAttributes="Bold"
                                                LineBreakMode="CharacterWrap" />
-                                        <HorizontalStackLayout Spacing="6">
-                                            <Label Text="{Binding LevelText}" TextColor="{Binding LevelColor}" FontAttributes="Bold" FontSize="12" />
-                                            <Label Text="{Binding BitsText}" Style="{StaticResource MutedText}" />
-                                        </HorizontalStackLayout>
+                                        <ProgressBar Progress="{Binding StrengthFraction}" ProgressColor="{Binding LevelColor}" />
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                            <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                                                <Label Text="{Binding LevelText}" TextColor="{Binding LevelColor}" FontAttributes="Bold" FontSize="13" />
+                                                <Label Text="{Binding BitsText}" Style="{StaticResource MutedText}" VerticalOptions="Center" />
+                                            </HorizontalStackLayout>
+                                            <Button Grid.Column="1" Text="Copia" Command="{Binding CopyCommand}" Style="{StaticResource PrimaryButton}" />
+                                        </Grid>
                                     </VerticalStackLayout>
-                                    <Button Grid.Column="1" Text="Copia" Command="{Binding CopyCommand}" VerticalOptions="Center"
-                                            BackgroundColor="{DynamicResource CardBg}" TextColor="{DynamicResource Accent}" BorderColor="{DynamicResource BorderStrong}" BorderWidth="1" />
-                                </Grid>
-                            </Border>
+                                </Border>
+                                <!-- Altre proposte: compatte -->
+                                <Border Style="{StaticResource Card}" IsVisible="{Binding IsSecondary}">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                        <VerticalStackLayout Spacing="2">
+                                            <Label Text="{Binding Text}" FontFamily="monospace" FontSize="16" FontAttributes="Bold"
+                                                   LineBreakMode="CharacterWrap" />
+                                            <HorizontalStackLayout Spacing="6">
+                                                <Label Text="{Binding LevelText}" TextColor="{Binding LevelColor}" FontAttributes="Bold" FontSize="12" />
+                                                <Label Text="{Binding BitsText}" Style="{StaticResource MutedText}" />
+                                            </HorizontalStackLayout>
+                                        </VerticalStackLayout>
+                                        <Button Grid.Column="1" Text="Copia" Command="{Binding CopyCommand}" VerticalOptions="Center"
+                                                BackgroundColor="{DynamicResource CardBg}" TextColor="{DynamicResource Accent}" BorderColor="{DynamicResource BorderStrong}" BorderWidth="1" />
+                                    </Grid>
+                                </Border>
+                            </Grid>
                         </DataTemplate>
                     </BindableLayout.ItemTemplate>
                 </VerticalStackLayout>
@@ -76,53 +109,44 @@
                 <Border Style="{StaticResource Card}">
                     <VerticalStackLayout Spacing="8">
                         <Label Text="Tipo di password" Style="{StaticResource CardTitle}" />
-                        <Label Text="Tocca una voce per scegliere come generare le password. Lunghezze e regole sono in «Impostazioni»." Style="{StaticResource MutedText}" />
+                        <Label Text="Scegli come generare le password. Lunghezze e regole sono in «Impostazioni»." Style="{StaticResource MutedText}" />
 
-                        <Border Stroke="{DynamicResource BorderStrong}" StrokeThickness="1" Padding="10,8" BackgroundColor="{Binding PassphraseBackground}">
+                        <Border BackgroundColor="{DynamicResource PageBg}" Stroke="{DynamicResource Border}" StrokeThickness="1" Padding="3">
                             <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="10" />
+                                <RoundRectangle CornerRadius="12" />
                             </Border.StrokeShape>
-                            <Border.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding SelectModeCommand}" CommandParameter="0" />
-                            </Border.GestureRecognizers>
-                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                                <Label Text="{Binding PassphraseMarker}" TextColor="{DynamicResource Accent}" FontSize="22" VerticalOptions="Center" />
-                                <VerticalStackLayout Grid.Column="1" Spacing="2">
-                                    <Label Text="Parole italiane (consigliata)" FontAttributes="Bold" TextColor="{DynamicResource TextPrimary}" />
-                                    <Label Text="Lampo-Cavallo-Nebbia-Fiume47!" FontFamily="monospace" Style="{StaticResource MutedText}" />
-                                </VerticalStackLayout>
+                            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="3">
+                            <Border Grid.Column="0" Padding="6,10" BackgroundColor="{Binding PassphraseBackground}" Stroke="Transparent">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="9" />
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding SelectModeCommand}" CommandParameter="0" />
+                                </Border.GestureRecognizers>
+                                <Label Text="Parole" FontAttributes="Bold" HorizontalTextAlignment="Center" TextColor="{DynamicResource TextPrimary}" />
+                            </Border>
+                            <Border Grid.Column="1" Padding="6,10" BackgroundColor="{Binding SyllablesBackground}" Stroke="Transparent">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="9" />
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding SelectModeCommand}" CommandParameter="1" />
+                                </Border.GestureRecognizers>
+                                <Label Text="Sillabe" FontAttributes="Bold" HorizontalTextAlignment="Center" TextColor="{DynamicResource TextPrimary}" />
+                            </Border>
+                            <Border Grid.Column="2" Padding="6,10" BackgroundColor="{Binding RandomBackground}" Stroke="Transparent">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="9" />
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding SelectModeCommand}" CommandParameter="2" />
+                                </Border.GestureRecognizers>
+                                <Label Text="Caratteri" FontAttributes="Bold" HorizontalTextAlignment="Center" TextColor="{DynamicResource TextPrimary}" />
+                            </Border>
                             </Grid>
                         </Border>
-                        <Border Stroke="{DynamicResource BorderStrong}" StrokeThickness="1" Padding="10,8" BackgroundColor="{Binding SyllablesBackground}">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="10" />
-                            </Border.StrokeShape>
-                            <Border.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding SelectModeCommand}" CommandParameter="1" />
-                            </Border.GestureRecognizers>
-                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                                <Label Text="{Binding SyllablesMarker}" TextColor="{DynamicResource Accent}" FontSize="22" VerticalOptions="Center" />
-                                <VerticalStackLayout Grid.Column="1" Spacing="2">
-                                    <Label Text="Sillabe pronunciabili" FontAttributes="Bold" TextColor="{DynamicResource TextPrimary}" />
-                                    <Label Text="Bamelo-Tirusa-Pevono83=" FontFamily="monospace" Style="{StaticResource MutedText}" />
-                                </VerticalStackLayout>
-                            </Grid>
-                        </Border>
-                        <Border Stroke="{DynamicResource BorderStrong}" StrokeThickness="1" Padding="10,8" BackgroundColor="{Binding RandomBackground}">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="10" />
-                            </Border.StrokeShape>
-                            <Border.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding SelectModeCommand}" CommandParameter="2" />
-                            </Border.GestureRecognizers>
-                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                                <Label Text="{Binding RandomMarker}" TextColor="{DynamicResource Accent}" FontSize="22" VerticalOptions="Center" />
-                                <VerticalStackLayout Grid.Column="1" Spacing="2">
-                                    <Label Text="Caratteri casuali" FontAttributes="Bold" TextColor="{DynamicResource TextPrimary}" />
-                                    <Label Text="k7Q#mP2v!xR4tw9N" FontFamily="monospace" Style="{StaticResource MutedText}" />
-                                </VerticalStackLayout>
-                            </Grid>
-                        </Border>
+                        <Label Text="{Binding ModeDescription}" TextColor="{DynamicResource TextPrimary}" />
+                        <Label Text="{Binding ModeExample}" FontFamily="monospace" Style="{StaticResource MutedText}" />
                     </VerticalStackLayout>
                 </Border>
 

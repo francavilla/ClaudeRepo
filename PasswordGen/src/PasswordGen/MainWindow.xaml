@@ -73,10 +73,34 @@
                         <TextBlock Text="Ho cambiato la password" />
                     </StackPanel>
                 </Button>
-                <TextBlock Style="{StaticResource Icon}" Text="&#xE787;" FontSize="18" Margin="0,0,12,0" />
+                <StackPanel DockPanel.Dock="Left" Margin="0,0,18,0" MinWidth="72" VerticalAlignment="Center"
+                            Visibility="{Binding HasReminderDays, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Text="{Binding ReminderDaysText}" FontSize="30" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                    <TextBlock Text="{Binding ReminderDaysCaption}" Style="{StaticResource Muted}" HorizontalAlignment="Center" />
+                </StackPanel>
+                <TextBlock Style="{StaticResource Icon}" Text="&#xE787;" FontSize="18" Margin="0,0,12,0"
+                           Visibility="{Binding HasReminderDays, Converter={StaticResource InverseBoolToVisibility}}" />
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock Text="{Binding ReminderMessage}" FontWeight="SemiBold" TextWrapping="Wrap" />
                     <TextBlock Text="{Binding LastChangeText}" Style="{StaticResource Muted}" />
+                    <ProgressBar Value="{Binding ReminderProgress}" Margin="0,8,0,0" MaxWidth="420" HorizontalAlignment="Left" Width="420"
+                                 Visibility="{Binding HasReminderDays, Converter={StaticResource BoolToVisibility}}">
+                        <ProgressBar.Style>
+                            <Style TargetType="ProgressBar" BasedOn="{StaticResource SlimProgress}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ReminderLevel}" Value="Ok">
+                                        <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding ReminderLevel}" Value="Warn">
+                                        <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding ReminderLevel}" Value="Error">
+                                        <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ProgressBar.Style>
+                    </ProgressBar>
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -132,25 +156,16 @@
                         <StackPanel>
                             <TextBlock Style="{StaticResource CardTitle}" Text="Tipo di password" />
 
-                            <RadioButton GroupName="Mode" IsChecked="{Binding IsPassphraseMode, Mode=TwoWay}">
-                                <StackPanel>
-                                    <TextBlock FontWeight="SemiBold" Text="Parole italiane (consigliata)" />
-                                    <TextBlock Style="{StaticResource Muted}" Text="Lampo-Cavallo-Nebbia-Fiume47!" FontFamily="{StaticResource MonoFont}" />
-                                </StackPanel>
-                            </RadioButton>
-                            <RadioButton GroupName="Mode" IsChecked="{Binding IsSyllablesMode, Mode=TwoWay}">
-                                <StackPanel>
-                                    <TextBlock FontWeight="SemiBold" Text="Sillabe pronunciabili" />
-                                    <TextBlock Style="{StaticResource Muted}" Text="Bamelo-Tirusa-Pevono83=" FontFamily="{StaticResource MonoFont}" />
-                                </StackPanel>
-                            </RadioButton>
-                            <RadioButton GroupName="Mode" IsChecked="{Binding IsRandomMode, Mode=TwoWay}">
-                                <StackPanel>
-                                    <TextBlock FontWeight="SemiBold" Text="Caratteri casuali" />
-                                    <TextBlock Style="{StaticResource Muted}" Text="k7Q#mP2v!xR4tw9N" FontFamily="{StaticResource MonoFont}" />
-                                </StackPanel>
-                            </RadioButton>
-
+                            <Border Background="{DynamicResource WindowBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                                    CornerRadius="10" Padding="2">
+                                <UniformGrid Columns="3">
+                                    <RadioButton Style="{StaticResource SegmentRadio}" GroupName="Mode" Content="Parole" IsChecked="{Binding IsPassphraseMode, Mode=TwoWay}" />
+                                    <RadioButton Style="{StaticResource SegmentRadio}" GroupName="Mode" Content="Sillabe" IsChecked="{Binding IsSyllablesMode, Mode=TwoWay}" />
+                                    <RadioButton Style="{StaticResource SegmentRadio}" GroupName="Mode" Content="Caratteri" IsChecked="{Binding IsRandomMode, Mode=TwoWay}" />
+                                </UniformGrid>
+                            </Border>
+                            <TextBlock Margin="2,10,0,0" TextWrapping="Wrap" Text="{Binding ModeDescription}" />
+                            <TextBlock Style="{StaticResource Muted}" Margin="2,2,0,0" FontFamily="{StaticResource MonoFont}" Text="{Binding ModeExample}" />
                         </StackPanel>
                     </Border>
                     <TextBlock Style="{StaticResource Muted}" Margin="2,-4,0,10"
@@ -190,41 +205,96 @@
                         <ItemsControl ItemsSource="{Binding Suggestions}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type vm:SuggestionViewModel}">
-                                    <Border Background="{DynamicResource SubtleBrush}" BorderBrush="{DynamicResource BorderBrush}"
-                                            BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,8">
-                                        <DockPanel>
-                                            <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Command="{Binding CopyCommand}"
-                                                    VerticalAlignment="Center" Margin="12,0,0,0">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE8C8;" Margin="0,0,8,0" />
-                                                    <TextBlock Text="Copia" />
-                                                </StackPanel>
-                                            </Button>
+                                    <Grid>
+                                        <!-- Prima proposta: in primo piano -->
+                                        <Border Background="{DynamicResource SubtleBrush}" BorderBrush="{DynamicResource AccentBrush}"
+                                                BorderThickness="1.5" CornerRadius="12" Padding="20,16" Margin="0,0,0,12"
+                                                Visibility="{Binding IsPrimary, Converter={StaticResource BoolToVisibility}}">
                                             <StackPanel>
                                                 <TextBox Text="{Binding Text, Mode=OneWay}" IsReadOnly="True" BorderThickness="0"
                                                          Background="Transparent" FontFamily="{StaticResource MonoFont}"
-                                                         FontSize="19" FontWeight="SemiBold" Padding="0" />
-                                                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                                    <TextBlock Text="{Binding LevelText}" FontWeight="SemiBold" FontSize="12">
-                                                        <TextBlock.Style>
-                                                            <Style TargetType="TextBlock">
-                                                                <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding Level}" Value="Weak">
-                                                                        <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}" />
-                                                                    </DataTrigger>
-                                                                    <DataTrigger Binding="{Binding Level}" Value="Fair">
-                                                                        <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </TextBlock.Style>
-                                                    </TextBlock>
-                                                    <TextBlock Text="{Binding BitsText, StringFormat=' · {0} di entropia'}" Style="{StaticResource Muted}" />
-                                                </StackPanel>
+                                                         FontSize="26" FontWeight="SemiBold" Padding="0" TextWrapping="Wrap" />
+                                                <ProgressBar Value="{Binding StrengthFraction}" Margin="0,10,0,0">
+                                                <ProgressBar.Style>
+                                                    <Style TargetType="ProgressBar" BasedOn="{StaticResource SlimProgress}">
+                                                        <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Level}" Value="Weak">
+                                                                <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Level}" Value="Fair">
+                                                                <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </ProgressBar.Style>
+                                            </ProgressBar>
+                                                <DockPanel Margin="0,10,0,0">
+                                                    <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Command="{Binding CopyCommand}">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Style="{StaticResource Icon}" Text="&#xE8C8;" Margin="0,0,8,0" />
+                                                            <TextBlock Text="Copia" />
+                                                        </StackPanel>
+                                                    </Button>
+                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding LevelText}" FontWeight="SemiBold" FontSize="12">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Level}" Value="Weak">
+                                                                    <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Level}" Value="Fair">
+                                                                    <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                                        <TextBlock Text="{Binding BitsText, StringFormat=' · {0} di entropia'}" Style="{StaticResource Muted}" />
+                                                    </StackPanel>
+                                                </DockPanel>
                                             </StackPanel>
-                                        </DockPanel>
-                                    </Border>
+                                        </Border>
+                                        <!-- Altre proposte: compatte -->
+                                        <Border Background="{DynamicResource SubtleBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                                                BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,8"
+                                                Visibility="{Binding IsSecondary, Converter={StaticResource BoolToVisibility}}">
+                                            <DockPanel>
+                                                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Command="{Binding CopyCommand}"
+                                                        VerticalAlignment="Center" Margin="12,0,0,0">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE8C8;" Margin="0,0,8,0" />
+                                                        <TextBlock Text="Copia" />
+                                                    </StackPanel>
+                                                </Button>
+                                                <StackPanel>
+                                                    <TextBox Text="{Binding Text, Mode=OneWay}" IsReadOnly="True" BorderThickness="0"
+                                                             Background="Transparent" FontFamily="{StaticResource MonoFont}"
+                                                             FontSize="17" FontWeight="SemiBold" Padding="0" />
+                                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                                        <TextBlock Text="{Binding LevelText}" FontWeight="SemiBold" FontSize="12">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Level}" Value="Weak">
+                                                                    <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Level}" Value="Fair">
+                                                                    <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                                        <TextBlock Text="{Binding BitsText, StringFormat=' · {0} di entropia'}" Style="{StaticResource Muted}" />
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </DockPanel>
+                                        </Border>
+                                    </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
