@@ -36,6 +36,7 @@ namespace PasswordGen.Core.Tests
             Assert.False(settings.LockEnabled);
             Assert.Equal(30, settings.LockGraceSeconds);
             Assert.Equal(15, settings.SyncIntervalSeconds);
+            Assert.Equal(string.Empty, settings.ExcludedSpecials);
             Assert.Equal(GenerationMode.Passphrase, settings.Mode);
             Assert.Equal(WordSourceMode.Builtin, settings.WordSource);
             Assert.Null(settings.CustomWordsPath);

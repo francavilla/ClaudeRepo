@@ -7,6 +7,17 @@ namespace PasswordGen.Core.Tests
     public class PasswordPolicyTests
     {
         [Fact]
+        public void CaratteriSpeciali_Esclusione_AmmessiENormalizzati()
+        {
+            Assert.Equal("!@#$%*?+=-_.", PasswordPolicy.AllowedSpecials("&"));
+            Assert.Equal(PasswordPolicy.DefaultSpecials, PasswordPolicy.AllowedSpecials(null));
+            Assert.Equal(PasswordPolicy.DefaultSpecials, PasswordPolicy.AllowedSpecials(PasswordPolicy.DefaultSpecials));   // non si può escludere tutto
+            Assert.Equal("#&", PasswordPolicy.NormalizeExcluded("&&x#1 "));   // solo speciali dell'elenco, senza doppioni, nell'ordine dell'elenco
+            Assert.Equal(string.Empty, PasswordPolicy.NormalizeExcluded(PasswordPolicy.DefaultSpecials));
+            Assert.Equal("E commerciale", PasswordPolicy.SpecialName('&'));
+        }
+
+        [Fact]
         public void Defaults_AreTheCommonCorporateRules()
         {
             var policy = new PasswordPolicy();

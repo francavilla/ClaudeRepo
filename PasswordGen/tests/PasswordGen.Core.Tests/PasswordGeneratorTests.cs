@@ -41,6 +41,25 @@ namespace PasswordGen.Core.Tests
         [InlineData(GenerationMode.Passphrase)]
         [InlineData(GenerationMode.Syllables)]
         [InlineData(GenerationMode.Random)]
+        public void Generate_NonUsaMaiICaratteriSpecialiEsclusi(GenerationMode mode)
+        {
+            var generator = Create();
+            const string excluded = "&%$#@!*?";   // restano + = - _ .
+            var policy = new PasswordPolicy { Specials = PasswordPolicy.AllowedSpecials(excluded) };
+
+            for (var i = 0; i < 300; i++)
+            {
+                var password = generator.Generate(new GenerationOptions { Mode = mode, Policy = policy });
+
+                Assert.True(password.Text.IndexOfAny(excluded.ToCharArray()) < 0, password.Text);
+                Assert.True(policy.IsValid(password.Text), password.Text);
+            }
+        }
+
+        [Theory]
+        [InlineData(GenerationMode.Passphrase)]
+        [InlineData(GenerationMode.Syllables)]
+        [InlineData(GenerationMode.Random)]
         public void Generate_RespectsALongerMinimumLength(GenerationMode mode)
         {
             var generator = Create();

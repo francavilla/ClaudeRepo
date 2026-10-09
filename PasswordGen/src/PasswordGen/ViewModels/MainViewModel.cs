@@ -108,6 +108,14 @@ namespace PasswordGen.ViewModels
             _requireDigit = _settings.RequireDigit;
             _requireSpecial = _settings.RequireSpecial;
             _avoidAmbiguous = _settings.AvoidAmbiguous;
+            _excludedSpecials = PasswordPolicy.NormalizeExcluded(_settings.ExcludedSpecials);
+            SpecialChars = new ObservableCollection<SpecialCharViewModel>();
+            foreach (var c in PasswordPolicy.DefaultSpecials)
+            {
+                SpecialChars.Add(new SpecialCharViewModel(c, ToggleSpecial) { IsAllowed = _excludedSpecials.IndexOf(c) < 0 });
+            }
+
+            ResetSpecialsCommand = new RelayCommand(ResetSpecials, () => _excludedSpecials.Length > 0);
             _wordSource = _settings.WordSource;
             _customWordsPath = _settings.CustomWordsPath;
             if (!string.IsNullOrEmpty(_customWordsPath))
@@ -506,6 +514,67 @@ namespace PasswordGen.ViewModels
         }
 
         /// <summary>Riepilogo leggibile delle regole attive.</summary>
+        // ------------------------------------------------------------ Caratteri speciali ammessi
+
+        private string _excludedSpecials = string.Empty;
+
+        public ObservableCollection<SpecialCharViewModel> SpecialChars { get; private set; }
+
+        public ICommand ResetSpecialsCommand { get; private set; }
+
+        /// <summary>Per esempio «Esclusi: & #», oppure «Nessun carattere escluso».</summary>
+        public string ExcludedSummary
+        {
+            get
+            {
+                return _excludedSpecials.Length == 0
+                    ? "Nessun carattere escluso (" + PasswordPolicy.DefaultSpecials.Length + " ammessi)."
+                    : "Esclusi: " + string.Join(" ", _excludedSpecials.ToCharArray()) + " (" + (PasswordPolicy.DefaultSpecials.Length - _excludedSpecials.Length) + " ammessi su " + PasswordPolicy.DefaultSpecials.Length + ").";
+            }
+        }
+
+        private void ToggleSpecial(SpecialCharViewModel item)
+        {
+            if (item.IsAllowed)
+            {
+                if (_excludedSpecials.Length + 1 >= PasswordPolicy.DefaultSpecials.Length)
+                {
+                    StatusMessage = "Serve almeno un carattere speciale ammesso: i separatori delle password ne hanno bisogno.";
+                    return;
+                }
+
+                _excludedSpecials = PasswordPolicy.NormalizeExcluded(_excludedSpecials + item.Character);
+            }
+            else
+            {
+                _excludedSpecials = _excludedSpecials.Replace(item.Character.ToString(), string.Empty);
+            }
+
+            ApplySpecials();
+        }
+
+        private void ResetSpecials()
+        {
+            _excludedSpecials = string.Empty;
+            ApplySpecials();
+        }
+
+        private void ApplySpecials()
+        {
+            foreach (var c in SpecialChars)
+            {
+                c.IsAllowed = _excludedSpecials.IndexOf(c.Character) < 0;
+            }
+
+            OnPropertyChanged(nameof(ExcludedSummary));
+            System.Windows.Input.CommandManager.InvalidateRequerySuggested();
+            if (!_loading)
+            {
+                Generate();
+                SaveSettings();
+            }
+        }
+
         public string PolicySummary
         {
             get
@@ -1708,7 +1777,8 @@ namespace PasswordGen.ViewModels
                     RequireLower = _requireLower,
                     RequireDigit = _requireDigit,
                     RequireSpecial = _requireSpecial,
-                    AvoidAmbiguous = _avoidAmbiguous
+                    AvoidAmbiguous = _avoidAmbiguous,
+                    Specials = PasswordPolicy.AllowedSpecials(_excludedSpecials)
                 }
             };
         }
@@ -1772,6 +1842,7 @@ namespace PasswordGen.ViewModels
             _settings.RequireDigit = _requireDigit;
             _settings.RequireSpecial = _requireSpecial;
             _settings.AvoidAmbiguous = _avoidAmbiguous;
+            _settings.ExcludedSpecials = _excludedSpecials;
             _settings.LockEnabled = _lockEnabled;
             _settings.LockGraceSeconds = _lockGraceSeconds;
             _settings.SyncIntervalSeconds = _syncIntervalSeconds;

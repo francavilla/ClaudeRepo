@@ -263,6 +263,45 @@ namespace PasswordGen.App.Tests
         }
 
         [Fact]
+        public void CaratteriSpeciali_Esclusione_SiSalvaENonCompareNelleProposte()
+        {
+            var h = CreateViewModel("a");
+            var ampersand = h.ViewModel.SpecialChars.First(c => c.Character == '&');
+
+            ampersand.ToggleCommand.Execute(null);
+
+            Assert.False(ampersand.IsAllowed);
+            Assert.Equal("&", h.Settings.Load().ExcludedSpecials);
+            Assert.Contains("&", h.ViewModel.ExcludedSummary);
+            for (var i = 0; i < 30; i++)
+            {
+                h.ViewModel.GenerateCommand.Execute(null);
+                Assert.All(h.ViewModel.Suggestions, s => Assert.DoesNotContain("&", s.Text));
+            }
+
+            h.ViewModel.ResetSpecialsCommand.Execute(null);
+            Assert.True(ampersand.IsAllowed);
+            Assert.Equal(string.Empty, h.Settings.Load().ExcludedSpecials);
+        }
+
+        [Fact]
+        public void CaratteriSpeciali_L_UltimoAmmessoNonSiPuoEscludere()
+        {
+            var h = CreateViewModel("a");
+            foreach (var item in h.ViewModel.SpecialChars.Skip(1).ToList())
+            {
+                item.ToggleCommand.Execute(null);
+            }
+
+            var last = h.ViewModel.SpecialChars[0];
+            last.ToggleCommand.Execute(null);
+
+            Assert.True(last.IsAllowed);
+            Assert.Contains("almeno un carattere", h.ViewModel.StatusMessage);
+            Assert.Equal(PasswordGen.Core.Policy.PasswordPolicy.DefaultSpecials.Length - 1, h.Settings.Load().ExcludedSpecials.Length);
+        }
+
+        [Fact]
         public void CambioSoloData_RegistraLaVoceSenzaPassword()
         {
             var h = CreateViewModel("a");

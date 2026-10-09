@@ -111,6 +111,13 @@ public class MainViewModel : ObservableObject
         _requireDigit = _settings.RequireDigit;
         _requireSpecial = _settings.RequireSpecial;
         _avoidAmbiguous = _settings.AvoidAmbiguous;
+        _excludedSpecials = PasswordPolicy.NormalizeExcluded(_settings.ExcludedSpecials);
+        foreach (var c in PasswordPolicy.DefaultSpecials)
+        {
+            SpecialChars.Add(new SpecialCharItem(c, ToggleSpecial) { IsAllowed = _excludedSpecials.IndexOf(c) < 0 });
+        }
+
+        ResetSpecialsCommand = new Command(ResetSpecials);
         _reminderEnabled = _settings.ReminderEnabled;
         _validityDays = _settings.ValidityDays;
         _wordSource = _settings.WordSource;
@@ -230,6 +237,11 @@ public class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(PassphraseBackground));
         OnPropertyChanged(nameof(SyllablesBackground));
         OnPropertyChanged(nameof(RandomBackground));
+        foreach (var c in SpecialChars)
+        {
+            c.Refresh();
+        }
+
         RefreshReminder();
     }
 
@@ -363,6 +375,60 @@ public class MainViewModel : ObservableObject
         set => SetOption(ref _avoidAmbiguous, value);
     }
 
+    // ---------------------------------------------------------------- Caratteri speciali ammessi
+
+    private string _excludedSpecials = string.Empty;
+
+    public ObservableCollection<SpecialCharItem> SpecialChars { get; } = new();
+
+    public ICommand ResetSpecialsCommand { get; }
+
+    /// <summary>Per esempio «Esclusi: & #», oppure «Nessun carattere escluso».</summary>
+    public string ExcludedSummary => _excludedSpecials.Length == 0
+        ? "Nessun carattere escluso (" + PasswordPolicy.DefaultSpecials.Length + " ammessi)."
+        : "Esclusi: " + string.Join(" ", _excludedSpecials.ToCharArray()) + " (" + (PasswordPolicy.DefaultSpecials.Length - _excludedSpecials.Length) + " ammessi su " + PasswordPolicy.DefaultSpecials.Length + ").";
+
+    private void ToggleSpecial(SpecialCharItem item)
+    {
+        if (item.IsAllowed)
+        {
+            if (_excludedSpecials.Length + 1 >= PasswordPolicy.DefaultSpecials.Length)
+            {
+                StatusMessage = "Serve almeno un carattere speciale ammesso: i separatori delle password ne hanno bisogno.";
+                return;
+            }
+
+            _excludedSpecials = PasswordPolicy.NormalizeExcluded(_excludedSpecials + item.Character);
+        }
+        else
+        {
+            _excludedSpecials = _excludedSpecials.Replace(item.Character.ToString(), string.Empty);
+        }
+
+        ApplySpecials();
+    }
+
+    private void ResetSpecials()
+    {
+        _excludedSpecials = string.Empty;
+        ApplySpecials();
+    }
+
+    private void ApplySpecials()
+    {
+        foreach (var c in SpecialChars)
+        {
+            c.IsAllowed = _excludedSpecials.IndexOf(c.Character) < 0;
+        }
+
+        OnPropertyChanged(nameof(ExcludedSummary));
+        if (!_loading)
+        {
+            Generate();
+            SaveSettings();
+        }
+    }
+
     public string PolicySummary
     {
         get
@@ -427,6 +493,7 @@ public class MainViewModel : ObservableObject
                 RequireDigit = _requireDigit,
                 RequireSpecial = _requireSpecial,
                 AvoidAmbiguous = _avoidAmbiguous,
+                Specials = PasswordPolicy.AllowedSpecials(_excludedSpecials),
             },
         };
     }
@@ -1680,6 +1747,7 @@ public class MainViewModel : ObservableObject
         _settings.RequireDigit = _requireDigit;
         _settings.RequireSpecial = _requireSpecial;
         _settings.AvoidAmbiguous = _avoidAmbiguous;
+        _settings.ExcludedSpecials = _excludedSpecials;
         _settings.LockEnabled = _lockEnabled;
         _settings.LockGraceSeconds = _lockGraceSeconds;
         _settings.SyncIntervalSeconds = _syncIntervalSeconds;

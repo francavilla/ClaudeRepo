@@ -505,6 +505,39 @@
                                 <CheckBox Content="Numeri" IsChecked="{Binding RequireDigit, Mode=TwoWay}" />
                                 <CheckBox Content="Caratteri speciali" IsChecked="{Binding RequireSpecial, Mode=TwoWay}" />
                             </UniformGrid>
+                            <TextBlock Margin="0,12,0,2" FontWeight="SemiBold" Text="Caratteri speciali ammessi" />
+                            <TextBlock Style="{StaticResource Muted}" Margin="0,0,0,8" Text="Tocca un carattere per escluderlo dalle password (utile per i siti che non lo accettano)." />
+                            <ItemsControl ItemsSource="{Binding SpecialChars}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Style="{StaticResource ChipButton}" Command="{Binding ToggleCommand}" ToolTip="{Binding ToolTipText}">
+                                            <TextBlock Text="{Binding Text}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsAllowed}" Value="False">
+                                                                <Setter Property="TextDecorations" Value="Strikethrough" />
+                                                                <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
+                                                                <Setter Property="Opacity" Value="0.6" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <DockPanel Margin="0,2,0,0">
+                                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Command="{Binding ResetSpecialsCommand}" Content="Ripristina tutti"
+                                        Padding="10,4" FontWeight="Normal" />
+                                <TextBlock Style="{StaticResource Muted}" VerticalAlignment="Center" Text="{Binding ExcludedSummary}" />
+                            </DockPanel>
                             <CheckBox Content="Evita caratteri ambigui (0 O 1 l I)" IsChecked="{Binding AvoidAmbiguous, Mode=TwoWay}" Margin="0,6,0,0" />
                         </StackPanel>
                     </Expander>

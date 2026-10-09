@@ -4,6 +4,15 @@ Tutte le modifiche rilevanti di PasswordGen sono documentate qui.
 Formato: [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) — versioni: [Semantic Versioning](https://semver.org/lang/it/).
 Il numero di versione si imposta in un solo punto: `<Version>` in `Directory.Build.props`.
 
+## [2.8.0] - 2026-10-09
+
+### Aggiunto
+- **Caratteri speciali da escludere** (Windows e Android). In «Impostazioni», nella sezione «Regole della policy», c'è la riga «Caratteri speciali ammessi» con i 13 caratteri (`! @ # $ % & * ? + = - _ .`) come tasti: tocca un carattere per escluderlo dalle password
+  (utile per i siti che non lo accettano); quelli esclusi sono barrati e grigi. Sotto compare il riepilogo («Esclusi: & #») e «Ripristina tutti».
+  - Vale per tutti i tipi di password, compresi i separatori tra parole e sillabe; le proposte si rigenerano subito e la stima di entropia tiene conto dei caratteri rimasti.
+  - Ne deve restare almeno uno ammesso (i separatori ne hanno bisogno): l'ultimo non si può spegnere.
+  - La scelta si salva su ogni dispositivo, come le altre regole della policy (non si sincronizza). Su Windows c'è un suggerimento col nome del carattere («E commerciale»).
+
 ## [2.7.1] - 2026-10-09
 
 ### Corretto

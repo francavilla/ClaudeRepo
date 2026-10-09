@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace PasswordGen.Core.Policy
 {
@@ -26,6 +27,47 @@ namespace PasswordGen.Core.Policy
 
         /// <summary>Caratteri speciali ammessi.</summary>
         public string Specials { get; set; } = DefaultSpecials;
+
+        /// <summary>
+        /// I caratteri speciali ammessi dopo aver escluso quelli indicati (quelli che non fanno parte dell'elenco predefinito si ignorano).
+        /// Ne resta sempre almeno uno: se si escludessero tutti, si torna all'elenco predefinito.
+        /// </summary>
+        public static string AllowedSpecials(string excluded)
+        {
+            excluded = excluded ?? string.Empty;
+            var allowed = new string(DefaultSpecials.Where(c => excluded.IndexOf(c) < 0).ToArray());
+            return allowed.Length == 0 ? DefaultSpecials : allowed;
+        }
+
+        /// <summary>Solo i caratteri esclusi che fanno parte dell'elenco predefinito, senza doppioni e nell'ordine dell'elenco.</summary>
+        public static string NormalizeExcluded(string excluded)
+        {
+            excluded = excluded ?? string.Empty;
+            var kept = new string(DefaultSpecials.Where(c => excluded.IndexOf(c) >= 0).ToArray());
+            return kept.Length >= DefaultSpecials.Length ? string.Empty : kept;
+        }
+
+        /// <summary>Nome parlato del carattere speciale (per i suggerimenti sui tasti).</summary>
+        public static string SpecialName(char c)
+        {
+            switch (c)
+            {
+                case '!': return "Punto esclamativo";
+                case '@': return "Chiocciola";
+                case '#': return "Cancelletto";
+                case '$': return "Dollaro";
+                case '%': return "Percentuale";
+                case '&': return "E commerciale";
+                case '*': return "Asterisco";
+                case '?': return "Punto interrogativo";
+                case '+': return "Più";
+                case '=': return "Uguale";
+                case '-': return "Trattino";
+                case '_': return "Trattino basso";
+                case '.': return "Punto";
+                default: return c.ToString();
+            }
+        }
 
         public PasswordPolicy Clone()
         {

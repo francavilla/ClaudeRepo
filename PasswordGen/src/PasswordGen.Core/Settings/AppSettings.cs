@@ -53,6 +53,9 @@ namespace PasswordGen.Core.Settings
         /// <summary>Secondi in secondo piano dopo i quali l'app si blocca di nuovo (0 = subito).</summary>
         public const int DefaultSyncIntervalSeconds = 15;
 
+        /// <summary>Caratteri speciali che non devono comparire nelle password (per i siti che non li accettano); vuoto = nessuno.</summary>
+        [DataMember] public string ExcludedSpecials { get; set; }
+
         [DataMember] public int LockGraceSeconds { get; set; }
 
         /// <summary>Ogni quanti secondi, ad app aperta, si controlla se l'altro dispositivo ha cambiato qualcosa (predefinito 15).</summary>
@@ -130,6 +133,7 @@ namespace PasswordGen.Core.Settings
             LockEnabled = false;
             LockGraceSeconds = 30;
             SyncIntervalSeconds = DefaultSyncIntervalSeconds;
+            ExcludedSpecials = string.Empty;
             LockHintDismissed = false;
             SyncPath = null;
             LastSyncUtcText = null;
@@ -150,6 +154,7 @@ namespace PasswordGen.Core.Settings
             RandomLength = Clamp(RandomLength, PasswordPolicy.MinAllowedLength, GenerationOptions.MaxRandomLength);
             SuggestionCount = Clamp(SuggestionCount, MinSuggestions, MaxSuggestions);
             SyncIntervalSeconds = Clamp(SyncIntervalSeconds, 5, 3600);
+            ExcludedSpecials = PasswordPolicy.NormalizeExcluded(ExcludedSpecials);
             LockGraceSeconds = Clamp(LockGraceSeconds, 0, PasswordGen.Core.Security.AppLockState.MaxGraceSeconds);
             ValidityDays = Clamp(ValidityDays, 7, 365);
             WarnDays = Clamp(WarnDays, 0, 30);

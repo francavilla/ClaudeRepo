@@ -124,6 +124,32 @@
                             <Label Text="Caratteri speciali" VerticalOptions="Center" />
                             <Switch Grid.Column="1" IsToggled="{Binding RequireSpecial, Mode=TwoWay}" />
                         </Grid>
+                        <Label Text="Caratteri speciali ammessi" FontAttributes="Bold" Margin="0,8,0,0" />
+                        <Label Text="Tocca un carattere per escluderlo dalle password (utile per i siti che non lo accettano)." Style="{StaticResource MutedText}" />
+                        <FlexLayout Wrap="Wrap" BindableLayout.ItemsSource="{Binding SpecialChars}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="vm:SpecialCharItem">
+                                    <Border WidthRequest="44" HeightRequest="44" Margin="0,0,6,6" Padding="0"
+                                            BackgroundColor="{Binding ChipBackground}" Stroke="{DynamicResource BorderStrong}" StrokeThickness="1"
+                                            SemanticProperties.Description="{Binding Name}">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="10" />
+                                        </Border.StrokeShape>
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding ToggleCommand}" />
+                                        </Border.GestureRecognizers>
+                                        <Label Text="{Binding Text}" FontFamily="monospace" FontSize="18" FontAttributes="Bold"
+                                               TextColor="{Binding ChipTextColor}" TextDecorations="{Binding ChipDecorations}"
+                                               HorizontalOptions="Center" VerticalOptions="Center" />
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </FlexLayout>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <Label Text="{Binding ExcludedSummary}" Style="{StaticResource MutedText}" VerticalOptions="Center" />
+                            <Button Grid.Column="1" Text="Ripristina tutti" Command="{Binding ResetSpecialsCommand}" FontSize="12"
+                                    BackgroundColor="{DynamicResource CardBg}" TextColor="{DynamicResource Accent}" BorderColor="{DynamicResource BorderStrong}" BorderWidth="1" />
+                        </Grid>
                         <Grid ColumnDefinitions="*,Auto">
                             <Label Text="Evita caratteri ambigui (0 O 1 l I)" VerticalOptions="Center" />
                             <Switch Grid.Column="1" IsToggled="{Binding AvoidAmbiguous, Mode=TwoWay}" />
