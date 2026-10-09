@@ -36,6 +36,9 @@ Più modifiche nella stessa richiesta = un solo incremento di versione.
   Avvio manuale su `main` (rifiuta altri rami) o tag uguale a `<Version>`; con `dry_run` costruisce e impacchetta senza creare tag né release (prova, da qualsiasi ramo).
   Richiedono il .NET 8 (Desktop Runtime per l'interfaccia). La 1.0.0 (solo CLI) ha un unico zip `SolutionDoctor-v1.0.0.zip`; dalla 1.1.0 gli zip sono due.
 
+- Le release di DesktopAppTemplate si creano con il workflow `Release DesktopAppTemplate` (`.github/workflows/release-desktopapptemplate.yml`):
+  stesso funzionamento, ma il tag è `desktopapptemplate-vX.Y.Z`, lo zip `DesktopAppTemplate-vX.Y.Z.zip` e le note vengono da `DesktopAppTemplate/CHANGELOG.md`.
+
 - Le release di PasswordGen sono **due, separate** (stessa versione di `PasswordGen/Directory.Build.props`, ma tag, titolo e file propri):
   - Windows: workflow `Release PasswordGen Desktop` (`.github/workflows/release-passwordgen-desktop.yml`), tag `passwordgen-desktop-vX.Y.Z`, zip `PasswordGen-Desktop-vX.Y.Z.zip`;
   - Android: workflow `Release PasswordGen Android` (`.github/workflows/release-passwordgen-android.yml`), tag `passwordgen-android-vX.Y.Z`, APK `PasswordGen-Android-vX.Y.Z.apk`.

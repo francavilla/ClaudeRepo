@@ -1,0 +1,78 @@
+# Crea una release di DesktopAppTemplate.
+# - push di un tag desktopapptemplate-vX.Y.Z: il tag deve corrispondere a <Version> in DesktopAppTemplate/Directory.Build.props;
+# - avvio manuale (Actions → Release DesktopAppTemplate → Run workflow): la versione si legge da
+#   Directory.Build.props e il tag desktopapptemplate-vX.Y.Z viene creato insieme alla release.
+# Compila su Windows (WPF e Windows Forms, .NET Framework 4.6.2), esegue i test e allega lo zip dell'applicazione.
+name: Release DesktopAppTemplate
+
+on:
+  push:
+    tags:
+      - 'desktopapptemplate-v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      DOTNET_NOLOGO: '1'
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Versione
+        id: version
+        shell: pwsh
+        run: |
+          [xml]$props = Get-Content 'DesktopAppTemplate/Directory.Build.props'
+          $version = ($props.Project.PropertyGroup | Where-Object { $_.Version }).Version
+          if ('${{ github.ref_type }}' -eq 'tag') {
+            $tagVersion = '${{ github.ref_name }}'.Replace('desktopapptemplate-v', '')
+            if ($tagVersion -ne $version) {
+              throw "Il tag $tagVersion non corrisponde a <Version>$version</Version> in DesktopAppTemplate/Directory.Build.props"
+            }
+          }
+          gh release view "desktopapptemplate-v$version" *> $null
+          if ($LASTEXITCODE -eq 0) { throw "La release desktopapptemplate-v$version esiste già: aggiornare <Version> prima di rilasciare." }
+          $global:LASTEXITCODE = 0
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=desktopapptemplate-v$version" >> $env:GITHUB_OUTPUT
+          Write-Host "Rilascio di DesktopAppTemplate $version"
+
+      - name: Test
+        run: dotnet test DesktopAppTemplate/tests/DesktopAppTemplate.Tests/DesktopAppTemplate.Tests.csproj -c Release
+
+      - name: Build Release (WPF + Windows Forms)
+        run: dotnet publish DesktopAppTemplate/src/DesktopAppTemplate.Host/DesktopAppTemplate.Host.csproj -c Release -o publish/DesktopAppTemplate
+
+      - name: Crea lo zip
+        shell: pwsh
+        run: Compress-Archive -Path 'publish/DesktopAppTemplate/*' -DestinationPath 'DesktopAppTemplate-v${{ steps.version.outputs.version }}.zip'
+
+      - name: Note di rilascio dal CHANGELOG
+        shell: pwsh
+        run: |
+          $version = '${{ steps.version.outputs.version }}'
+          $lines = Get-Content 'DesktopAppTemplate/CHANGELOG.md' -Encoding UTF8
+          $start = [Array]::FindIndex($lines, [Predicate[string]]{ param($l) $l.StartsWith("## [$version]") })
+          if ($start -lt 0) { throw "Nessuna voce '## [$version]' in DesktopAppTemplate/CHANGELOG.md" }
+          $end = [Array]::FindIndex($lines, $start + 1, [Predicate[string]]{ param($l) $l.StartsWith('## [') })
+          if ($end -lt 0) { $end = $lines.Length }
+          $notes = $lines[($start + 1)..($end - 1)] -join "`n"
+          $notes += "`n`n**Requisiti:** Windows 10/11 con .NET Framework 4.6.2 o successivo. Estrarre lo zip e avviare ``DesktopAppTemplate.exe`` (``--help`` elenca le opzioni; ``--ui wpf|winforms`` sceglie l'interfaccia)."
+          $notes += "`n`n**Database:** il predefinito è SQL Server sull'istanza locale (``Server=.;Database=ClaudeDB``, creato se manca). Senza SQL Server usare ``--storage sqlite``."
+          Set-Content -Path 'release-notes.md' -Value $notes -Encoding UTF8
+
+      - name: Crea la release
+        shell: pwsh
+        run: |
+          gh release create '${{ steps.version.outputs.tag }}' 'DesktopAppTemplate-v${{ steps.version.outputs.version }}.zip' `
+            --target '${{ github.sha }}' `
+            --title 'DesktopAppTemplate v${{ steps.version.outputs.version }}' `
+            --notes-file release-notes.md
