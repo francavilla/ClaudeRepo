@@ -1,0 +1,82 @@
+# Crea la release di SolutionDoctor (CLI .NET 8).
+# - push di un tag solutiondoctor-vX.Y.Z: il tag deve corrispondere a <Version> in SolutionDoctor/Directory.Build.props;
+# - avvio manuale (Actions → Release SolutionDoctor → Run workflow): la versione si legge da
+#   Directory.Build.props e il tag solutiondoctor-vX.Y.Z viene creato insieme alla release.
+# Compila su Windows, esegue i test e allega lo zip della CLI pubblicata.
+name: Release SolutionDoctor
+
+on:
+  push:
+    tags:
+      - 'solutiondoctor-v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      DOTNET_NOLOGO: '1'
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0   # la cronologia git serve ai test dell'analisi della frequenza di modifica
+
+      - name: Versione
+        id: version
+        shell: pwsh
+        run: |
+          [xml]$props = Get-Content 'SolutionDoctor/Directory.Build.props'
+          $version = ($props.Project.PropertyGroup | Where-Object { $_.Version }).Version
+          if ('${{ github.ref_type }}' -eq 'tag') {
+            $tagVersion = '${{ github.ref_name }}'.Substring('solutiondoctor-v'.Length)
+            if ($tagVersion -ne $version) {
+              throw "Il tag $tagVersion non corrisponde a <Version>$version</Version> in SolutionDoctor/Directory.Build.props"
+            }
+          }
+          gh release view "solutiondoctor-v$version" *> $null
+          if ($LASTEXITCODE -eq 0) { throw "La release solutiondoctor-v$version esiste già: aggiornare <Version> prima di rilasciare." }
+          $global:LASTEXITCODE = 0
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=solutiondoctor-v$version" >> $env:GITHUB_OUTPUT
+          Write-Host "Rilascio di SolutionDoctor $version"
+
+      - name: Test
+        run: dotnet test SolutionDoctor/SolutionDoctor.sln -c Release
+
+      - name: Pubblica la CLI
+        run: dotnet publish SolutionDoctor/src/SolutionDoctor.Cli/SolutionDoctor.Cli.csproj -c Release -o publish/SolutionDoctor
+
+      - name: Prova della CLI pubblicata (su ExeBuilder)
+        run: publish/SolutionDoctor/solutiondoctor.exe analyze ExeBuilder/ExeBuilder.sln -o solutiondoctor-prova.md
+
+      - name: Crea lo zip
+        shell: pwsh
+        run: Compress-Archive -Path 'publish/SolutionDoctor/*' -DestinationPath 'SolutionDoctor-v${{ steps.version.outputs.version }}.zip'
+
+      - name: Note di rilascio dal CHANGELOG
+        shell: pwsh
+        run: |
+          $version = '${{ steps.version.outputs.version }}'
+          $lines = Get-Content 'SolutionDoctor/CHANGELOG.md' -Encoding UTF8
+          $start = [Array]::FindIndex($lines, [Predicate[string]]{ param($l) $l.StartsWith("## [$version]") })
+          if ($start -lt 0) { throw "Nessuna voce '## [$version]' in SolutionDoctor/CHANGELOG.md" }
+          $end = [Array]::FindIndex($lines, $start + 1, [Predicate[string]]{ param($l) $l.StartsWith('## [') })
+          if ($end -lt 0) { $end = $lines.Length }
+          $notes = $lines[($start + 1)..($end - 1)] -join "`n"
+          $notes += "`n`n**Requisiti:** Windows con il runtime .NET 8 (o un SDK .NET 8 o successivo). Estrarre lo zip e da un prompt dei comandi eseguire ``solutiondoctor analyze <percorso della .sln>`` (aggiungere ``-o report.md`` per salvare il report su file). Per l'analisi della frequenza di modifica serve ``git`` nel PATH."
+          Set-Content -Path 'release-notes.md' -Value $notes -Encoding UTF8
+
+      - name: Crea la release
+        shell: pwsh
+        run: |
+          gh release create '${{ steps.version.outputs.tag }}' 'SolutionDoctor-v${{ steps.version.outputs.version }}.zip' `
+            --target '${{ github.sha }}' `
+            --title 'SolutionDoctor v${{ steps.version.outputs.version }}' `
+            --notes-file release-notes.md
