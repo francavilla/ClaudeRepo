@@ -691,6 +691,7 @@ namespace PasswordGen.App.Tests
             b.Dialogs.Passphrases.Enqueue(Phrase);
             b.ViewModel.ImportCommand.Execute(null);
             WaitFor(() => b.ViewModel.HistoryEntries.Count == 1, "importazione");
+            WaitFor(() => b.Settings.Load().LastChangeDate == Today, "salvataggio della data");   // le impostazioni si salvano dopo lo storico
 
             Assert.Equal(a.ViewModel.HistoryEntries[0].Password, b.ViewModel.HistoryEntries[0].Password);
             Assert.Equal(Today, b.Settings.Load().LastChangeDate);
